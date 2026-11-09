@@ -113,6 +113,7 @@ tests/                  → тести для всіх модулів
 ## М5. Ефемериди — ⬜ (критичний шлях)
 **Файли:** `app/services/ephemeris.py`, `tools/download_kernels.py`
 **Призначення:** азимут, кут місця та відстань Сонця й Землі з точки на Місяці.
+**Математика:** [MATH.md](MATH.md), розділи 1–5, 7; прототип — `tools/research/lunar_geometry.py`.
 
 **Інтерфейс:**
 - `sun_position(lat, lon, when) -> SkyPosition`
@@ -120,7 +121,7 @@ tests/                  → тести для всіх модулів
 - `next_crossing(lat, lon, when, body, rising) -> datetime | None`
 
 **MVP:**
-- Реалізація на **skyfield** + ефемериди DE440s (або DE421) + PCK орієнтації Місяця (`moon_pa_de440`, система `MOON_ME`).
+- Реалізація на **skyfield** + ефемериди DE440 (пакет `naif-de440` з PyPI) + орієнтація Місяця за моделлю IAU 2015; пізніше — PCK `moon_pa_de440` (система `MOON_ME`).
 - Точність кута місця — не гірше 0,1°.
 - Діапазон дат — щонайменше 2026–2060 (десятки років уперед).
 - Ядра SPICE завантажуються скриптом у `data_cache/`, у git не потрапляють.
@@ -135,6 +136,7 @@ tests/                  → тести для всіх модулів
 ## М6. Радіогоризонт — 🟨
 **Файли:** `app/services/horizon.py`, `tools/build_horizon_masks.py`
 **Призначення:** чи видно Сонце/Землю з урахуванням рельєфу.
+**Математика:** [MATH.md](MATH.md), розділ 6. ⚠️ Замінити лінійну частку диска на формулу сегмента (6.3).
 
 **MVP:**
 - `visible_fraction(elevation, azimuth, mask, angular_radius)` — частка диска над горизонтом (для Сонця — з кутовим радіусом ~0,267°). ✅
@@ -164,6 +166,7 @@ tests/                  → тести для всіх модулів
 ## М8. Зв'язок і DSN — 🟨
 **Файли:** `app/services/comms.py`, `app/services/dsn.py`, `app/data/dsn_stations.json`
 **Призначення:** затримка сигналу та рекомендація станції DSN.
+**Математика:** [MATH.md](MATH.md), розділ 9.
 
 **MVP:**
 - `signal_delay_s(distance_km)` — затримка в один бік. ✅

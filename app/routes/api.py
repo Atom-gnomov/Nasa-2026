@@ -30,6 +30,10 @@ def _parse_float(name: str, lo: float, hi: float) -> float:
     return value
 
 
+def _parse_optional_float(name: str, default: float, lo: float, hi: float) -> float:
+    return _parse_float(name, lo, hi) if name in request.args else default
+
+
 @bp.get("/health")
 def health():
     return jsonify(status="ok")
@@ -55,12 +59,16 @@ def list_dsn():
 
 @bp.get("/metrics")
 def get_metrics():
-    """Метрики для оверлею: /api/metrics?lat=-89.5&lon=0&datetime=2027-01-01T00:00Z"""
+    """Метрики для оверлею: /api/metrics?lat=-89.5&lon=0&datetime=2027-01-01T00:00Z&height=2
+
+    height — висота щогли/панелі над ґрунтом, метри (необов'язково, 0…1000).
+    """
     lat = _parse_float("lat", -90, 90)
     lon = _parse_float("lon", -180, 360)
     when = _parse_datetime(request.args.get("datetime"))
+    height_m = _parse_optional_float("height", 0.0, 0.0, 1000.0)
     try:
-        result = metrics.site_metrics(lat, lon, when)
+        result = metrics.site_metrics(lat, lon, when, height_m)
     except NotImplementedError as exc:
         return jsonify(error="not_implemented", detail=str(exc)), 501
     return jsonify(result.to_dict())
@@ -83,7 +91,7 @@ def compare():
         results = [metrics.site_metrics(s.lat, s.lon, when).to_dict() for s in selected]
     except NotImplementedError as exc:
         return jsonify(error="not_implemented", detail=str(exc)), 501
-    return jsonify([{"site": s.to_dict(), "metrics": m} for s, m in zip(selected, results)])
+    return jsonify([{"site": s.to_dict(), "metrics": m} for s, m in zip(selected, results, strict=True)])
 
 
 @bp.errorhandler(400)

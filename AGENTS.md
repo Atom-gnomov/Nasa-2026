@@ -23,7 +23,7 @@
 ## Запуск і перевірки
 ```bash
 python -m venv .venv && . .venv/bin/activate
-pip install -r requirements-dev.txt
+pip install -r requirements-dev.txt   # включно з ефемеридами DE440 (~114 МБ)
 flask --app app run --debug   # http://127.0.0.1:5000
 python -m pytest              # тести — обов'язково перед push
 ```
@@ -55,7 +55,8 @@ python -m pytest              # тести — обов'язково перед 
 - Одна задача змінює **лише файли своєї зони**. Якщо треба змінити чужу зону — окремий невеликий PR або домовленість у задачі.
 - Зони = модулі з [docs/MODULES.md](docs/MODULES.md) (М1–М15). Коротко:
   - `docs/` — документація;
-  - `app/services/<модуль>.py` + `tests/` — розрахунки (ефемериди, горизонт, метрики, DSN);
+  - `app/core/<модуль>.py` + `tests/test_core_*.py` — математичне ядро (чисті функції, без Flask; формули — `docs/MATH.md`);
+  - `app/services/<модуль>.py` + `tests/` — сервіси поверх ядра (метрики, DSN, каталог місць);
   - `app/routes/` — сторінки й API;
   - `app/templates/`, `app/static/css/` — верстка;
   - `app/static/js/<модуль>.js` — фронтенд-модулі (один файл — один модуль);

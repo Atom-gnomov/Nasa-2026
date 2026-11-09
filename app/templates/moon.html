@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Місяць — Lunar Site Explorer{% endblock %}
+{% block content %}
+<section class="moon-layout">
+  <div id="moon-globe" class="canvas-host">
+    {# TODO (модуль moon_globe.js): 3D-глобус Three.js з текстурами CGI Moon Kit і вибором точки кліком #}
+    <p class="placeholder">Тут буде 3D-глобус Місяця</p>
+  </div>
+  <div class="side-panel">
+    <h2>Вибір місця</h2>
+    <select id="site-select"><option value="">— список місць —</option></select>
+    <fieldset class="coords">
+      <legend>Або координати</legend>
+      <label>Широта <input type="number" id="lat-input" min="-90" max="90" step="0.0001"></label>
+      <label>Довгота <input type="number" id="lon-input" min="-180" max="360" step="0.0001"></label>
+      <button type="button" id="coords-apply">Застосувати</button>
+    </fieldset>
+    <h2>Порівняння</h2>
+    {# TODO (модуль compare.js): друге місце, таблиця порівняння #}
+    <p class="placeholder">Порівняння двох місць — у розробці</p>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script type="module" src="{{ url_for('static', filename='js/moon_globe.js') }}"></script>
+{% endblock %}

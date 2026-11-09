@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Lunar Site Explorer{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {# М16: Three.js через importmap, версія закріплена #}
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <span class="logo">Lunar Site Explorer</span>
+    <nav class="tabs">
+      <a href="{{ url_for('pages.moon') }}" class="{{ 'active' if active_tab == 'moon' }}">Місяць</a>
+      <a href="{{ url_for('pages.system') }}" class="{{ 'active' if active_tab == 'system' }}">Система</a>
+    </nav>
+    {# Календар — спільний для всіх вкладок (модуль static/js/calendar.js) #}
+    <label class="calendar">
+      Дата (UTC)
+      <input type="datetime-local" id="calendar-input" step="60">
+    </label>
+  </header>
+
+  <main id="view">{% block content %}{% endblock %}</main>
+
+  {# Оверлей метрик — поверх усього сайту (модуль static/js/overlay.js) #}
+  <aside id="metrics-overlay" class="overlay">
+    <h2>Метрики</h2>
+    <dl>
+      <dt>Місце</dt><dd data-metric="site">—</dd>
+      <dt>Кут Сонця</dt><dd data-metric="sun_elevation_deg">—</dd>
+      <dt>Сонце видно</dt><dd data-metric="sun_visible_fraction">—</dd>
+      <dt>Кут Землі</dt><dd data-metric="earth_elevation_deg">—</dd>
+      <dt>Земля видна</dt><dd data-metric="earth_visible">—</dd>
+      <dt>До заходу Сонця, год</dt><dd data-metric="hours_to_sunset">—</dd>
+      <dt>До заходу Землі, год</dt><dd data-metric="hours_to_earthset">—</dd>
+      <dt>Затримка сигналу, с</dt><dd data-metric="signal_delay_s">—</dd>
+    </dl>
+    <p class="overlay-status" id="overlay-status"></p>
+  </aside>
+
+  <script type="module" src="{{ url_for('static', filename='js/calendar.js') }}"></script>
+  <script type="module" src="{{ url_for('static', filename='js/overlay.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

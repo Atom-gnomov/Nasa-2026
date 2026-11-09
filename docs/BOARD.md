@@ -115,6 +115,7 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 - Каркас Flask-застосунку, 3D-підсистема — PR #4
 - Математика (MATH.md), математичне ядро `app/core/`, правила злиття, вимога Docker — PR #5
 - Контракти API й даних (CONTRACTS.md, `contracts/`), план задач (TASKS.md), дошка агентів — PR #6
+- Гілка `coordination` для спільних документів, права на документи, status.py — PR #7
 
 ### Велес
 

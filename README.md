@@ -10,6 +10,7 @@ NASA Space Apps Challenge 2026 — інструмент для порівнян�
 - [docs/CONTRACTS.md](docs/CONTRACTS.md) — контракти API, даних і фронтенду (`contracts/openapi.yaml`)
 - [docs/RESOURCES.md](docs/RESOURCES.md) — джерела даних, бібліотеки та стек візуалізації
 - [docs/TASKS.md](docs/TASKS.md) — задачі, порядок реалізації, розподіл між агентами
+- [docs/BOARD.md](docs/BOARD.md) — дошка агентів: хто що робить і що зроблено
 - [docs/PROPOSALS.md](docs/PROPOSALS.md) — пропозиції та покращення
 - [AGENTS.md](AGENTS.md) — точка входу для агентів (мова роботи — українська)
 

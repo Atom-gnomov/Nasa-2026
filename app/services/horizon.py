@@ -1,50 +1,30 @@
-"""Радіогоризонт: перевірка видимості Сонця/Землі з урахуванням рельєфу.
+"""Сервіс радіогоризонту: маска для точки та перевірка видимості.
 
-Маска горизонту — кут піднесення рельєфу (градуси) для кожного азимута 0..359.
-Атмосфери немає, тому рефракцію не враховуємо.
+Математика — app.core.horizon і docs/MATH.md, §6.
 """
 
-from collections.abc import Sequence
+from __future__ import annotations
 
-SUN_ANGULAR_RADIUS_DEG = 0.267  # ~0,53° / 2
-
-
-def mask_elevation(mask: Sequence[float], azimuth_deg: float) -> float:
-    """Висота горизонту на заданому азимуті (лінійна інтерполяція між градусами)."""
-    n = len(mask)
-    if n == 0:
-        return 0.0
-    pos = (azimuth_deg % 360.0) * n / 360.0
-    i = int(pos) % n
-    frac = pos - int(pos)
-    return mask[i] * (1 - frac) + mask[(i + 1) % n] * frac
+from app.core.horizon import (  # noqa: F401  (реекспорт для зручності)
+    EARTH_ANGULAR_RADIUS_DEG,
+    SUN_ANGULAR_RADIUS_DEG,
+    HorizonMask,
+    dip_deg,
+    disk_fraction,
+)
 
 
-def visible_fraction(
-    elevation_deg: float,
-    azimuth_deg: float,
-    mask: Sequence[float] | None = None,
-    angular_radius_deg: float = 0.0,
-) -> float:
-    """Частка диска над горизонтом: 0 — не видно, 1 — повністю видно.
+def load_mask(lat: float, lon: float, observer_height_m: float = 0.0) -> HorizonMask:
+    """Маска горизонту для точки.
 
-    Для точкового об'єкта (angular_radius_deg=0) повертає 0 або 1.
-    Для Сонця передавайте SUN_ANGULAR_RADIUS_DEG — наближено, лінійно за висотою.
+    TODO (М6): читати маски, передраховані з DEM LOLA (tools/build_horizon_masks.py).
+    Поки — гладка сфера з урахуванням пониження горизонту для висоти щогли.
     """
-    horizon = mask_elevation(mask, azimuth_deg) if mask else 0.0
-    delta = elevation_deg - horizon
-    if angular_radius_deg <= 0:
-        return 1.0 if delta > 0 else 0.0
-    if delta >= angular_radius_deg:
-        return 1.0
-    if delta <= -angular_radius_deg:
-        return 0.0
-    return (delta + angular_radius_deg) / (2 * angular_radius_deg)
+    return HorizonMask.flat(360, -dip_deg(observer_height_m))
 
 
-def load_mask(lat: float, lon: float) -> list[float] | None:
-    """Маска горизонту для точки з передрозрахованих даних (tools/).
-
-    TODO: читати маски, згенеровані з DEM LOLA. Поки — None (гладка сфера).
-    """
-    return None
+def visible_fraction(elevation_deg: float, azimuth_deg: float, mask: HorizonMask | None = None,
+                     angular_radius_deg: float = 0.0) -> float:
+    """Частка диска над горизонтом: 0 — не видно, 1 — повністю видно."""
+    horizon = float(mask.at(azimuth_deg)) if mask is not None else 0.0
+    return float(disk_fraction(elevation_deg, horizon, angular_radius_deg))

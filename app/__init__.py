@@ -15,4 +15,16 @@ def create_app(config_object: type[Config] = Config) -> Flask:
 
     app.register_blueprint(pages_bp)
     app.register_blueprint(api_bp, url_prefix="/api")
+
+    @app.errorhandler(404)
+    @app.errorhandler(405)
+    def api_json_errors(err):
+        """Невідомі шляхи /api/* — теж JSON за контрактом помилок."""
+        from flask import jsonify, request
+
+        if request.path.startswith("/api/"):
+            code = "not_found" if err.code == 404 else "bad_request"
+            return jsonify(error=code, detail=err.description), err.code
+        return err
+
     return app

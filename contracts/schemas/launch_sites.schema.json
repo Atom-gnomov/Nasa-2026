@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "launch_sites.schema.json",
+  "title": "Місця старту (app/data/launch_sites.json)",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["id", "name", "lat", "lon", "kind"],
+    "additionalProperties": false,
+    "properties": {
+      "id": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+      "name": {"type": "string"},
+      "lat": {"type": "number", "minimum": -90, "maximum": 90},
+      "lon": {"type": "number", "minimum": -180, "maximum": 180},
+      "kind": {"enum": ["spaceport", "sea_platform", "air_launch", "custom"]},
+      "country": {"type": "string"},
+      "note": {"type": "string"},
+      "verified": {"type": "boolean", "default": false}
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sites.schema.json",
+  "title": "Каталог місць посадки (app/data/sites.json)",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["id", "name", "lat", "lon", "category"],
+    "additionalProperties": false,
+    "properties": {
+      "id": {"type": "string", "pattern": "^[a-z0-9-]+$", "description": "Унікальний, стабільний (на нього посилаються URL і порівняння)"},
+      "name": {"type": "string"},
+      "lat": {"type": "number", "minimum": -90, "maximum": 90, "description": "Селенографічна широта, градуси, MOON_ME"},
+      "lon": {"type": "number", "minimum": -180, "maximum": 360, "description": "Довгота на схід, градуси"},
+      "category": {"enum": ["apollo", "clps", "artemis", "international", "custom"]},
+      "note": {"type": "string", "description": "Коротко про місце + посилання на джерело координат"},
+      "verified": {"type": "boolean", "default": false}
+    }
+  }
+}

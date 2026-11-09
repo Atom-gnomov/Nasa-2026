@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dataset_manifest.schema.json",
+  "title": "Опис зовнішнього набору даних (data_cache/<dataset>/manifest.json)",
+  "description": "Кожен підключений набір даних (DEM, карти освітленості, експорти Horizons, списки місць тощо) має manifest.json. Адаптер читає набір і віддає дані в контрактах app/core/sources.py.",
+  "type": "object",
+  "required": ["id", "kind", "title", "source_url", "license", "files"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+    "kind": {"enum": ["ephemeris", "dem", "horizon_masks", "illumination", "temperature", "sites", "stations", "launch_sites", "other"]},
+    "title": {"type": "string"},
+    "source_url": {"type": "string"},
+    "license": {"type": "string"},
+    "version": {"type": "string"},
+    "downloaded_utc": {"type": "string", "format": "date-time"},
+    "body": {"enum": ["moon", "earth"], "default": "moon"},
+    "crs": {"type": "string", "description": "WKT або PROJ-рядок для растрів"},
+    "reference_radius_km": {"type": "number", "description": "Опорна сфера для висот (LOLA: 1737.4)"},
+    "height_units": {"enum": ["m", "km"]},
+    "resolution_m": {"type": "number"},
+    "coverage": {
+      "type": "object",
+      "properties": {
+        "lat_min": {"type": "number"}, "lat_max": {"type": "number"},
+        "lon_min": {"type": "number"}, "lon_max": {"type": "number"},
+        "time_start_utc": {"type": "string", "format": "date-time"},
+        "time_end_utc": {"type": "string", "format": "date-time"}
+      }
+    },
+    "files": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "adapter": {"type": "string", "description": "Python-шлях до класу адаптера, напр. app.adapters.lola:LolaGeoTiffHeights"},
+    "notes": {"type": "string"}
+  }
+}

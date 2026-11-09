@@ -1,0 +1,319 @@
+{
+  "Meta": {
+    "api_version": "1.0.0",
+    "ephemeris": "JPL DE440",
+    "moon_orientation": "IAU 2015 (Archinal et al., 2018)",
+    "moon_radius_km": 1737.4,
+    "data_sources": [
+      {
+        "id": "de440",
+        "kind": "ephemeris",
+        "description": "JPL DE440 через пакет naif-de440",
+        "version": "2020-12-21"
+      },
+      {
+        "id": "flat",
+        "kind": "horizon_masks",
+        "description": "Гладка сфера (рельєф ще не підключено)"
+      }
+    ],
+    "limits": {
+      "max_period_days": 3653,
+      "max_points": 20000,
+      "event_search_hours": 720
+    }
+  },
+  "HorizonMask": {
+    "lat": -89.5,
+    "lon": 0.0,
+    "observer_height_m": 2.0,
+    "azimuth_step_deg": 90.0,
+    "elevations_deg": [
+      -0.087,
+      -0.087,
+      -0.087,
+      -0.087
+    ],
+    "source": "flat",
+    "max_distance_km": 0,
+    "sky_view_fraction": 1.0015
+  },
+  "Timeline": {
+    "lat": -89.5,
+    "lon": 0.0,
+    "height_m": 2.0,
+    "step_h": 4.0,
+    "times": [
+      "2027-07-01T00:00:00Z",
+      "2027-07-01T04:00:00Z",
+      "2027-07-01T08:00:00Z",
+      "2027-07-01T12:00:00Z",
+      "2027-07-01T16:00:00Z",
+      "2027-07-01T20:00:00Z"
+    ],
+    "sun": {
+      "azimuth_deg": [
+        216.79,
+        214.75,
+        212.71,
+        210.67,
+        208.62,
+        206.58
+      ],
+      "elevation_deg": [
+        -1.268,
+        -1.275,
+        -1.28,
+        -1.286,
+        -1.29,
+        -1.294
+      ],
+      "visible_fraction": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "earth": {
+      "azimuth_deg": [
+        353.61,
+        353.79,
+        353.98,
+        354.19,
+        354.4,
+        354.62
+      ],
+      "elevation_deg": [
+        6.783,
+        6.712,
+        6.628,
+        6.533,
+        6.427,
+        6.309
+      ],
+      "visible_fraction": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "stations": [
+      {
+        "station_id": "goldstone",
+        "available": [
+          false,
+          false,
+          false,
+          true,
+          true,
+          true
+        ],
+        "moon_elevation_deg": [
+          -1.76,
+          -29.6,
+          -17.0,
+          23.21,
+          70.07,
+          56.16
+        ]
+      },
+      {
+        "station_id": "madrid",
+        "available": [
+          false,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        "moon_elevation_deg": [
+          -15.33,
+          22.04,
+          65.4,
+          56.73,
+          13.6,
+          -18.74
+        ]
+      },
+      {
+        "station_id": "canberra",
+        "available": [
+          true,
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        "moon_elevation_deg": [
+          27.8,
+          -2.54,
+          -47.38,
+          -77.99,
+          -34.37,
+          7.43
+        ]
+      }
+    ],
+    "summary": {
+      "period_h": 24.0,
+      "sun_hours": 0.0,
+      "comm_hours": 24.0,
+      "sun_fraction": 0.0,
+      "comm_fraction": 1.0,
+      "longest_night_h": 24.0,
+      "longest_comm_gap_h": 0.0,
+      "energy_wh_per_m2": 0.0
+    }
+  },
+  "EventList": {
+    "lat": -89.5,
+    "lon": 0.0,
+    "start": "2027-07-01T00:00:00Z",
+    "end": "2027-07-31T00:00:00Z",
+    "events": [
+      {
+        "body": "earth",
+        "kind": "set",
+        "datetime": "2027-07-06T06:55:00Z"
+      },
+      {
+        "body": "sun",
+        "kind": "rise",
+        "datetime": "2027-07-13T12:07:00Z"
+      },
+      {
+        "body": "station:canberra",
+        "kind": "set",
+        "datetime": "2027-07-01T09:40:00Z"
+      }
+    ]
+  },
+  "SystemState": {
+    "datetime": "2027-07-01T00:00:00Z",
+    "frame": "icrf_geocentric_km",
+    "sun_km": [
+      -22723047.0,
+      137979142.0,
+      59811470.0
+    ],
+    "moon_km": [
+      209212.9,
+      266354.3,
+      151061.7
+    ],
+    "moon_orientation": [
+      [
+        -0.470577,
+        -0.819339,
+        -0.327478
+      ],
+      [
+        0.882147,
+        -0.428732,
+        -0.19495
+      ],
+      [
+        0.01933,
+        -0.380622,
+        0.924528
+      ]
+    ],
+    "sub_solar_point": {
+      "lat": 0.867,
+      "lon": -143.215
+    },
+    "sub_earth_point": {
+      "lat": -6.553,
+      "lon": -6.379
+    },
+    "earth_rotation_deg": 278.828
+  },
+  "SearchRequest": {
+    "start": "2027-01-01T00:00:00Z",
+    "end": "2028-01-01T00:00:00Z",
+    "region": {
+      "lat_min": -90,
+      "lat_max": -84,
+      "lon_min": -180,
+      "lon_max": 180
+    },
+    "height_m": 2,
+    "min_sun_hours": 4000,
+    "min_comm_hours": 3000,
+    "earth_target": {
+      "lat": 50.45,
+      "lon": 30.52
+    },
+    "launch_site_ids": [
+      "kourou",
+      "cape-canaveral"
+    ],
+    "trajectory": "direct",
+    "priorities": [
+      "energy",
+      "comms",
+      "cost",
+      "risk"
+    ],
+    "mode": "weighted",
+    "limit": 10
+  },
+  "SearchResponse": {
+    "weights": {
+      "energy": 0.521,
+      "comms": 0.271,
+      "cost": 0.146,
+      "risk": 0.063
+    },
+    "chains": [
+      {
+        "launch_site_id": "kourou",
+        "moon_site": {
+          "lat": -89.45,
+          "lon": -137.3
+        },
+        "dsn_station_id": "canberra",
+        "earth_target": {
+          "lat": 50.45,
+          "lon": 30.52
+        },
+        "score_pct": 81.4,
+        "pareto": true,
+        "factors": {
+          "energy": 0.92,
+          "comms": 0.71,
+          "cost": 0.66,
+          "risk": 0.8
+        }
+      }
+    ]
+  },
+  "LaunchWindow": {
+    "launch_site_id": "kourou",
+    "trajectory": "direct",
+    "days": [
+      {
+        "date": "2027-07-01",
+        "score_pct": 42.0,
+        "arrival": "2027-07-05T10:00:00Z"
+      },
+      {
+        "date": "2027-07-02",
+        "score_pct": 77.5,
+        "arrival": "2027-07-06T09:00:00Z"
+      }
+    ],
+    "best": {
+      "date": "2027-07-02",
+      "score_pct": 77.5
+    }
+  }
+}

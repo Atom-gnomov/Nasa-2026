@@ -1,0 +1,8 @@
+[
+  {"id": "apollo-11", "name": "Apollo 11 (Море Спокою)", "lat": 0.6741, "lon": 23.4730, "category": "apollo", "note": "Перша висадка людей, 1969"},
+  {"id": "apollo-17", "name": "Apollo 17 (Таврус-Літтров)", "lat": 20.1908, "lon": 30.7717, "category": "apollo", "note": "Остання місія Apollo, 1972"},
+  {"id": "change-4", "name": "Chang'e 4 (кратер фон Карман)", "lat": -45.4446, "lon": 177.5991, "category": "international", "note": "Перша посадка на зворотному боці, 2019"},
+  {"id": "chandrayaan-3", "name": "Chandrayaan-3 (точка Шів Шакті)", "lat": -69.3733, "lon": 32.3191, "category": "international", "note": "Посадка біля південного полюса, 2023"},
+  {"id": "shackleton", "name": "Кратер Шеклтон (центр, наближено)", "lat": -89.66, "lon": 129.78, "category": "artemis", "note": "Район кандидатів Artemis; координати наближені"},
+  {"id": "south-pole", "name": "Південний полюс", "lat": -90.0, "lon": 0.0, "category": "custom", "note": "Опорна точка"}
+]

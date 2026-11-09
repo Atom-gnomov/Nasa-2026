@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+instance/
+# Великі файли даних (ефемериди, DEM) не комітимо — завантажуються скриптами з tools/
+data_cache/
+*.bsp
+*.bpc
+*.tif

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Система — Lunar Site Explorer{% endblock %}
+{% block content %}
+<section class="system-layout">
+  <div class="mode-switch">
+    <a href="{{ url_for('pages.system', mode='earth-moon') }}" class="{{ 'active' if mode == 'earth-moon' }}">Земля + Місяць</a>
+    <a href="{{ url_for('pages.system', mode='sun-moon-earth') }}" class="{{ 'active' if mode == 'sun-moon-earth' }}">Сонце–Місяць–Земля</a>
+  </div>
+  <div id="system-view" class="canvas-host" data-mode="{{ mode }}">
+    {# TODO (модуль system_view.js): Three.js-сцена, режими синхронізовані через state.js #}
+    <p class="placeholder">Тут буде 3D-вид системи ({{ mode }})</p>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script type="module" src="{{ url_for('static', filename='js/system_view.js') }}"></script>
+{% endblock %}

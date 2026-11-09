@@ -1,0 +1,5 @@
+[
+  {"id": "goldstone", "name": "Goldstone (США)", "antenna": "DSS-14", "lat": 35.4259, "lon": -116.8895, "elevation_m": 1002},
+  {"id": "madrid", "name": "Madrid (Іспанія)", "antenna": "DSS-63", "lat": 40.4313, "lon": -4.2480, "elevation_m": 865},
+  {"id": "canberra", "name": "Canberra (Австралія)", "antenna": "DSS-43", "lat": -35.4024, "lon": 148.9813, "elevation_m": 689}
+]

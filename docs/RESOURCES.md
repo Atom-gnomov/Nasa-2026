@@ -1,76 +1,76 @@
-# Источники для визуализации и расчётов
+# Джерела для візуалізації та розрахунків
 
-Стартовая точка для людей и агентов, которые начинают работу над проектом.
-Требования к продукту — в [VISION.md](VISION.md), исходное задание — в [CHALLENGE.md](CHALLENGE.md).
+Стартова точка для людей і агентів, які починають роботу над проєктом.
+Вимоги до продукту — у [VISION.md](VISION.md), оригінальне завдання — у [CHALLENGE.md](CHALLENGE.md).
 
-> Ссылки собраны 2026-11-09. Перед использованием проверяйте актуальные версии файлов и лицензии.
-> Пометка ⚠️ означает, что источник не перепроверен или у него есть известные оговорки.
+> Посилання зібрано 2026-11-09. Перед використанням перевіряйте актуальні версії файлів і ліцензії.
+> Позначка ⚠️ означає, що джерело не перевірене повторно або має відомі застереження.
 
 ---
 
-## 1. Текстуры и 3D-модели (вкладки «Луна» и 3D-вид системы)
+## 1. Текстури та 3D-моделі (вкладка «Місяць» і 3D-вид системи)
 
-| Источник | Что даёт | Ссылка |
+| Джерело | Що дає | Посилання |
 |---|---|---|
-| **NASA SVS — CGI Moon Kit** | Цветная карта Луны (LROC, до 16K) и карта высот LOLA (displacement) для 3D-глобуса. Основной источник текстур для Three.js | https://svs.gsfc.nasa.gov/4720 |
-| **NASA Visible Earth — Blue Marble** | Текстуры Земли (день, ночь, облака) для 3D-вида системы | https://visibleearth.nasa.gov/collection/1484/blue-marble |
-| **NASA 3D Resources** | Готовые 3D-модели (LRO, посадочные модули и т.п.) | https://github.com/nasa/NASA-3D-Resources |
-| **Cesium Moon Terrain** | Готовые 3D Tiles всей Луны (LOLA + LROC WAC) для CesiumJS. Нужен аккаунт Cesium ion. ⚠️ На форуме сообщают о смещении высот ~2,5 км относительно LOLA — не использовать для абсолютных высот | https://cesium.com/platform/cesium-ion/content/cesium-moon-terrain |
+| **NASA SVS — CGI Moon Kit** | Кольорова карта Місяця (LROC, до 16K) і карта висот LOLA (displacement) для 3D-глобуса. Основне джерело текстур для Three.js | https://svs.gsfc.nasa.gov/4720 |
+| **NASA Visible Earth — Blue Marble** | Текстури Землі (день, ніч, хмари) для 3D-виду системи | https://visibleearth.nasa.gov/collection/1484/blue-marble |
+| **NASA 3D Resources** | Готові 3D-моделі (LRO, посадкові модулі тощо) | https://github.com/nasa/NASA-3D-Resources |
+| **Cesium Moon Terrain** | Готові 3D Tiles усього Місяця (LOLA + LROC WAC) для CesiumJS. Потрібен акаунт Cesium ion. ⚠️ На форумі повідомляють про зсув висот ~2,5 км відносно LOLA — не використовувати для абсолютних висот | https://cesium.com/platform/cesium-ion/content/cesium-moon-terrain |
 
-## 2. Рельеф южного полюса (радиогоризонт, тени)
+## 2. Рельєф південного полюса (радіогоризонт, тіні)
 
-| Источник | Что даёт | Ссылка |
+| Джерело | Що дає | Посилання |
 |---|---|---|
-| **PGDA — South Pole LOLA DEM Mosaic** | DEM 5 м/пиксель для 87–90° ю.ш. (GeoTIFF, полярная стереографическая проекция) | https://pgda.gsfc.nasa.gov/products/81 |
-| **PGDA — A New View of the Lunar South Pole** | DEM 20 м/пиксель для 80–90° ю.ш. (Cloud-Optimized GeoTIFF, кадр MOON_ME) | https://pgda.gsfc.nasa.gov/products/90 |
-| **PGDA — High-Resolution LOLA Topography for South Pole Sites** | DEM мест посадки с анализом неопределённости освещённости | https://pgda.gsfc.nasa.gov/products/78 |
-| **PGDA — Shape-from-Shading DEMs** | Уточнённые DEM отдельных районов полюса (LOLA + снимки LROC NAC) | https://pgda.gsfc.nasa.gov/products/104 |
-| **PDS Geosciences — LOLA** | Глобальные данные LOLA (для поиска по всей Луне) | https://pds-geosciences.wustl.edu/missions/lro/lola.htm |
+| **PGDA — South Pole LOLA DEM Mosaic** | DEM 5 м/піксель для 87–90° пд. ш. (GeoTIFF, полярна стереографічна проєкція) | https://pgda.gsfc.nasa.gov/products/81 |
+| **PGDA — A New View of the Lunar South Pole** | DEM 20 м/піксель для 80–90° пд. ш. (Cloud-Optimized GeoTIFF, система MOON_ME) | https://pgda.gsfc.nasa.gov/products/90 |
+| **PGDA — High-Resolution LOLA Topography for South Pole Sites** | DEM місць посадки з аналізом невизначеності освітленості | https://pgda.gsfc.nasa.gov/products/78 |
+| **PGDA — Shape-from-Shading DEMs** | Уточнені DEM окремих районів полюса (LOLA + знімки LROC NAC) | https://pgda.gsfc.nasa.gov/products/104 |
+| **PDS Geosciences — LOLA** | Глобальні дані LOLA (для пошуку по всьому Місяцю) | https://pds-geosciences.wustl.edu/missions/lro/lola.htm |
 
-## 3. Освещённость и температура
+## 3. Освітленість і температура
 
-| Источник | Что даёт | Ссылка |
+| Джерело | Що дає | Посилання |
 |---|---|---|
-| **PGDA — Lunar Polar Illumination** (Mazarico et al., 2011) | Готовые карты средней освещённости полюсов за 18,6-летний цикл (240 и 60 м/пиксель). Подходит для валидации расчётов и быстрого фильтра «часы Солнца» | https://pgda.gsfc.nasa.gov/products/69 |
-| **LRO Diviner (UCLA)** | Карты температуры поверхности, в том числе сезонные полярные продукты. Нужно для оценки температурного режима | https://www.diviner.ucla.edu/data |
-| **LPI — Near-Surface Temperatures, South Pole 85°S–90°S** | Модельная карта температур у южного полюса | https://hdl.handle.net/20.500.11753/1336 |
+| **PGDA — Lunar Polar Illumination** (Mazarico et al., 2011) | Готові карти середньої освітленості полюсів за 18,6-річний цикл (240 і 60 м/піксель). Підходить для валідації розрахунків і швидкого фільтра «години Сонця» | https://pgda.gsfc.nasa.gov/products/69 |
+| **LRO Diviner (UCLA)** | Карти температури поверхні, зокрема сезонні полярні продукти. Потрібно для оцінки температурного режиму | https://www.diviner.ucla.edu/data |
+| **LPI — Near-Surface Temperatures, South Pole 85°S–90°S** | Модельна карта температур біля південного полюса | https://hdl.handle.net/20.500.11753/1336 |
 
-## 4. Эфемериды: положение Солнца, Земли и Луны
+## 4. Ефемериди: положення Сонця, Землі та Місяця
 
-| Источник | Что даёт | Ссылка |
+| Джерело | Що дає | Посилання |
 |---|---|---|
-| **Astronomy Engine** (JS/TS, npm `astronomy-engine`) | Положения Солнца и Луны, либрация, работает прямо в браузере. Точность ±1′. Подходит для живой анимации и календаря на десятки лет вперёд | https://github.com/cosinekitty/astronomy |
-| **NAIF SPICE — generic kernels** | Эталонные эфемериды: `de440.bsp` (планеты), `moon_pa_de440_200625.bpc` + `moon_de440_220930.tf` (ориентация Луны), `earthstns_*.bsp` (станции DSN). Покрытие 1550–2650 | https://naif.jpl.nasa.gov/naif/data_generic.html |
-| **SpiceyPy** (Python) | Обёртка SPICE для предрасчётов на бэкенде или в скриптах | https://github.com/AndrewAnnex/SpiceyPy |
-| **TimeCraftJS** (NASA AMMOS) | SPICE в браузере через Emscripten (~20 МБ в lite-версии) | https://github.com/NASA-AMMOS/timecraftjs |
-| **JPL Horizons API** | Эталон для проверки расчётов; поддерживает пользовательские топоцентрические точки на Луне | https://ssd-api.jpl.nasa.gov/doc/horizons.html |
-| **astroquery.jplhorizons** | Python-клиент для Horizons | https://astroquery.readthedocs.io/en/stable/jplhorizons/jplhorizons.html |
+| **Astronomy Engine** (JS/TS, npm `astronomy-engine`) | Положення Сонця й Місяця, лібрація, працює просто в браузері. Точність ±1′. Підходить для живої анімації та календаря на десятки років уперед | https://github.com/cosinekitty/astronomy |
+| **NAIF SPICE — generic kernels** | Еталонні ефемериди: `de440.bsp` (планети), `moon_pa_de440_200625.bpc` + `moon_de440_220930.tf` (орієнтація Місяця), `earthstns_*.bsp` (станції DSN). Покриття 1550–2650 | https://naif.jpl.nasa.gov/naif/data_generic.html |
+| **SpiceyPy** (Python) | Обгортка SPICE для передрозрахунків на бекенді або в скриптах | https://github.com/AndrewAnnex/SpiceyPy |
+| **TimeCraftJS** (NASA AMMOS) | SPICE у браузері через Emscripten (~20 МБ у lite-версії) | https://github.com/NASA-AMMOS/timecraftjs |
+| **JPL Horizons API** | Еталон для перевірки розрахунків; підтримує користувацькі топоцентричні точки на Місяці | https://ssd-api.jpl.nasa.gov/doc/horizons.html |
+| **astroquery.jplhorizons** | Python-клієнт для Horizons | https://astroquery.readthedocs.io/en/stable/jplhorizons/jplhorizons.html |
 
-## 5. Связь: Deep Space Network
+## 5. Зв'язок: Deep Space Network
 
-| Источник | Что даёт | Ссылка |
+| Джерело | Що дає | Посилання |
 |---|---|---|
-| **DSN 810-005, модуль 301 (Coverage and Geometry)** | Точные координаты антенн DSN и маски горизонта станций | https://deepspace.jpl.nasa.gov/dsndocs/810-005/ |
-| **NAIF earthstns kernel** | Координаты станций DSN в формате SPICE | https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/stations/ |
-| **DSN Now** | Живая картина: какие антенны с какими аппаратами работают (для вдохновения UI) | https://eyes.nasa.gov/apps/dsn-now/ |
+| **DSN 810-005, модуль 301 (Coverage and Geometry)** | Точні координати антен DSN і маски горизонту станцій | https://deepspace.jpl.nasa.gov/dsndocs/810-005/ |
+| **NAIF earthstns kernel** | Координати станцій DSN у форматі SPICE | https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/stations/ |
+| **DSN Now** | Жива картина: які антени з якими апаратами працюють (для натхнення UI) | https://eyes.nasa.gov/apps/dsn-now/ |
 
-## 6. Места посадки и миссии
+## 6. Місця посадки та місії
 
-| Источник | Что даёт | Ссылка |
+| Джерело | Що дає | Посилання |
 |---|---|---|
-| **NASA — Artemis III candidate regions** | Сначала 13 районов (2022), затем 9 районов у южного полюса | https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/ ⚠️ |
-| **NASA — Artemis overview для Space Apps 2025** | Ограничения южного полюса: Солнце и Земля на высоте ~2–7°, двухнедельный цикл видимости Земли, уклоны < 10° | https://ntrs.nasa.gov/citations/20250009323 |
-| **NASA CLPS** | Список миссий и мест посадки CLPS | https://www.nasa.gov/commercial-lunar-payload-services/ |
+| **NASA — Artemis III candidate regions** | Спочатку 13 районів (2022), потім 9 районів біля південного полюса | https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/ ⚠️ |
+| **NASA — Artemis overview для Space Apps 2025** | Обмеження південного полюса: Сонце й Земля на висоті ~2–7°, двотижневий цикл видимості Землі, нахили < 10° | https://ntrs.nasa.gov/citations/20250009323 |
+| **NASA CLPS** | Список місій і місць посадки CLPS | https://www.nasa.gov/commercial-lunar-payload-services/ |
 
-## 7. Запуски: стоимость, надёжность, космодромы
+## 7. Запуски: вартість, надійність, космодроми
 
-| Источник | Что даёт | Ссылка |
+| Джерело | Що дає | Посилання |
 |---|---|---|
-| **CSIS — Space Launch to LEO: How Much Does It Cost?** | Стоимость вывода 1 кг на НОО по ракетам (данные до 2019) | https://aerospace.csis.org/data/space-launch-to-low-earth-orbit-how-much-does-it-cost/ |
-| **Our World in Data** | Тот же датасет в долларах 2021 года | https://ourworldindata.org/grapher/cost-space-launches-low-earth-orbit |
-| **Jonathan McDowell — GCAT / Launch Log** | Полный журнал запусков: успешные и аварийные запуски по ракетам и космодромам (для расчёта вероятности аварии) | https://planet4589.org/space/gcat/ |
+| **CSIS — Space Launch to LEO: How Much Does It Cost?** | Вартість виведення 1 кг на НОО за ракетами (дані до 2019) | https://aerospace.csis.org/data/space-launch-to-low-earth-orbit-how-much-does-it-cost/ |
+| **Our World in Data** | Той самий датасет у доларах 2021 року | https://ourworldindata.org/grapher/cost-space-launches-low-earth-orbit |
+| **Jonathan McDowell — GCAT / Launch Log** | Повний журнал запусків: успішні й аварійні запуски за ракетами та космодромами (для розрахунку ймовірності аварії) | https://planet4589.org/space/gcat/ |
 
-## 8. Готовые инструменты (для сравнения и вдохновения UI)
+## 8. Готові інструменти (для порівняння та натхнення UI)
 
 - **LROC QuickMap** — https://quickmap.lroc.asu.edu/
 - **NASA Moon Trek** — https://trek.nasa.gov/moon/
@@ -79,19 +79,19 @@
 
 ---
 
-## Рекомендуемый стек визуализации (предложение, не решение)
+## Рекомендований стек візуалізації (пропозиція, не рішення)
 
-| Задача | Предложение | Почему |
+| Задача | Пропозиція | Чому |
 |---|---|---|
-| 3D-вид системы Земля–Луна / Солнце–Луна–Земля | **Three.js** (или react-three-fiber) | Полный контроль над сценой, масштабами и анимацией; текстуры из CGI Moon Kit и Blue Marble |
-| Глобус Луны с выбором точки | **Three.js**, позже — **CesiumJS** с Cesium Moon Terrain | Three.js проще начать; Cesium даёт реальный рельеф «из коробки» |
-| Эфемериды в браузере | **Astronomy Engine** | Лёгкий, быстрый, работает на десятки лет вперёд |
-| Точные предрасчёты | **Python + SpiceyPy + DE440** | Эталонная точность; результат — JSON или бинарные тайлы для фронтенда |
-| Маски горизонта для точек | **Python + rasterio/numpy** по DEM LOLA | Для каждой точки — профиль высоты горизонта по 360° азимута; при видимости Солнца/Земли сравниваем с ним |
-| Графики (таймлайны, радар) | **D3.js** / **Recharts** / **ECharts** | Таймлайн окон, радар-диаграмма 4 факторов, тепловая карта окна запуска |
+| 3D-вид системи Земля–Місяць / Сонце–Місяць–Земля | **Three.js** (або react-three-fiber) | Повний контроль над сценою, масштабами й анімацією; текстури з CGI Moon Kit і Blue Marble |
+| Глобус Місяця з вибором точки | **Three.js**, пізніше — **CesiumJS** з Cesium Moon Terrain | З Three.js простіше почати; Cesium дає реальний рельєф «з коробки» |
+| Ефемериди в браузері | **Astronomy Engine** | Легкий, швидкий, працює на десятки років уперед |
+| Точні передрозрахунки | **Python + SpiceyPy + DE440** | Еталонна точність; результат — JSON або бінарні тайли для фронтенду |
+| Маски горизонту для точок | **Python + rasterio/numpy** за DEM LOLA | Для кожної точки — профіль висоти горизонту по 360° азимута; під час перевірки видимості Сонця/Землі порівнюємо з ним |
+| Графіки (таймлайни, радар) | **D3.js** / **Recharts** / **ECharts** | Таймлайн вікон, радар-діаграма факторів, теплова карта вікна запуску |
 
-### Ключевая идея расчёта радиогоризонта
-1. По DEM строим для точки **маску горизонта**: максимальный угол возвышения рельефа по каждому азимуту (0–360°).
-2. По эфемеридам получаем азимут и высоту Солнца/Земли в топоцентрической системе точки на Луне.
-3. Объект виден, если его высота выше маски на данном азимуте. Атмосферы нет, рефракцию не учитываем.
-4. Для Солнца учитываем угловой диаметр (~0,53°): частичная видимость диска важна для батарей.
+### Ключова ідея розрахунку радіогоризонту
+1. За DEM будуємо для точки **маску горизонту**: максимальний кут піднесення рельєфу за кожним азимутом (0–360°).
+2. За ефемеридами отримуємо азимут і висоту Сонця/Землі в топоцентричній системі точки на Місяці.
+3. Об'єкт видно, якщо його висота вища за маску на цьому азимуті. Атмосфери немає, рефракцію не враховуємо.
+4. Для Сонця враховуємо кутовий діаметр (~0,53°): часткова видимість диска важлива для батарей.

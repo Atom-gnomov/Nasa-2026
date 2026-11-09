@@ -1,6 +1,6 @@
 # Challenge: Lunar South Pole Landing Site Explorer
 
-> Original task text from NASA Space Apps Challenge 2026 (kept verbatim for reference).
+> Оригінальний текст завдання NASA Space Apps Challenge 2026. Зберігаємо англійською без змін як першоджерело. Вимоги команди — у [VISION.md](VISION.md).
 
 Missions to the Moon's south pole face extreme lighting and communication constraints, and planning them takes careful coordination between science and engineering teams. Tools for determining Sun and Earth positions at candidate landing sites exist, but their complicated interfaces make it difficult to evaluate critical information with efficiency. Your challenge is to create an intuitive tool or application that lets mission planners, educators, and the public compare landing sites and dates quickly, visualizing Sun and Earth positions relative to the horizon to assess power generation potential and direct-to-Earth communication windows.
 

@@ -5,3 +5,5 @@ NASA Space Apps Challenge 2026 — инструмент для сравнени�
 
 - [docs/CHALLENGE.md](docs/CHALLENGE.md) — исходный текст задания
 - [docs/VISION.md](docs/VISION.md) — что хотим видеть мы и команда (заполняется постепенно)
+- [docs/RESOURCES.md](docs/RESOURCES.md) — источники данных, библиотеки и стек визуализации
+- [AGENTS.md](AGENTS.md) — точка входа для агентов

@@ -3,6 +3,8 @@
 NASA Space Apps Challenge 2026 — інструмент для порівняння місць і дат посадки на південному полюсі Місяця
 (положення Сонця й Землі над горизонтом, енергія та вікна зв'язку).
 
+> Актуальна версія теки `docs/` — у гілці [`coordination`](https://github.com/Atom-gnomov/Nasa-2026/tree/coordination/docs); тут — копія на момент останньої синхронізації.
+
 - [docs/CHALLENGE.md](docs/CHALLENGE.md) — оригінальний текст завдання (англійською)
 - [docs/VISION.md](docs/VISION.md) — що хочемо бачити ми і команда (наповнюється поступово)
 - [docs/MODULES.md](docs/MODULES.md) — вимоги до модулів і API

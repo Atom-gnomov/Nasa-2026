@@ -6,8 +6,10 @@
 
 Що перевіряє:
     - наскільки поточна гілка відстає від origin/main (і чи потрібно підтягнути main);
+    - заявки «Зараз:» на дошці docs/BOARD.md у гілці coordination (головне джерело), у main
+      і в усіх активних гілках;
     - гілки інших агентів (<ім'я>/<ID>-...) і ID задач у їхніх назвах;
-    - рядки «Зараз:» у docs/BOARD.md у main і в кожній гілці агента.
+    - на скільки комітів coordination випереджає main (документи, які ще не злиті).
 Лише читає: нічого не змінює, крім `git fetch --prune`.
 """
 
@@ -18,6 +20,7 @@ import re
 import subprocess
 import sys
 
+COORD = "coordination"
 AGENTS = ["perun", "veles", "yarylo", "svarog", "stryboh", "chornobog"]
 TASK_ID = re.compile(r"\b([BMFGIDP]\d{1,2})\b")
 BRANCH_TASK = re.compile(r"^(?P<agent>[a-z]+)/(?P<task>[A-Z]\d{1,2})(?:-|$)")
@@ -65,27 +68,39 @@ def main() -> int:
     def add(task: str, where: str) -> None:
         taken.setdefault(task, []).append(where)
 
-    print("\nЗаявки на дошці в main:")
-    for agent, ids in board_claims("origin/main").items():
-        print(f"  {agent}: {', '.join(ids)}")
-        for task in ids:
-            add(task, f"дошка main ({agent})")
+    if COORD in remote:
+        ahead = git("rev-list", "--count", f"origin/main..origin/{COORD}")
+        print(f"Гілка {COORD}: документів, ще не злитих у main, — {ahead} коміт(ів)")
+        print(f"  актуальні документи: git show origin/{COORD}:docs/TASKS.md")
+    else:
+        print(f"⚠️  Гілки {COORD} немає на origin — дошка читається лише з main і гілок")
 
-    print("\nГілки агентів:")
+    for ref, label in ((f"origin/{COORD}", COORD), ("origin/main", "main")):
+        claims = board_claims(ref)
+        print(f"\nЗаявки на дошці в {label}:" + ("" if claims else " —"))
+        for agent, ids in claims.items():
+            print(f"  {agent}: {', '.join(ids)}")
+            for task in ids:
+                add(task, f"дошка {label} ({agent})")
+
+    print("\nАктивні гілки (не злиті в main):")
     for b in sorted(remote):
-        m = BRANCH_TASK.match(b)
-        if not m or m["agent"] not in AGENTS:
+        if b in ("main", COORD):
             continue
-        last = git("log", "-1", "--format=%cr, %an", f"origin/{b}")
         merged = subprocess.run(["git", "merge-base", "--is-ancestor", f"origin/{b}", "origin/main"],
                                 check=False).returncode == 0
-        state = "злита в main" if merged else "активна"
-        print(f"  {b}  [{m['task']}] — {state}; останній коміт {last}")
-        if not merged:
-            add(m["task"], f"гілка {b}")
-            for agent, ids in board_claims(f"origin/{b}").items():
-                for task in ids:
-                    add(task, f"дошка в {b} ({agent})")
+        if merged:
+            continue
+        m = BRANCH_TASK.match(b)
+        task = m["task"] if m and m["agent"] in AGENTS else None
+        last = git("log", "-1", "--format=%cr, %an", f"origin/{b}")
+        print(f"  {b}" + (f"  [{task}]" if task else "") + f" — останній коміт {last}")
+        if task:
+            add(task, f"гілка {b}")
+        # Дошку читаємо в усіх активних гілках: гілка сесії Перуна може не мати префікса perun/.
+        for agent, ids in board_claims(f"origin/{b}").items():
+            for t in ids:
+                add(t, f"дошка в {b} ({agent})")
 
     if args.check:
         task = args.check.upper()

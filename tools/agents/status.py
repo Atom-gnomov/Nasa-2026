@@ -71,21 +71,24 @@ def main() -> int:
         for task in ids:
             add(task, f"дошка main ({agent})")
 
-    print("\nГілки агентів:")
+    print("\nАктивні гілки (не злиті в main):")
     for b in sorted(remote):
-        m = BRANCH_TASK.match(b)
-        if not m or m["agent"] not in AGENTS:
+        if b == "main":
             continue
-        last = git("log", "-1", "--format=%cr, %an", f"origin/{b}")
         merged = subprocess.run(["git", "merge-base", "--is-ancestor", f"origin/{b}", "origin/main"],
                                 check=False).returncode == 0
-        state = "злита в main" if merged else "активна"
-        print(f"  {b}  [{m['task']}] — {state}; останній коміт {last}")
-        if not merged:
-            add(m["task"], f"гілка {b}")
-            for agent, ids in board_claims(f"origin/{b}").items():
-                for task in ids:
-                    add(task, f"дошка в {b} ({agent})")
+        if merged:
+            continue
+        m = BRANCH_TASK.match(b)
+        task = m["task"] if m and m["agent"] in AGENTS else None
+        last = git("log", "-1", "--format=%cr, %an", f"origin/{b}")
+        print(f"  {b}" + (f"  [{task}]" if task else "") + f" — останній коміт {last}")
+        if task:
+            add(task, f"гілка {b}")
+        # Дошку читаємо в усіх активних гілках: гілка сесії Перуна може не мати префікса perun/.
+        for agent, ids in board_claims(f"origin/{b}").items():
+            for t in ids:
+                add(t, f"дошка в {b} ({agent})")
 
     if args.check:
         task = args.check.upper()

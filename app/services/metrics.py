@@ -19,6 +19,12 @@ EARTH_STEP_HOURS = 1.0
 
 @dataclass
 class SiteMetrics:
+    """Відповідь /api/metrics. Контракт — contracts/openapi.yaml → SiteMetrics."""
+
+    lat: float
+    lon: float  # нормалізована до [−180, 180)
+    height_m: float
+    datetime: str  # ISO 8601 UTC із Z
     sun_elevation_deg: float
     sun_azimuth_deg: float
     sun_visible_fraction: float
@@ -74,6 +80,10 @@ def site_metrics(lat: float, lon: float, when: datetime, height_m: float = 0.0) 
     distance = float(link.distance_km) if link else float(earth.distance_km)
 
     return SiteMetrics(
+        lat=lat,
+        lon=(lon + 180.0) % 360.0 - 180.0,
+        height_m=height_m,
+        datetime=t.utc_datetime().replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ"),
         sun_elevation_deg=round(float(sun.elevation_deg), 3),
         sun_azimuth_deg=round(float(sun.azimuth_deg), 2),
         sun_visible_fraction=round(sun_frac, 3),

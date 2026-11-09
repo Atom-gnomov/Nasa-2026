@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "horizon_mask.schema.json",
+  "title": "Передрахована маска горизонту (data_cache/masks/<key>.json)",
+  "description": "Створюється tools/build_horizon_masks.py з DEM. Ключ файлу: '<lat>_<lon>_<height_m>' з 4 знаками після коми або id місця каталогу.",
+  "type": "object",
+  "required": ["lat", "lon", "observer_height_m", "azimuth_step_deg", "elevations_deg", "source", "max_distance_km", "created_utc"],
+  "additionalProperties": false,
+  "properties": {
+    "site_id": {"type": "string"},
+    "lat": {"type": "number", "minimum": -90, "maximum": 90},
+    "lon": {"type": "number", "minimum": -180, "maximum": 360},
+    "observer_height_m": {"type": "number", "minimum": 0},
+    "ground_height_m": {"type": "number", "description": "Висота рельєфу в точці відносно сфери 1737,4 км"},
+    "azimuth_step_deg": {"type": "number", "exclusiveMinimum": 0, "maximum": 10},
+    "azimuth_reference": {"enum": ["north", "grid_north_meridian"], "default": "north", "description": "На полюсі — grid north (напрямок на меридіан lon)"},
+    "elevations_deg": {"type": "array", "items": {"type": "number", "minimum": -90, "maximum": 90}, "minItems": 36},
+    "source": {"type": "string", "description": "id набору DEM, напр. lola_20m_80s"},
+    "max_distance_km": {"type": "number", "exclusiveMinimum": 0},
+    "created_utc": {"type": "string", "format": "date-time"},
+    "tool_version": {"type": "string"}
+  }
+}

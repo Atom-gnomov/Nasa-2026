@@ -1,0 +1,665 @@
+openapi: 3.1.0
+info:
+  title: Lunar Site Explorer API
+  version: 1.0.0
+  description: |
+    Контракт API між бекендом (Flask) і фронтендом, а також для майбутніх джерел даних.
+    Людиночитний опис, домовленості та приклади — docs/CONTRACTS.md. Математика — docs/MATH.md.
+
+    Статус кожної операції — у полі `x-status`:
+      - implemented — працює зараз;
+      - planned — контракт зафіксовано, сервер поки відповідає 501 `not_implemented`.
+
+    Домовленості (коротко):
+      - кути в градусах, довжини в км (суфікс _km) або м (_m), час у годинах (_h) або секундах (_s);
+      - дата й час — ISO 8601; у відповідях завжди UTC із суфіксом Z; у запиті без зони = UTC;
+      - селенографічна довгота на схід; у відповідях нормалізована до [-180, 180);
+      - азимут від півночі за годинниковою стрілкою, 0..360; на самому полюсі «північ» — напрямок на меридіан lon;
+      - null у полях hours_to_* означає «події немає в межах вікна пошуку».
+servers:
+  - url: /api
+tags:
+  - name: service
+  - name: catalog
+  - name: point
+  - name: period
+  - name: system
+  - name: planning
+
+paths:
+  /health:
+    get:
+      tags: [service]
+      x-status: implemented
+      summary: Перевірка, що сервер живий
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Health"}
+
+  /meta:
+    get:
+      tags: [service]
+      x-status: planned
+      summary: Версії, джерела даних і ліміти сервера
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Meta"}
+        "501": {$ref: "#/components/responses/NotImplemented"}
+
+  /sites:
+    get:
+      tags: [catalog]
+      x-status: implemented
+      summary: Каталог місць посадки
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/Site"}
+
+  /sites/{site_id}:
+    get:
+      tags: [catalog]
+      x-status: implemented
+      summary: Одне місце посадки
+      parameters:
+        - {name: site_id, in: path, required: true, schema: {type: string}}
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Site"}
+        "404": {$ref: "#/components/responses/NotFound"}
+
+  /dsn:
+    get:
+      tags: [catalog]
+      x-status: implemented
+      summary: Станції Deep Space Network
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/DsnStation"}
+
+  /launch-sites:
+    get:
+      tags: [catalog]
+      x-status: implemented
+      summary: Космодроми та інші місця старту
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/LaunchSite"}
+
+  /metrics:
+    get:
+      tags: [point]
+      x-status: implemented
+      summary: Метрики точки на Місяці в один момент (оверлей)
+      parameters:
+        - $ref: "#/components/parameters/lat"
+        - $ref: "#/components/parameters/lon"
+        - $ref: "#/components/parameters/datetime"
+        - $ref: "#/components/parameters/height"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/SiteMetrics"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "503": {$ref: "#/components/responses/Unavailable"}
+
+  /compare:
+    get:
+      tags: [point]
+      x-status: implemented
+      summary: Метрики кількох місць каталогу на одну дату
+      parameters:
+        - name: site
+          in: query
+          required: true
+          description: id місця; повторити параметр 2+ рази
+          schema: {type: array, items: {type: string}, minItems: 2}
+          style: form
+          explode: true
+        - $ref: "#/components/parameters/datetime"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/CompareItem"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "404": {$ref: "#/components/responses/NotFound"}
+
+  /horizon:
+    get:
+      tags: [point]
+      x-status: planned
+      summary: Маска горизонту точки (для графіка горизонту й 3D-виду «з поверхні»)
+      parameters:
+        - $ref: "#/components/parameters/lat"
+        - $ref: "#/components/parameters/lon"
+        - $ref: "#/components/parameters/height"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/HorizonMask"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "501": {$ref: "#/components/responses/NotImplemented"}
+
+  /timeline:
+    get:
+      tags: [period]
+      x-status: planned
+      summary: Часові ряди й підсумки за період (графіки, повзунки «години Сонця / зв'язку»)
+      parameters:
+        - $ref: "#/components/parameters/lat"
+        - $ref: "#/components/parameters/lon"
+        - $ref: "#/components/parameters/height"
+        - $ref: "#/components/parameters/start"
+        - $ref: "#/components/parameters/end"
+        - name: step_h
+          in: query
+          description: Крок сітки, год. Сервер може збільшити крок, щоб точок було не більше limits.max_points (див. /meta).
+          schema: {type: number, minimum: 0.1, maximum: 24, default: 1}
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Timeline"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "501": {$ref: "#/components/responses/NotImplemented"}
+
+  /events:
+    get:
+      tags: [period]
+      x-status: planned
+      summary: Усі сходи й заходи Сонця, Землі та станцій DSN за період
+      parameters:
+        - $ref: "#/components/parameters/lat"
+        - $ref: "#/components/parameters/lon"
+        - $ref: "#/components/parameters/height"
+        - $ref: "#/components/parameters/start"
+        - $ref: "#/components/parameters/end"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/EventList"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "501": {$ref: "#/components/responses/NotImplemented"}
+
+  /system:
+    get:
+      tags: [system]
+      x-status: planned
+      summary: Стан системи Сонце–Земля–Місяць для 3D-сцени на момент часу
+      parameters:
+        - $ref: "#/components/parameters/datetime"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/SystemState"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "501": {$ref: "#/components/responses/NotImplemented"}
+
+  /search:
+    post:
+      tags: [planning]
+      x-status: planned
+      summary: Підбір ланцюжків «старт → Місяць → DSN → точка на Землі» за вимогами й пріоритетами
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/SearchRequest"}
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/SearchResponse"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "501": {$ref: "#/components/responses/NotImplemented"}
+
+  /launch-window:
+    get:
+      tags: [planning]
+      x-status: planned
+      summary: Вікно запуску — оцінка у % для кожної дати
+      parameters:
+        - {name: launch_site, in: query, required: true, schema: {type: string}, description: id з /launch-sites}
+        - $ref: "#/components/parameters/lat"
+        - $ref: "#/components/parameters/lon"
+        - $ref: "#/components/parameters/start"
+        - $ref: "#/components/parameters/end"
+        - name: trajectory
+          in: query
+          schema: {$ref: "#/components/schemas/Trajectory"}
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/LaunchWindow"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "501": {$ref: "#/components/responses/NotImplemented"}
+
+components:
+  parameters:
+    lat:
+      name: lat
+      in: query
+      required: true
+      description: Селенографічна широта, градуси (південь — від'ємна)
+      schema: {type: number, minimum: -90, maximum: 90}
+    lon:
+      name: lon
+      in: query
+      required: true
+      description: Селенографічна довгота на схід, градуси; приймається -180..360
+      schema: {type: number, minimum: -180, maximum: 360}
+    datetime:
+      name: datetime
+      in: query
+      description: Момент часу ISO 8601; без зони — UTC; без параметра — поточний момент
+      schema: {type: string, format: date-time}
+    height:
+      name: height
+      in: query
+      description: Висота щогли/панелі над ґрунтом, м
+      schema: {type: number, minimum: 0, maximum: 1000, default: 0}
+    start:
+      name: start
+      in: query
+      required: true
+      schema: {type: string, format: date-time}
+    end:
+      name: end
+      in: query
+      required: true
+      description: Кінець періоду; період не довший за limits.max_period_days (/meta)
+      schema: {type: string, format: date-time}
+
+  responses:
+    BadRequest:
+      description: Невірні параметри
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
+    NotFound:
+      description: Не знайдено
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
+    NotImplemented:
+      description: Контракт зафіксовано, реалізації ще немає
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
+    Unavailable:
+      description: Немає потрібних даних на сервері (наприклад, файлу ефемерид)
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
+
+  schemas:
+    Error:
+      type: object
+      required: [error, detail]
+      additionalProperties: false
+      properties:
+        error:
+          type: string
+          enum: [bad_request, not_found, not_implemented, unavailable, internal]
+        detail:
+          type: string
+          description: Пояснення українською — фронтенд показує його користувачу як є
+
+    Health:
+      type: object
+      required: [status]
+      properties:
+        status: {const: ok}
+
+    Meta:
+      type: object
+      required: [api_version, ephemeris, moon_orientation, moon_radius_km, data_sources, limits]
+      properties:
+        api_version: {type: string, examples: ["1.0.0"]}
+        ephemeris: {type: string, examples: ["JPL DE440"]}
+        moon_orientation: {type: string, examples: ["IAU 2015 (Archinal et al., 2018)"]}
+        moon_radius_km: {type: number, examples: [1737.4]}
+        data_sources:
+          type: array
+          items:
+            type: object
+            required: [id, kind, description]
+            properties:
+              id: {type: string}
+              kind: {type: string, enum: [ephemeris, dem, horizon_masks, illumination, sites, stations, launch_sites, other]}
+              description: {type: string}
+              version: {type: string}
+              url: {type: string}
+        limits:
+          type: object
+          properties:
+            max_period_days: {type: number}
+            max_points: {type: integer}
+            event_search_hours: {type: number}
+
+    LatLon:
+      type: object
+      required: [lat, lon]
+      properties:
+        lat: {type: number, minimum: -90, maximum: 90}
+        lon: {type: number, minimum: -180, maximum: 360}
+
+    Site:
+      type: object
+      required: [id, name, lat, lon, category, note, verified]
+      additionalProperties: false
+      properties:
+        id: {type: string, pattern: "^[a-z0-9-]+$"}
+        name: {type: string}
+        lat: {type: number, minimum: -90, maximum: 90}
+        lon: {type: number, minimum: -180, maximum: 360}
+        category: {type: string, enum: [apollo, clps, artemis, international, custom]}
+        note: {type: string}
+        verified: {type: boolean, description: Координати звірено з першоджерелом}
+
+    DsnStation:
+      type: object
+      required: [id, name, antenna, lat, lon, elevation_m, min_elevation_deg]
+      additionalProperties: false
+      properties:
+        id: {type: string}
+        name: {type: string}
+        antenna: {type: string}
+        lat: {type: number, minimum: -90, maximum: 90}
+        lon: {type: number, minimum: -180, maximum: 180}
+        elevation_m: {type: number, description: Висота над еліпсоїдом WGS84}
+        min_elevation_deg: {type: number, description: Мінімальний кут місця антени}
+
+    LaunchSite:
+      type: object
+      required: [id, name, lat, lon, kind, verified]
+      additionalProperties: false
+      properties:
+        id: {type: string, pattern: "^[a-z0-9-]+$"}
+        name: {type: string}
+        lat: {type: number, minimum: -90, maximum: 90}
+        lon: {type: number, minimum: -180, maximum: 180}
+        kind: {type: string, enum: [spaceport, sea_platform, air_launch, custom]}
+        country: {type: string}
+        note: {type: string}
+        verified: {type: boolean}
+
+    SiteMetrics:
+      type: object
+      description: Відповідь /metrics. Поля додаються лише зворотно сумісно.
+      required:
+        - lat
+        - lon
+        - height_m
+        - datetime
+        - sun_elevation_deg
+        - sun_azimuth_deg
+        - sun_visible_fraction
+        - earth_elevation_deg
+        - earth_azimuth_deg
+        - earth_visible_fraction
+        - earth_visible
+        - earth_distance_km
+        - signal_delay_s
+        - recommended_station
+        - hours_to_sunset
+        - hours_to_sunrise
+        - hours_to_earthset
+        - hours_to_earthrise
+        - event_search_hours
+      properties:
+        lat: {type: number}
+        lon: {type: number, minimum: -180, maximum: 180}
+        height_m: {type: number}
+        datetime: {type: string, format: date-time, description: UTC із Z}
+        sun_elevation_deg: {type: number, minimum: -90, maximum: 90}
+        sun_azimuth_deg: {type: number, minimum: 0, maximum: 360}
+        sun_visible_fraction: {type: number, minimum: 0, maximum: 1, description: Частка диска Сонця над маскою горизонту}
+        earth_elevation_deg: {type: number, minimum: -90, maximum: 90}
+        earth_azimuth_deg: {type: number, minimum: 0, maximum: 360}
+        earth_visible_fraction: {type: number, minimum: 0, maximum: 1}
+        earth_visible: {type: boolean, description: Центр Землі над маскою горизонту}
+        earth_distance_km: {type: number}
+        signal_delay_s: {type: number, description: Затримка в один бік до рекомендованої станції (або центру Землі)}
+        recommended_station: {type: [string, "null"], description: id станції DSN або null, якщо зв'язку немає}
+        hours_to_sunset: {type: [number, "null"]}
+        hours_to_sunrise: {type: [number, "null"]}
+        hours_to_earthset: {type: [number, "null"]}
+        hours_to_earthrise: {type: [number, "null"]}
+        event_search_hours: {type: number, description: Вікно пошуку подій; null у hours_to_* = події немає в цьому вікні}
+
+    CompareItem:
+      type: object
+      required: [site, metrics]
+      properties:
+        site: {$ref: "#/components/schemas/Site"}
+        metrics: {$ref: "#/components/schemas/SiteMetrics"}
+
+    HorizonMask:
+      type: object
+      required: [lat, lon, observer_height_m, azimuth_step_deg, elevations_deg, source, sky_view_fraction]
+      properties:
+        lat: {type: number}
+        lon: {type: number}
+        observer_height_m: {type: number}
+        azimuth_step_deg: {type: number, exclusiveMinimum: 0, description: Азимут i-го елемента = i * step}
+        elevations_deg:
+          type: array
+          items: {type: number, minimum: -90, maximum: 90}
+          minItems: 4
+        source: {type: string, description: "flat — гладка сфера; інакше id набору DEM (див. /meta)", examples: [flat, lola_20m]}
+        max_distance_km: {type: number}
+        sky_view_fraction: {type: number, minimum: 0, maximum: 1.2, description: Частка відкритого неба відносно півсфери}
+
+    Track:
+      type: object
+      description: Значення в моменти Timeline.times (масиви однакової довжини)
+      required: [azimuth_deg, elevation_deg, visible_fraction]
+      properties:
+        azimuth_deg: {type: array, items: {type: number}}
+        elevation_deg: {type: array, items: {type: number}}
+        visible_fraction: {type: array, items: {type: number, minimum: 0, maximum: 1}}
+
+    StationTrack:
+      type: object
+      required: [station_id, available, moon_elevation_deg]
+      properties:
+        station_id: {type: string}
+        available: {type: array, items: {type: boolean}}
+        moon_elevation_deg: {type: array, items: {type: number}}
+
+    PeriodSummary:
+      type: object
+      description: Підсумки за період у земних годинах (docs/MATH.md, §8, §10)
+      required: [period_h, sun_hours, comm_hours, sun_fraction, comm_fraction, longest_night_h, longest_comm_gap_h]
+      properties:
+        period_h: {type: number}
+        sun_hours: {type: number, description: "Σ частка диска · Δt"}
+        comm_hours: {type: number, description: Години, коли доступна хоча б одна станція DSN}
+        sun_fraction: {type: number, minimum: 0, maximum: 1}
+        comm_fraction: {type: number, minimum: 0, maximum: 1}
+        longest_night_h: {type: number}
+        longest_comm_gap_h: {type: number}
+        energy_wh_per_m2: {type: number, description: Вертикальна панель зі стеженням, η = 0,30}
+
+    Timeline:
+      type: object
+      required: [lat, lon, height_m, step_h, times, sun, earth, stations, summary]
+      properties:
+        lat: {type: number}
+        lon: {type: number}
+        height_m: {type: number}
+        step_h: {type: number}
+        times: {type: array, items: {type: string, format: date-time}}
+        sun: {$ref: "#/components/schemas/Track"}
+        earth: {$ref: "#/components/schemas/Track"}
+        stations: {type: array, items: {$ref: "#/components/schemas/StationTrack"}}
+        summary: {$ref: "#/components/schemas/PeriodSummary"}
+
+    Event:
+      type: object
+      required: [body, kind, datetime]
+      properties:
+        body: {type: string, description: "sun | earth | station:<id>", examples: [sun, earth, "station:canberra"]}
+        kind: {type: string, enum: [rise, set]}
+        datetime: {type: string, format: date-time}
+
+    EventList:
+      type: object
+      required: [lat, lon, start, end, events]
+      properties:
+        lat: {type: number}
+        lon: {type: number}
+        start: {type: string, format: date-time}
+        end: {type: string, format: date-time}
+        events: {type: array, items: {$ref: "#/components/schemas/Event"}}
+
+    Vector3:
+      type: array
+      items: {type: number}
+      minItems: 3
+      maxItems: 3
+
+    SystemState:
+      type: object
+      description: |
+        Положення тіл для 3D-сцени. Система координат — ICRF з початком у центрі Землі, км.
+        Орієнтація Місяця — матриця ICRF → MOON_ME (рядки), щоб накласти текстуру й поставити точку посадки.
+      required: [datetime, frame, sun_km, moon_km, moon_orientation, sub_solar_point, sub_earth_point, earth_rotation_deg]
+      properties:
+        datetime: {type: string, format: date-time}
+        frame: {const: icrf_geocentric_km}
+        sun_km: {$ref: "#/components/schemas/Vector3"}
+        moon_km: {$ref: "#/components/schemas/Vector3"}
+        moon_orientation:
+          type: array
+          description: Матриця 3×3 ICRF → MOON_ME
+          items: {$ref: "#/components/schemas/Vector3"}
+          minItems: 3
+          maxItems: 3
+        sub_solar_point: {$ref: "#/components/schemas/LatLon"}
+        sub_earth_point: {$ref: "#/components/schemas/LatLon"}
+        earth_rotation_deg: {type: number, description: Зоряний час Гринвіча (GAST), для повороту текстури Землі}
+
+    Factor:
+      type: string
+      enum: [energy, comms, radiation, temperature, cost, risk, flight_time]
+
+    Trajectory:
+      type: string
+      enum: [direct, low_energy]
+      default: direct
+
+    SearchRequest:
+      type: object
+      required: [start, end]
+      properties:
+        start: {type: string, format: date-time}
+        end: {type: string, format: date-time}
+        region:
+          type: object
+          description: Область пошуку на Місяці; без неї — уся поверхня
+          properties:
+            lat_min: {type: number}
+            lat_max: {type: number}
+            lon_min: {type: number}
+            lon_max: {type: number}
+        height_m: {type: number, default: 0}
+        min_sun_hours: {type: number, minimum: 0, description: Повзунок «години Сонця»}
+        min_comm_hours: {type: number, minimum: 0, description: Повзунок «години зв'язку»}
+        earth_target: {$ref: "#/components/schemas/LatLon"}
+        launch_site_ids: {type: array, items: {type: string}}
+        trajectory: {$ref: "#/components/schemas/Trajectory"}
+        priorities:
+          type: array
+          description: Фактори від найважливішого (порядок блоків після перетягування) → ваги ROC
+          items: {$ref: "#/components/schemas/Factor"}
+          uniqueItems: true
+        mode: {type: string, enum: [weighted, maximin], default: weighted}
+        limit: {type: integer, minimum: 1, maximum: 100, default: 20}
+
+    Chain:
+      type: object
+      required: [moon_site, dsn_station_id, score_pct, factors, pareto]
+      properties:
+        launch_site_id: {type: [string, "null"]}
+        moon_site: {$ref: "#/components/schemas/LatLon"}
+        dsn_station_id: {type: string}
+        earth_target: {oneOf: [{$ref: "#/components/schemas/LatLon"}, {type: "null"}]}
+        score_pct: {type: number, minimum: 0, maximum: 100}
+        pareto: {type: boolean, description: Недомінований варіант}
+        factors:
+          type: object
+          description: Нормалізовані оцінки 0..1 за кожним фактором
+          additionalProperties: {type: number, minimum: 0, maximum: 1}
+        summary: {$ref: "#/components/schemas/PeriodSummary"}
+
+    SearchResponse:
+      type: object
+      required: [weights, chains]
+      properties:
+        weights:
+          type: object
+          additionalProperties: {type: number}
+        chains: {type: array, items: {$ref: "#/components/schemas/Chain"}}
+
+    LaunchWindow:
+      type: object
+      required: [launch_site_id, trajectory, days, best]
+      properties:
+        launch_site_id: {type: string}
+        trajectory: {$ref: "#/components/schemas/Trajectory"}
+        days:
+          type: array
+          items:
+            type: object
+            required: [date, score_pct]
+            properties:
+              date: {type: string, format: date}
+              score_pct: {type: number, minimum: 0, maximum: 100}
+              arrival: {type: string, format: date-time}
+        best:
+          type: object
+          required: [date, score_pct]
+          properties:
+            date: {type: string, format: date}
+            score_pct: {type: number}

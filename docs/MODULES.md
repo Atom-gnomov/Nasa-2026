@@ -113,13 +113,16 @@ tests/                  → тести для всіх модулів
 | GET | `/api/dsn` | — | станції DSN (М8) |
 | GET | `/api/metrics` | `lat`, `lon`, `datetime` (ISO 8601, UTC за замовчуванням), `height` (висота щогли, м, необов'язково) | метрики точки (М7) |
 | GET | `/api/compare` | `site` ×2+, `datetime` | метрики кількох місць |
+| GET | `/api/launch-sites` | — | місця старту |
+
+Повний контракт усіх операцій (зокрема запланованих `/meta`, `/horizon`, `/timeline`, `/events`, `/system`, `/search`, `/launch-window`) — [CONTRACTS.md](CONTRACTS.md) і `contracts/openapi.yaml`. Заплановані операції вже відповідають 501 у форматі помилок контракту.
 
 **MVP:**
-- Валідація: `lat` ∈ [−90, 90], `lon` ∈ [−180, 360], дата у форматі ISO 8601. Помилка → 400 з JSON `{"error", "detail"}`.
+- Валідація: `lat` ∈ [−90, 90], `lon` ∈ [−180, 360], дата у форматі ISO 8601. Помилка → 400 з JSON `{"error", "detail"}`; коди `error` — `bad_request`, `not_found`, `not_implemented`, `unavailable`, `internal` (CONTRACTS.md, §1.5).
 - Нереалізований розрахунок → 501 з поясненням (фронтенд показує його в оверлеї).
 - Усі відповіді — JSON; тексти помилок українською.
 
-**Друга черга:** `/api/ephemeris` (положення тіл для 3D-сцени), `/api/search` (підбір локацій), `/api/launch-window`, `/api/timeline` (часові ряди для графіків).
+**Далі:** реалізувати заплановані операції за контрактом; першими — `/timeline`, `/events`, `/system`, `/horizon` (усе потрібне вже є в `app/core/`).
 
 **Пропозиції:**
 - …

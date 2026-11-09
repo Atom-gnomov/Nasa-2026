@@ -2,11 +2,26 @@
 
 from datetime import datetime, timezone
 
-from flask import Blueprint, abort, jsonify, request
+from flask import Blueprint, abort, current_app, jsonify, request
+from werkzeug.exceptions import HTTPException
 
-from app.services import dsn, metrics, sites
+from app.services import catalogs, dsn, metrics, sites
 
 bp = Blueprint("api", __name__)
+
+API_VERSION = "1.0.0"
+
+# Коди помилок контракту (contracts/openapi.yaml → Error.error)
+ERROR_CODES = {400: "bad_request", 404: "not_found", 501: "not_implemented", 503: "unavailable"}
+
+
+def _error(status: int, detail: str):
+    return jsonify(error=ERROR_CODES.get(status, "internal"), detail=detail), status
+
+
+def _not_implemented(what: str):
+    """Операція з контракту, реалізації якої ще немає (x-status: planned)."""
+    return _error(501, f"{what} ще не реалізовано; контракт — contracts/openapi.yaml")
 
 
 def _parse_datetime(value: str | None) -> datetime:
@@ -57,6 +72,11 @@ def list_dsn():
     return jsonify([s.to_dict() for s in dsn.load_stations()])
 
 
+@bp.get("/launch-sites")
+def list_launch_sites():
+    return jsonify(catalogs.load_launch_sites())
+
+
 @bp.get("/metrics")
 def get_metrics():
     """Метрики для оверлею: /api/metrics?lat=-89.5&lon=0&datetime=2027-01-01T00:00Z&height=2
@@ -70,7 +90,10 @@ def get_metrics():
     try:
         result = metrics.site_metrics(lat, lon, when, height_m)
     except NotImplementedError as exc:
-        return jsonify(error="not_implemented", detail=str(exc)), 501
+        return _error(501, str(exc))
+    except RuntimeError as exc:  # немає файлу ефемерид тощо
+        current_app.logger.exception("metrics unavailable")
+        return _error(503, str(exc))
     return jsonify(result.to_dict())
 
 
@@ -90,11 +113,49 @@ def compare():
     try:
         results = [metrics.site_metrics(s.lat, s.lon, when).to_dict() for s in selected]
     except NotImplementedError as exc:
-        return jsonify(error="not_implemented", detail=str(exc)), 501
+        return _error(501, str(exc))
+    except RuntimeError as exc:
+        return _error(503, str(exc))
     return jsonify([{"site": s.to_dict(), "metrics": m} for s, m in zip(selected, results, strict=True)])
 
 
-@bp.errorhandler(400)
-@bp.errorhandler(404)
-def json_error(err):
-    return jsonify(error=err.name, detail=err.description), err.code
+# --- Операції з контракту, які ще не реалізовано (x-status: planned) ---------------
+
+@bp.get("/meta")
+def meta():
+    return _not_implemented("/api/meta")
+
+
+@bp.get("/horizon")
+def horizon_mask():
+    return _not_implemented("/api/horizon")
+
+
+@bp.get("/timeline")
+def timeline():
+    return _not_implemented("/api/timeline")
+
+
+@bp.get("/events")
+def events_list():
+    return _not_implemented("/api/events")
+
+
+@bp.get("/system")
+def system_state():
+    return _not_implemented("/api/system")
+
+
+@bp.post("/search")
+def search():
+    return _not_implemented("/api/search")
+
+
+@bp.get("/launch-window")
+def launch_window():
+    return _not_implemented("/api/launch-window")
+
+
+@bp.errorhandler(HTTPException)
+def json_error(err: HTTPException):
+    return _error(err.code or 500, err.description or err.name)

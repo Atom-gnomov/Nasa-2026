@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dsn_stations.schema.json",
+  "title": "Станції DSN (app/data/dsn_stations.json)",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["id", "name", "antenna", "lat", "lon", "elevation_m"],
+    "additionalProperties": false,
+    "properties": {
+      "id": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+      "name": {"type": "string"},
+      "antenna": {"type": "string", "description": "Позначення антени, напр. DSS-43"},
+      "lat": {"type": "number", "minimum": -90, "maximum": 90, "description": "Геодезична широта WGS84"},
+      "lon": {"type": "number", "minimum": -180, "maximum": 180, "description": "Довгота на схід WGS84"},
+      "elevation_m": {"type": "number", "description": "Висота над еліпсоїдом WGS84"},
+      "min_elevation_deg": {"type": "number", "minimum": 0, "maximum": 30, "default": 10}
+    }
+  }
+}

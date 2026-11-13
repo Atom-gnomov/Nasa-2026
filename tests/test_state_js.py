@@ -1,6 +1,6 @@
-"""Спільний стан фронтенду (app/static/js/state.js): JS-тести tests/js/test_state.mjs у Node.
+"""JS-тести фронтенду (tests/js/test_*.mjs) у Node: спільний стан, календар, порівняння.
 
-Без Node.js тест пропускається — решта набору від нього не залежить.
+Кожен файл — окремий тест pytest. Без Node.js тести пропускаються — решта набору від них не залежить.
 """
 
 import shutil
@@ -10,13 +10,14 @@ from pathlib import Path
 import pytest
 
 NODE = shutil.which("node")
-SCRIPT = Path(__file__).parent / "js" / "test_state.mjs"
+SCRIPTS = sorted((Path(__file__).parent / "js").glob("test_*.mjs"))
 
 
 @pytest.mark.skipif(NODE is None, reason="Node.js не встановлено")
-def test_state_js():
+@pytest.mark.parametrize("script", SCRIPTS, ids=lambda p: p.stem)
+def test_js(script):
     proc = subprocess.run(
-        [NODE, "--test", str(SCRIPT)],
+        [NODE, "--test", str(script)],
         capture_output=True,
         text=True,
         encoding="utf-8",

@@ -108,6 +108,25 @@ test("посилання — повний знімок: відсутні клю�
   assert.deepEqual(st.compare, []);
 });
 
+test("стан із посилання зберігається, і перехід через меню його не губить (F12)", async () => {
+  // Сценарій рев'ю PR #15: у localStorage старий стан, відкрили посилання, перейшли в «Систему».
+  const old = { datetime: "2030-01-01T00:00Z", site: "Інше місце", lat: -89.9, lon: 0, height_m: 10, mode: "earth-moon", compare: [] };
+  const storage = new MemoryStorage({ "lse-state": old });
+  const link = await openTab(`/moon?${new URLSearchParams({ datetime: SHARED.datetime, site: SHARED.site, lat: SHARED.lat, lon: SHARED.lon, height: SHARED.height_m, mode: SHARED.mode, compare: SHARED.compare.join(",") })}`, storage);
+  assert.deepEqual(link.mod.getState(), SHARED);
+  assert.deepEqual(JSON.parse(storage.getItem("lse-state")), SHARED, "знімок посилання записано в localStorage одразу при завантаженні");
+
+  const menu = await openTab("/system", storage); // посилання меню — без параметрів
+  assert.deepEqual(menu.mod.getState(), SHARED);
+  assert.equal(menu.url.searchParams.get("datetime"), SHARED.datetime);
+});
+
+test("недоступний localStorage не заважає відкрити посилання", async () => {
+  const broken = { getItem() { throw new Error("SecurityError"); }, setItem() { throw new Error("SecurityError"); } };
+  const tab = await openTab("/moon?datetime=2027-07-01T00:00Z&lat=1&lon=2", broken);
+  assert.equal(tab.mod.getState().lat, 1);
+});
+
 test("parseUrlState відкидає некоректні значення", async () => {
   const { parseUrlState } = (await openTab("/")).mod;
   assert.deepEqual(parseUrlState("?datetime=вчора&lat=&lon=abc&height=-1&mode=moon&compare=Bad%20Id,!x"), { compare: [] });
@@ -115,6 +134,50 @@ test("parseUrlState відкидає некоректні значення", asy
   assert.deepEqual(parseUrlState("?lat=-90&lon=360&height=1000"), { lat: -90, lon: 360, height_m: 1000 });
   // Обидві форми compare: через кому й повторенням параметра (як у GET /compare); дублікати прибираються.
   assert.deepEqual(parseUrlState("?compare=apollo-11,apollo-12&compare=apollo-11&compare=apollo-14").compare, ["apollo-11", "apollo-12", "apollo-14"]);
+});
+
+test("datetime з URL нормалізується до UTC «YYYY-MM-DDTHH:mmZ» (F13)", async () => {
+  const { normalizeDatetime, parseUrlState } = (await openTab("/")).mod;
+  const cases = {
+    "2027-07-01T12:00Z": "2027-07-01T12:00Z",
+    "2027-07-01t12:00z": "2027-07-01T12:00Z",
+    "2027-07-01T12:00:59Z": "2027-07-01T12:00Z", // секунди відкидаються, як у календарі
+    "2027-07-01T12:00:00.000Z": "2027-07-01T12:00Z",
+    "2027-07-01T12:00:00+02:00": "2027-07-01T10:00Z", // приклад із рев'ю PR #15
+    "2027-07-01T12:00:00+0200": "2027-07-01T10:00Z",
+    "2027-07-01T12:00:00 02:00": "2027-07-01T10:00Z", // незакодований «+» у URL
+    "2027-07-01T00:30-03:30": "2027-07-01T04:00Z",
+    "2027-07-01T23:30-01:00": "2027-07-02T00:30Z", // перехід через північ
+    "2028-02-29T12:00Z": "2028-02-29T12:00Z", // високосний рік
+    "2027-07-01T12:00": "2027-07-01T12:00Z", // без зони — UTC
+  };
+  for (const [raw, expected] of Object.entries(cases)) assert.equal(normalizeDatetime(raw), expected, raw);
+  const rejected = [
+    "2027-07-01", // дата без часу — зауваження рев'ю
+    "2027-07-01T",
+    "2027-07-01T12",
+    "2027-02-30T00:00Z", // Date.parse «перекочує» на 2 березня
+    "2027-02-29T00:00Z",
+    "2027-13-01T00:00Z",
+    "2027-07-01T24:00Z",
+    "2027-07-01T12:60Z",
+    "2027-07-01T12:00+25:00",
+    "1814432400000",
+    "вчора",
+    "",
+    null,
+  ];
+  for (const raw of rejected) assert.equal(normalizeDatetime(raw), undefined, String(raw));
+
+  assert.equal(parseUrlState("?datetime=2027-07-01T12:00:00%2B02:00").datetime, "2027-07-01T10:00Z");
+  assert.equal(parseUrlState("?datetime=2027-07-01T12:00:00+02:00").datetime, "2027-07-01T10:00Z");
+  assert.equal("datetime" in parseUrlState("?datetime=2027-07-01"), false);
+});
+
+test("посилання з датою в іншій зоні відкривається в UTC і адреса виправляється", async () => {
+  const tab = await openTab("/moon?datetime=2027-07-01T12:00:00%2B02:00&lat=1&lon=2");
+  assert.equal(tab.mod.getState().datetime, "2027-07-01T10:00Z");
+  assert.equal(tab.url.searchParams.get("datetime"), "2027-07-01T10:00Z");
 });
 
 test("serializeUrlState зберігає чужі параметри й читається назад", async () => {

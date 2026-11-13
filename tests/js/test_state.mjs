@@ -108,6 +108,25 @@ test("посилання — повний знімок: відсутні клю�
   assert.deepEqual(st.compare, []);
 });
 
+test("стан із посилання зберігається, і перехід через меню його не губить (F12)", async () => {
+  // Сценарій рев'ю PR #15: у localStorage старий стан, відкрили посилання, перейшли в «Систему».
+  const old = { datetime: "2030-01-01T00:00Z", site: "Інше місце", lat: -89.9, lon: 0, height_m: 10, mode: "earth-moon", compare: [] };
+  const storage = new MemoryStorage({ "lse-state": old });
+  const link = await openTab(`/moon?${new URLSearchParams({ datetime: SHARED.datetime, site: SHARED.site, lat: SHARED.lat, lon: SHARED.lon, height: SHARED.height_m, mode: SHARED.mode, compare: SHARED.compare.join(",") })}`, storage);
+  assert.deepEqual(link.mod.getState(), SHARED);
+  assert.deepEqual(JSON.parse(storage.getItem("lse-state")), SHARED, "знімок посилання записано в localStorage одразу при завантаженні");
+
+  const menu = await openTab("/system", storage); // посилання меню — без параметрів
+  assert.deepEqual(menu.mod.getState(), SHARED);
+  assert.equal(menu.url.searchParams.get("datetime"), SHARED.datetime);
+});
+
+test("недоступний localStorage не заважає відкрити посилання", async () => {
+  const broken = { getItem() { throw new Error("SecurityError"); }, setItem() { throw new Error("SecurityError"); } };
+  const tab = await openTab("/moon?datetime=2027-07-01T00:00Z&lat=1&lon=2", broken);
+  assert.equal(tab.mod.getState().lat, 1);
+});
+
 test("parseUrlState відкидає некоректні значення", async () => {
   const { parseUrlState } = (await openTab("/")).mod;
   assert.deepEqual(parseUrlState("?datetime=вчора&lat=&lon=abc&height=-1&mode=moon&compare=Bad%20Id,!x"), { compare: [] });

@@ -62,11 +62,20 @@ export function serializeUrlState(state, search = "") {
   return params.toString().replace(/%3A/gi, ":").replace(/%2C/gi, ",");
 }
 
+function save(snapshot) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot)); } catch { /* приватний режим */ }
+}
+
 function readInitial() {
   const fromUrl = typeof location === "undefined" ? {} : parseUrlState(location.search);
   // Посилання з параметрами — повний знімок стану: решта ключів беруть значення за замовчуванням,
-  // а не з localStorage, інакше в іншій вкладці стан відрізнявся б.
-  if (Object.keys(fromUrl).length) return { ...defaults(), ...fromUrl };
+  // а не з localStorage, інакше в іншій вкладці стан відрізнявся б. Знімок одразу зберігаємо,
+  // щоб перехід через меню (адреса без параметрів) не повертав старий стан.
+  if (Object.keys(fromUrl).length) {
+    const snapshot = { ...defaults(), ...fromUrl };
+    save(snapshot);
+    return snapshot;
+  }
   let stored = {};
   try { stored = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { /* приватний режим */ }
   return { ...defaults(), ...stored };
@@ -89,7 +98,7 @@ export function getState() {
 
 export function setState(patch) {
   state = { ...state, ...patch };
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { /* ігноруємо */ }
+  save(state);
   syncUrl();
   for (const fn of listeners) fn(getState());
 }

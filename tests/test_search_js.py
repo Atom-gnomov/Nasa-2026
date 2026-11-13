@@ -61,11 +61,15 @@ def test_real_response_becomes_table_rows(client, tmp_path):
     assert "кандидатів" in out["note"] and out["cmp"]
 
 
-def test_search_page_and_navigation(client):
-    html = client.get("/search").get_data(as_text=True)
-    for marker in ('id="s-run"', 'id="s-priorities"', 'id="s-sun"', 'id="s-comm"', 'data-mode="maximin"', "search.js"):
-        assert marker in html
-    assert 'href="/search"' in client.get("/moon").get_data(as_text=True)
+def test_search_lives_on_the_moon_page_under_the_globe(client):
+    """Підбір і глобус — на одній сторінці: результати позначаються на карті Місяця."""
+    html = client.get("/moon").get_data(as_text=True)
+    for marker in ('id="s-run"', 'id="s-priorities"', 'id="s-sun"', 'id="s-comm"', 'data-mode="maximin"',
+                   'id="s-advice"', "search.js", 'id="moon-globe"', 'href="/moon#search"'):
+        assert marker in html, marker
+    assert html.index('id="moon-globe"') < html.index('id="search"')  # карта вище за підбір
+    res = client.get("/search")
+    assert res.status_code == 302 and res.headers["Location"].endswith("/moon#search")
 
 
 def test_advice_facts_from_real_search_are_accepted_by_advice_api(client, app, tmp_path, monkeypatch):

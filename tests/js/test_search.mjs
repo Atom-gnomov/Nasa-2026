@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
-  DEFAULT_FORM, REGIONS, activePriorities, buildAdviceFacts, buildSearchRequest, clampHours, describeComparison, gridNote, hoursShort,
+  DEFAULT_FORM, REGIONS, activePriorities, buildAdviceFacts, buildSearchRequest, highlightPoints, clampHours, describeComparison, gridNote, hoursShort,
   hoursText, maxHours, movePriority, placeLabel, resultRows, violationText,
 } from "../../app/static/js/search.js";
 
@@ -150,5 +150,16 @@ test("факти для порад: лише топ-5, готові числа �
   assert.ok(!JSON.stringify(facts).includes("undefined"));
   assert.ok(JSON.stringify(facts).length < 12000);
   assert.equal(buildAdviceFacts({ ...response, comparison: null }, DEFAULT_FORM).comparison, null);
+});
+
+test("точки для карти: координати, ранг, допустимість", () => {
+  const response = { chains: [
+    { rank: 1, feasible: true, moon_site: { lat: -89.5, lon: 10 } },
+    { rank: 2, feasible: false, moon_site: { lat: -80, lon: -170.25 } },
+  ] };
+  assert.deepEqual(highlightPoints(response), [
+    { lat: -89.5, lon: 10, rank: 1, feasible: true },
+    { lat: -80, lon: -170.25, rank: 2, feasible: false },
+  ]);
 });
 

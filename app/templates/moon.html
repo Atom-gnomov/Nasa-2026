@@ -114,9 +114,11 @@
     </div>
   </div>
 </section>
+{% include "_search.html" %}
 {% endblock %}
 {% block scripts %}
 <script type="module" src="{{ url_for('static', filename='js/moon_globe.js') }}"></script>
 <script type="module" src="{{ url_for('static', filename='js/globe_view.js') }}"></script>
 <script type="module" src="{{ url_for('static', filename='js/compare.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/search.js') }}"></script>
 {% endblock %}

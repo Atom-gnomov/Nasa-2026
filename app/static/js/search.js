@@ -3,6 +3,7 @@
 // у регіоні, оцінює кожну за ваговими факторами й повертає найкращі зі станцією DSN для кожної.
 // Дата початку береться зі спільного календаря (state.js), кінець = початок + «довжина періоду».
 // Чисті функції (без DOM) експортовано й покрито tests/js/test_search.mjs.
+import { publishHighlights } from "./highlights.js";
 import { getState, setState } from "./state.js";
 
 const DAY_MS = 86_400_000;
@@ -146,6 +147,11 @@ export function describeComparison(cmp, labels = FACTOR_LABELS) {
   }
 }
 
+/** Точки результатів для підсвічування на глобусі (rank 1 — найкраща; недопустимі позначено окремо). */
+export const highlightPoints = (response) => response.chains.map((c) => ({
+  lat: c.moon_site.lat, lon: c.moon_site.lon, rank: c.rank, feasible: c.feasible,
+}));
+
 /** Факти для POST /api/advice: готові результати пошуку (лише числа й підписи з відповіді сервера). */
 export function buildAdviceFacts(response, form, top = 5) {
   const limitFields = (c) => ({
@@ -281,7 +287,7 @@ if (root) {
       const tr = el.body.insertRow();
       tr.tabIndex = 0;
       tr.className = r.feasible ? "" : "infeasible";
-      tr.title = "Показати це місце в оверлеї метрик";
+      tr.title = "Показати це місце на карті Місяця й в оверлеї метрик";
       const put = (text) => { const td = tr.insertCell(); td.textContent = text; return td; };
       put(`${r.rank}${r.pareto ? " ★" : ""}`).title = r.pareto ? "Недомінована: жодна допустима точка не краща за всіма факторами" : "";
       put(r.place);
@@ -295,7 +301,10 @@ if (root) {
       put(r.station);
       const status = put(r.feasible ? "✓ допустима" : `✗ ${r.violations.join("; ")}`);
       status.className = r.feasible ? "ok" : "no";
-      const open = () => setState({ site: r.site.name ?? null, lat: r.site.lat, lon: r.site.lon });
+      const open = () => {
+        setState({ site: r.site.name ?? null, lat: r.site.lat, lon: r.site.lon });
+        document.getElementById("moon-globe")?.scrollIntoView({ behavior: "smooth", block: "nearest" }); // до карти
+      };
       tr.addEventListener("click", open);
       tr.addEventListener("keydown", (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); open(); } });
     }
@@ -372,6 +381,7 @@ if (root) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || res.statusText);
       renderResults(data);
+      publishHighlights(highlightPoints(data));
       lastResponse = data;
       el.adviceOut.hidden = true;
       el.adviceStatus.hidden = true;
@@ -381,6 +391,7 @@ if (root) {
       el.table.hidden = true;
       el.compare.hidden = true;
       el.note.textContent = "";
+      publishHighlights([]);
       showStatus(err.message, true);
     } finally {
       el.run.disabled = false;

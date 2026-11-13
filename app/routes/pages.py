@@ -20,8 +20,8 @@ def moon():
 
 @bp.get("/search")
 def search():
-    """Вкладка «Підбір»: найкращі точки за вимогами й пріоритетами (POST /api/search)."""
-    return render_template("search.html", active_tab="search")
+    """«Підбір» живе на сторінці «Місяць» під глобусом (результати позначаються на карті): стара адреса веде туди."""
+    return redirect(url_for("pages.moon") + "#search")
 
 
 @bp.get("/system")

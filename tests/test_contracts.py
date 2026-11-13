@@ -127,6 +127,56 @@ def test_system_matches_jpl_horizons(client, dt, sun, earth):
         assert (got["lon"] - lon + 180) % 360 - 180 == pytest.approx(0, abs=0.02)
 
 
+def _geocentric_lat(planetodetic_deg: float) -> float:
+    """Horizons дає геодезичну широту перетину лінії «центр Землі → тіло» з еліпсоїдом (ITRF93).
+    Ми даємо точку, де тіло в зеніті; для далекого тіла її широта = геоцентрична широта напрямку."""
+    f = 1 / 298.257223563
+    return float(np.degrees(np.arctan((1 - f) ** 2 * np.tan(np.radians(planetodetic_deg)))))
+
+
+@pytest.mark.parametrize("dt, sun, moon, illum_pct, phase_deg", [
+    # JPL Horizons, запит 2026-11-13: COMMAND=399 CENTER=500@301 QUANTITIES=14,15 (ITRF93);
+    # COMMAND=301 CENTER=500@399 QUANTITIES=10,24
+    ("2027-07-01T00:00", (180.944626, 23.273049), (133.430892, 24.274869), 13.68065, 136.5803),
+    ("2030-01-15T12:00", (2.360775, -21.187781), (130.801712, 23.307107), 83.80731, 47.4529),
+])
+def test_earth_and_phase_match_jpl_horizons(client, dt, sun, moon, illum_pct, phase_deg):
+    """Орієнтація Землі (підсонячна й підмісячна точки) і фаза Місяця збігаються з JPL Horizons."""
+    pytest.importorskip("naif_de440")
+    s = client.get(f"/api/system?datetime={dt}").get_json()
+    m = np.array(s["earth_orientation"])
+    assert np.allclose(m @ m.T, np.eye(3), atol=1e-6)
+    for got, (lon, lat) in ((s["earth_sub_solar_point"], sun), (s["earth_sub_lunar_point"], moon)):
+        assert (got["lon"] - lon + 180) % 360 - 180 == pytest.approx(0, abs=0.02)
+        assert got["lat"] == pytest.approx(_geocentric_lat(lat), abs=0.02)
+    assert s["moon_illumination"]["fraction"] == pytest.approx(illum_pct / 100, abs=5e-4)
+    assert s["moon_illumination"]["phase_angle_deg"] == pytest.approx(phase_deg, abs=0.02)
+
+
+def test_system_rotations_are_consistent(client):
+    """3D-вид повертає тіла матрицями з /api/system: точки «тіло в зеніті» мають дивитися на тіло.
+
+    Перевіряє узгодженість earth_orientation / moon_orientation з векторами положень — саме це
+    робить system_view.js (поворот тіло → ICRF = транспонована матриця).
+    """
+    pytest.importorskip("naif_de440")
+
+    def unit(p):
+        lat, lon = np.radians(p["lat"]), np.radians(p["lon"])
+        return np.array([np.cos(lat) * np.cos(lon), np.cos(lat) * np.sin(lon), np.sin(lat)])
+
+    def angle(a, b):
+        return np.degrees(np.arccos(np.clip(np.dot(a, b) / np.linalg.norm(a) / np.linalg.norm(b), -1, 1)))
+
+    s = client.get("/api/system?datetime=2027-07-01T00:00").get_json()
+    re, rm = np.array(s["earth_orientation"]), np.array(s["moon_orientation"])
+    sun, moon = np.array(s["sun_km"]), np.array(s["moon_km"])
+    assert angle(re.T @ unit(s["earth_sub_solar_point"]), sun) < 0.02
+    assert angle(re.T @ unit(s["earth_sub_lunar_point"]), moon) < 0.02
+    assert angle(rm.T @ unit(s["sub_solar_point"]), sun - moon) < 0.01
+    assert angle(rm.T @ unit(s["sub_earth_point"]), -moon) < 0.01
+
+
 def test_elevation_response(app, tmp_path):
     """Сервіс висот на синтетичному глобальному DEM: формат відповіді й вибір джерела."""
     from tests.test_core_dem import CYL_LABEL

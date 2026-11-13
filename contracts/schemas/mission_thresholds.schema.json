@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mission_thresholds.schema.json",
+  "title": "Пороги профілів місії з першоджерел (app/data/mission_thresholds.json)",
+  "description": "Кожне значення — з опублікованого документа з посиланням і сторінкою (задача D5). Профілі М17 беруть звідси початкові значення.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["id", "profile", "quantity", "kind", "scope", "source", "quote"],
+    "additionalProperties": false,
+    "properties": {
+      "id": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+      "profile": {"enum": ["crewed", "uncrewed", "any"], "description": "Для якого профілю місії поріг"},
+      "quantity": {"type": "string", "pattern": "^[a-z0-9_]+$", "description": "Що обмежується"},
+      "comparison": {"enum": ["<", "<=", ">", ">="], "description": "Допустиме значення: quantity <comparison> value"},
+      "value": {"type": "number"},
+      "unit": {"type": "string"},
+      "kind": {
+        "enum": ["requirement", "screening"],
+        "description": "requirement — вимога документа; screening — фільтр, яким NASA відбирала ділянки в аналізі (не формальна вимога)"
+      },
+      "scope": {"type": "string", "description": "До чого саме застосовується"},
+      "source": {
+        "type": "object",
+        "required": ["title", "ref", "url"],
+        "additionalProperties": false,
+        "properties": {
+          "title": {"type": "string"},
+          "ref": {"type": "string", "description": "Розділ, вимога, таблиця, сторінка"},
+          "url": {"type": "string", "pattern": "^https://"},
+          "date": {"type": "string"}
+        }
+      },
+      "quote": {"type": "string", "description": "Коротка дослівна цитата з джерела"},
+      "note": {"type": "string"}
+    },
+    "dependentRequired": {"value": ["comparison", "unit"], "comparison": ["value"]}
+  }
+}

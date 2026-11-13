@@ -25,6 +25,29 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.4 syst
 .overlay dt { color: var(--muted); }
 .overlay dd { margin: 0; font-variant-numeric: tabular-nums; }
 .overlay-status { color: var(--muted); font-size: 13px; }
+.globe-wrap { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.globe-toolbar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; color: var(--muted); font-size: 14px; }
+.globe-toolbar label { display: flex; gap: 6px; align-items: center; }
+.seg { display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.seg button { background: var(--panel); color: var(--muted); border: 0; padding: 6px 10px; font: inherit; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--border); }
+.seg button.active { background: var(--accent); color: var(--bg); }
+.globe-host { height: 68vh; min-height: 360px; position: relative; overflow: hidden; }
+.globe-host canvas { display: block; cursor: crosshair; }
+.globe-status { display: flex; flex-wrap: wrap; gap: 4px 16px; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.globe-status .credit { margin-left: auto; }
+.globe-warn { margin: 0; color: var(--accent); font-size: 13px; min-height: 0; }
+.globe-warn:empty { display: none; }
+.globe-sources { color: var(--muted); font-size: 13px; }
+.globe-sources summary { cursor: pointer; color: var(--text); }
+.globe-sources ul { margin: 6px 0; padding-left: 18px; }
+.globe-sources li { margin: 3px 0; }
+.globe-sources a { color: var(--accent); }
+.muted { color: var(--muted); }
+.scale-bar { position: absolute; left: 12px; bottom: 10px; pointer-events: none; color: var(--text); font-size: 12px; text-shadow: 0 0 3px #000, 0 0 3px #000; }
+.scale-bar span { display: block; margin-bottom: 2px; }
+.scale-bar i { display: block; height: 6px; border: 2px solid var(--text); border-top: 0; box-shadow: 0 1px 2px #000; }
+.grid-label { color: rgba(245, 185, 66, 0.9); font-size: 11px; text-shadow: 0 0 3px #000, 0 0 3px #000; pointer-events: none; white-space: nowrap; }
 @media (max-width: 800px) {
   #view { padding-right: 16px; }
   .moon-layout { grid-template-columns: 1fr; }

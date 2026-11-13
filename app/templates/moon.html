@@ -2,9 +2,48 @@
 {% block title %}Місяць — Lunar Site Explorer{% endblock %}
 {% block content %}
 <section class="moon-layout">
-  <div id="moon-globe" class="canvas-host">
-    {# TODO (модуль moon_globe.js): 3D-глобус Three.js з текстурами CGI Moon Kit і вибором точки кліком #}
-    <p class="placeholder">Тут буде 3D-глобус Місяця</p>
+  <div class="globe-wrap">
+    {# Глобус: модуль static/js/globe_view.js; текстури — tools/build_globe_textures.py #}
+    <div class="globe-toolbar">
+      <div class="seg" role="group" aria-label="Вигляд">
+        <button type="button" data-view="globe" class="active">Куля</button>
+        <button type="button" data-view="map">Карта</button>
+        <button type="button" data-view="polar">Південний полюс</button>
+      </div>
+      <label><input type="checkbox" id="grid-toggle" checked> Сітка</label>
+      <label>Крок
+        <select id="grid-step">
+          <option value="auto" selected>авто</option>
+          <option value="30">30°</option><option value="10">10°</option><option value="5">5°</option>
+          <option value="1">1°</option><option value="0.5">0,5°</option><option value="0.1">0,1°</option>
+        </select>
+      </label>
+      <label>Рельєф ×<output id="relief-value">1</output>
+        <input type="range" id="relief" min="1" max="30" step="1" value="1">
+      </label>
+      <label>Освітлення
+        <select id="light-mode">
+          <option value="sun" selected>Сонце на дату (DE440)</option>
+          <option value="view">Рівномірне (огляд рельєфу)</option>
+        </select>
+      </label>
+    </div>
+    <div id="moon-globe" class="canvas-host globe-host">
+      <p class="placeholder">Завантаження глобуса…</p>
+    </div>
+    <div class="globe-status">
+      <span id="globe-cursor">Курсор: —</span>
+      <span id="globe-grid-label"></span>
+      <span id="globe-sun"></span>
+    </div>
+    <p id="globe-warn" class="globe-warn" role="status"></p>
+    <details class="globe-sources">
+      <summary>Джерела даних і точність</summary>
+      <ul id="globe-sources-list"></ul>
+      <p class="muted">Обмеження: тіні від рельєфу враховано лише південніше 80° пд. (маски горизонту з DEM 80/20 м);
+        на решті кулі — лише нахил поверхні. Висоти під курсором — інтерполяція DEM, точність обмежена його кроком.
+        Яскравість у режимі «Сонце» нелінійна (√cos i), щоб було видно схили при низькому Сонці.</p>
+    </details>
   </div>
   <div class="side-panel">
     <h2>Вибір місця</h2>
@@ -23,4 +62,5 @@
 {% endblock %}
 {% block scripts %}
 <script type="module" src="{{ url_for('static', filename='js/moon_globe.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/globe_view.js') }}"></script>
 {% endblock %}

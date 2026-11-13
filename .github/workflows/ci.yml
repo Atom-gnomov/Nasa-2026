@@ -1,0 +1,42 @@
+name: CI
+
+# Перевірки на кожен pull request і на кожне злиття в main.
+# Тести, що потребують завантажених даних NASA (DEM, Diviner), у CI пропускаються — їх немає в репозиторії.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements*.txt
+
+      # Node потрібен JS-тестам фронтенду (tests/js/*.mjs): без нього обгортка pytest їх пропускає
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Залежності (включно з ефемеридами DE440, ~114 МБ)
+        run: pip install -r requirements-dev.txt
+
+      - name: Лінтер
+        run: ruff check .
+
+      - name: Тести Python і JS
+        run: python -m pytest -q -rs

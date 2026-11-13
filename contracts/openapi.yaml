@@ -218,7 +218,7 @@ paths:
   /system:
     get:
       tags: [system]
-      x-status: planned
+      x-status: implemented
       summary: Стан системи Сонце–Земля–Місяць для 3D-сцени на момент часу
       parameters:
         - $ref: "#/components/parameters/datetime"
@@ -229,7 +229,24 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/SystemState"}
         "400": {$ref: "#/components/responses/BadRequest"}
-        "501": {$ref: "#/components/responses/NotImplemented"}
+        "503": {$ref: "#/components/responses/Unavailable"}
+
+  /elevation:
+    get:
+      tags: [point]
+      x-status: implemented
+      summary: Висота поверхні в точці з найдетальнішого доступного DEM LOLA (PDS)
+      parameters:
+        - $ref: "#/components/parameters/lat"
+        - $ref: "#/components/parameters/lon"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Elevation"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "503": {$ref: "#/components/responses/Unavailable"}
 
   /search:
     post:
@@ -603,6 +620,29 @@ components:
         sub_solar_point: {$ref: "#/components/schemas/LatLon"}
         sub_earth_point: {$ref: "#/components/schemas/LatLon"}
         earth_rotation_deg: {type: number, description: Зоряний час Гринвіча (GAST), для повороту текстури Землі}
+
+    Elevation:
+      type: object
+      description: |
+        Висота над опорною сферою 1737,4 км (MEAN EARTH/POLAR AXIS), білінійна інтерполяція.
+        Джерело — найдетальніший доступний продукт LOLA GDR з PDS (полярні 20/80 м, глобальні 64/16 пікс./град.).
+      required: [lat, lon, height_m, radius_km, source]
+      additionalProperties: false
+      properties:
+        lat: {type: number, minimum: -90, maximum: 90}
+        lon: {type: number, minimum: -180, maximum: 180}
+        height_m: {type: number}
+        radius_km: {type: number}
+        source:
+          type: object
+          required: [id, product_version, resolution_m, projection, url]
+          additionalProperties: false
+          properties:
+            id: {type: string, examples: [ldem_875s_20m]}
+            product_version: {type: string}
+            resolution_m: {type: number, exclusiveMinimum: 0}
+            projection: {type: string}
+            url: {type: string, format: uri}
 
     Factor:
       type: string

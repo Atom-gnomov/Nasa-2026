@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, abort, current_app, jsonify, request
 from werkzeug.exceptions import HTTPException
 
-from app.services import catalogs, dsn, metrics, sites
+from app.services import catalogs, dsn, elevation, metrics, sites, system
 
 bp = Blueprint("api", __name__)
 
@@ -143,7 +143,23 @@ def events_list():
 
 @bp.get("/system")
 def system_state():
-    return _not_implemented("/api/system")
+    """Стан системи для 3D-сцен і освітлення глобуса: /api/system?datetime=2027-01-01T00:00Z"""
+    when = _parse_datetime(request.args.get("datetime"))
+    try:
+        return jsonify(system.system_state(when))
+    except RuntimeError as exc:
+        return _error(503, str(exc))
+
+
+@bp.get("/elevation")
+def get_elevation():
+    """Висота LOLA в точці: /api/elevation?lat=-89.67&lon=129.78"""
+    lat = _parse_float("lat", -90, 90)
+    lon = _parse_float("lon", -180, 360)
+    try:
+        return jsonify(elevation.elevation(lat, lon))
+    except RuntimeError as exc:
+        return _error(503, str(exc))
 
 
 @bp.post("/search")

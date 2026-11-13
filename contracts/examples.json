@@ -365,5 +365,181 @@
     "model": "llama-3.1-8b-instruct",
     "generated_utc": "2027-06-01T12:00:00Z",
     "verified": true
+  },
+  "RankRequest": {
+    "points": [
+      {
+        "site_id": "south-pole"
+      },
+      {
+        "site_id": "apollo-11"
+      },
+      {
+        "lat": -85.0,
+        "lon": 180.0,
+        "name": "85° пд. ш., 180°"
+      }
+    ],
+    "start": "2027-01-01T00:00:00Z",
+    "end": "2027-02-01T00:00:00Z",
+    "step_h": 1,
+    "height_m": 2,
+    "priorities": [
+      "energy",
+      "comms",
+      "radiation"
+    ],
+    "mode": "weighted",
+    "requirements": {
+      "min_sun_hours": 300
+    }
+  },
+  "RankResponse": {
+    "comparison": {
+      "a_rank": 1,
+      "b_rank": 2,
+      "decisive_factor": "energy",
+      "dominance": "tradeoff",
+      "per_factor": [
+        {
+          "a": 1.0,
+          "b": 0.3535,
+          "delta": 0.6465,
+          "factor": "energy",
+          "winner": "a"
+        },
+        {
+          "a": 0.3751,
+          "b": 0.985,
+          "delta": -0.61,
+          "factor": "comms",
+          "winner": "b"
+        },
+        {
+          "a": 0.0,
+          "b": 0.0,
+          "delta": 0.0,
+          "factor": "radiation",
+          "winner": "tie"
+        }
+      ],
+      "score_delta_pct": 22.56,
+      "weighted_advantage": 0.2256
+    },
+    "mode": "weighted",
+    "params": {
+      "comm_gap_ref_h": 336.0,
+      "comms_time_weight": 0.7,
+      "energy_sun_weight": 0.6,
+      "night_ref_h": 354.0,
+      "shield_ref": 0.4,
+      "temp_max_k": 333.15,
+      "temp_min_k": 233.15
+    },
+    "period": {
+      "end": "2027-02-01T00:00:00Z",
+      "period_h": 744.0,
+      "start": "2027-01-01T00:00:00Z",
+      "step_h": 1.0
+    },
+    "priorities": [
+      "energy",
+      "comms",
+      "radiation"
+    ],
+    "ranking": [
+      {
+        "factors": {
+          "comms": 0.3751,
+          "energy": 1.0,
+          "radiation": 0.0
+        },
+        "feasible": true,
+        "horizon_source": "flat",
+        "pareto": true,
+        "point": {
+          "lat": -90.0,
+          "lon": 0.0,
+          "name": "Південний полюс",
+          "site_id": "south-pole"
+        },
+        "rank": 1,
+        "score_pct": 71.53,
+        "summary": {
+          "comm_fraction": 0.4121,
+          "comm_hours": 307.0,
+          "energy_wh_per_m2": 314375.8,
+          "longest_comm_gap_h": 239.0,
+          "longest_night_h": 0.0,
+          "sky_view_fraction": 1.0015,
+          "sun_fraction": 1.0,
+          "sun_hours": 745.0
+        },
+        "violations": []
+      },
+      {
+        "factors": {
+          "comms": 0.985,
+          "energy": 0.3535,
+          "radiation": 0.0
+        },
+        "feasible": true,
+        "horizon_source": "flat",
+        "pareto": true,
+        "point": {
+          "lat": 0.67416,
+          "lon": 23.47314,
+          "name": "Apollo 11 (Море Спокою)",
+          "site_id": "apollo-11"
+        },
+        "rank": 2,
+        "score_pct": 48.97,
+        "summary": {
+          "comm_fraction": 0.9799,
+          "comm_hours": 730.0,
+          "energy_wh_per_m2": 95551.9,
+          "longest_comm_gap_h": 1.0,
+          "longest_night_h": 295.0,
+          "sky_view_fraction": 1.0015,
+          "sun_fraction": 0.4781,
+          "sun_hours": 356.16
+        },
+        "violations": []
+      },
+      {
+        "factors": {
+          "comms": 0.1457,
+          "energy": 0.3766,
+          "radiation": 0.0
+        },
+        "feasible": true,
+        "horizon_source": "flat",
+        "pareto": false,
+        "point": {
+          "lat": -85.0,
+          "lon": -180.0,
+          "name": "85° пд. ш., 180°",
+          "site_id": null
+        },
+        "rank": 3,
+        "score_pct": 27.06,
+        "summary": {
+          "comm_fraction": 0.1852,
+          "comm_hours": 138.0,
+          "energy_wh_per_m2": 175577.0,
+          "longest_comm_gap_h": 318.0,
+          "longest_night_h": 317.0,
+          "sky_view_fraction": 1.0015,
+          "sun_fraction": 0.558,
+          "sun_hours": 415.69
+        },
+        "violations": []
+      }
+    ],
+    "weights": {
+      "comms": 0.2778,
+      "energy": 0.6111,
+      "radiation": 0.1111
+    }
   }
 }

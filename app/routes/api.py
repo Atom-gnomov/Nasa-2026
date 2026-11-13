@@ -5,7 +5,9 @@ from datetime import datetime, timezone
 from flask import Blueprint, abort, current_app, jsonify, request
 from werkzeug.exceptions import HTTPException
 
-from app.services import catalogs, dsn, elevation, metrics, sites, system, temperature
+from app.services import catalogs, dsn, elevation, metrics, ranking, sites, system, temperature
+from app.services import events as events_service
+from app.services import meta as meta_service
 from app.services import timeline as timeline_service
 
 bp = Blueprint("api", __name__)
@@ -124,7 +126,8 @@ def compare():
 
 @bp.get("/meta")
 def meta():
-    return _not_implemented("/api/meta")
+    """Версії, джерела даних і ліміти: /api/meta"""
+    return jsonify(meta_service.meta(API_VERSION))
 
 
 @bp.get("/horizon")
@@ -157,7 +160,20 @@ def timeline():
 
 @bp.get("/events")
 def events_list():
-    return _not_implemented("/api/events")
+    """Сходи й заходи Сонця, Землі й доступність станцій DSN: /api/events?lat=..&lon=..&start=..&end=.."""
+    lat = _parse_float("lat", -90, 90)
+    lon = _parse_float("lon", -180, 360)
+    height_m = _parse_optional_float("height", 0.0, 0.0, 1000.0)
+    if "start" not in request.args or "end" not in request.args:
+        abort(400, description="Параметри start і end обов'язкові")
+    start = _parse_datetime(request.args["start"])
+    end = _parse_datetime(request.args["end"])
+    try:
+        return jsonify(events_service.point_events(lat, lon, start, end, height_m))
+    except ValueError as exc:
+        return _error(400, str(exc))
+    except RuntimeError as exc:
+        return _error(503, str(exc))
 
 
 @bp.get("/system")
@@ -229,6 +245,34 @@ def launch_window():
 @bp.post("/advice")
 def advice():
     return _not_implemented("/api/advice")
+
+
+@bp.post("/rank")
+def rank():
+    """Ранжування точок і порівняння найкращої з наступною (docs/MATH.md, §19)."""
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return _error(400, "Тіло запиту має бути JSON-об'єктом")
+    for key in ("points", "start", "end"):
+        if key not in body:
+            return _error(400, f"Поле {key} обов'язкове")
+    if not isinstance(body["points"], list) or not all(isinstance(p, dict) for p in body["points"]):
+        return _error(400, "points має бути списком об'єктів")
+    try:
+        start = datetime.fromisoformat(str(body["start"]))
+        end = datetime.fromisoformat(str(body["end"]))
+    except ValueError:
+        return _error(400, "Невірний формат start/end, очікується ISO 8601")
+    start = start if start.tzinfo else start.replace(tzinfo=timezone.utc)
+    end = end if end.tzinfo else end.replace(tzinfo=timezone.utc)
+    try:
+        return jsonify(ranking.rank(body, start, end))
+    except ranking.SiteNotFound as exc:
+        return _error(404, str(exc))
+    except ValueError as exc:  # включно з ranking.RankError і помилками періоду
+        return _error(400, str(exc))
+    except RuntimeError as exc:
+        return _error(503, str(exc))
 
 
 @bp.errorhandler(HTTPException)

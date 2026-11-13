@@ -79,6 +79,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 - **Зараз:** гілка `moon` — глобус і 3D-вид системи на офіційних даних NASA (LOLA, Diviner, DE440): M1, M4, M8, M11 (частково), M15, B3, B5, B6, B11, D1, F2, G1–G5, G8, G10, G11. Код готовий і перевірений (108 тестів), PR у `main` ще не створено
 - **Гілка:** `moon`
+- **Зараз (агент Claude):** B1 (частково), B2 `/api/meta`, B4 `/api/events`, M16 формула оцінки точок і порівняння, B12 `/api/rank`
+- **Гілка (агент Claude):** `claude/wizardly-keller-qd77lt`
 
 ### Велес
 

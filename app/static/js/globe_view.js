@@ -679,6 +679,7 @@ async function main() {
   const resultPoints = makePoints(11, 0x4fc3f7); // результати підбору (вкладка «Підбір» на цій же сторінці)
   const resultBest = makePoints(19, 0x7bed9f); // найкращий результат
   const selectedPoint = makePoints(15, 0xf5b942);
+  selectedPoint.renderOrder = 4; // вибране місце завжди поверх точок результатів і каталогу
   let results = [];
   subscribeHighlights((list) => { results = list; });
   let sites = [];

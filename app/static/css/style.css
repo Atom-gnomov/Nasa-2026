@@ -12,7 +12,8 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.4 syst
 .logo { font-weight: 600; }
 .tabs a, .mode-switch a { color: var(--muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; }
 .tabs a.active, .mode-switch a.active { color: var(--bg); background: var(--accent); }
-.calendar { margin-left: auto; color: var(--muted); display: flex; gap: 8px; align-items: center; }
+.calendar { margin-left: auto; color: var(--muted); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.cal-steps button { padding: 4px 8px; font-size: 13px; white-space: nowrap; }
 #view { padding: 16px; padding-right: 300px; }
 .moon-layout { display: grid; grid-template-columns: 1fr 280px; gap: 16px; }
 .canvas-host { min-height: 60vh; background: #000; border: 1px solid var(--border); border-radius: 8px; display: grid; place-items: center; }

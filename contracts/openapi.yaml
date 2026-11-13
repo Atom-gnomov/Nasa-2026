@@ -250,6 +250,30 @@ paths:
         "400": {$ref: "#/components/responses/BadRequest"}
         "501": {$ref: "#/components/responses/NotImplemented"}
 
+  /advice:
+    post:
+      tags: [planning]
+      x-status: planned
+      summary: Поради й пояснення від відкритої LLM щодо готових результатів розрахунків (друга черга)
+      description: |
+        LLM лише інтерпретує числа, надані у `facts`; вона нічого не рахує. Усі числа у відповіді
+        перевіряються на наявність у `facts` (`verified`). Вимкнено, якщо не задано LSE_LLM_BASE_URL —
+        тоді 503 `unavailable` з поясненням. Виклик до LLM лише з бекенду; персональні дані не передаються.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/AdviceRequest"}
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/AdviceResponse"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "501": {$ref: "#/components/responses/NotImplemented"}
+        "503": {$ref: "#/components/responses/Unavailable"}
+
   /launch-window:
     get:
       tags: [planning]
@@ -663,3 +687,54 @@ components:
           properties:
             date: {type: string, format: date}
             score_pct: {type: number}
+
+    AdviceRequest:
+      type: object
+      required: [facts]
+      additionalProperties: false
+      properties:
+        facts:
+          type: object
+          description: |
+            Готові результати розрахунків — єдине, що бачить модель. Рекомендовані ключі:
+            site (назва, lat, lon), period (start, end), metrics (SiteMetrics), summary (PeriodSummary),
+            mission (розмір категорій, маса, вартість, діапазон ризику, заповненість ракети),
+            priorities (Factor[]). Невідомі ключі дозволені.
+          additionalProperties: true
+          minProperties: 1
+        language: {type: string, enum: [uk, en], default: uk}
+        audience:
+          type: string
+          enum: [planner, public]
+          default: planner
+          description: planner — стисло, з числами; public — простою мовою без жаргону
+        question:
+          type: [string, "null"]
+          maxLength: 500
+          description: Необов'язкове питання користувача до результатів
+
+    AdviceTip:
+      type: object
+      required: [text]
+      additionalProperties: false
+      properties:
+        text: {type: string}
+        related_metric: {type: string, description: "Поле з facts, на яке спирається порада, напр. mission.mass_leo_kg"}
+
+    AdviceResponse:
+      type: object
+      required: [summary, tips, caveats, model, generated_utc, verified]
+      additionalProperties: false
+      properties:
+        summary: {type: string}
+        tips:
+          type: array
+          items: {$ref: "#/components/schemas/AdviceTip"}
+        caveats:
+          type: array
+          items: {type: string}
+        model: {type: string, description: Назва моделі, що згенерувала відповідь}
+        generated_utc: {type: string, format: date-time}
+        verified:
+          type: boolean
+          description: Усі числа у відповіді знайдено у facts. false — відповідь неперевірена, фронтенд показує попередження.

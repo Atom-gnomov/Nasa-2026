@@ -80,7 +80,7 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 - **Зараз:** —
 - **Гілка:** —
 - **Зараз (агент Claude):** B7 `POST /api/search` і F6 вкладка «Підбір» — PR #23 на рев'ю
-- **Зараз (агент Claude, друга гілка):** B10 `/api/advice` (ШІ-поради через відкритий API) і F10 блок порад; B14 `/api/models` і `/api/scene` (бекенд 3D-моделей); F14 результати підбору на глобусі — гілка `perun/advice-scene-globe`, PR на гілку PR #23
+- **Зараз (агент Claude, друга гілка):** B10 `/api/advice` і F10 блок порад ШІ; B14 `/api/models` і `/api/scene`; F14 результати підбору на карті — PR #24 на рев'ю (стекований на PR #23)
 - **Гілка (агент Claude):** `claude/wizardly-keller-qd77lt` (змінюється від свіжого `main` для нової задачі)
 
 ### Велес

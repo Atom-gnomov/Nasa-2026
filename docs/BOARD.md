@@ -79,7 +79,7 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 - **Зараз:** —
 - **Гілка:** —
-- **Зараз (агент Claude):** B7 `POST /api/search` — підбір точок за вимогами й пріоритетами (сітка кандидатів у регіоні)
+- **Зараз (агент Claude):** B7 `POST /api/search` і F6 вкладка «Підбір» — PR #23 на рев'ю
 - **Гілка (агент Claude):** `claude/wizardly-keller-qd77lt` (змінюється від свіжого `main` для нової задачі)
 
 ### Велес

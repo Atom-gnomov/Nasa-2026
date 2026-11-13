@@ -23,10 +23,20 @@
       <a href="{{ url_for('pages.system') }}" class="{{ 'active' if active_tab == 'system' }}">Система</a>
     </nav>
     {# Календар — спільний для всіх вкладок (модуль static/js/calendar.js) #}
-    <label class="calendar">
-      Дата (UTC)
+    <div class="calendar">
+      <label for="calendar-input">Дата (UTC)</label>
+      <div class="seg cal-steps" role="group" aria-label="Крок назад">
+        <button type="button" data-cal-step="lunar" data-cal-dir="-1" title="Назад на 1 лунну добу (29,53 доби)">−29,53 доби</button>
+        <button type="button" data-cal-step="day" data-cal-dir="-1" title="Назад на 1 добу">−1 доба</button>
+        <button type="button" data-cal-step="hour" data-cal-dir="-1" title="Назад на 1 годину">−1 год</button>
+      </div>
       <input type="datetime-local" id="calendar-input" step="60">
-    </label>
+      <div class="seg cal-steps" role="group" aria-label="Крок уперед">
+        <button type="button" data-cal-step="hour" data-cal-dir="1" title="Уперед на 1 годину">+1 год</button>
+        <button type="button" data-cal-step="day" data-cal-dir="1" title="Уперед на 1 добу">+1 доба</button>
+        <button type="button" data-cal-step="lunar" data-cal-dir="1" title="Уперед на 1 лунну добу (29,53 доби)">+29,53 доби</button>
+      </div>
+    </div>
   </header>
 
   <main id="view">{% block content %}{% endblock %}</main>

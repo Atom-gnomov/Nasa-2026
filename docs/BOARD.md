@@ -84,8 +84,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Велес
 
-- **Зараз:** —
-- **Гілка:** —
+- **Зараз:** F1 — Спільний стан: `height`, `mode`, `compare` в URL
+- **Гілка:** `veles/F1-state-url`
 
 ### Ярило
 

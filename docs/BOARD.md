@@ -79,7 +79,7 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 - **Зараз:** README — як підготувати дані NASA (`tools/`) після злиття PR #12; PR ще не створено
 - **Гілка:** `perun/readme-data`
-- **Зараз (агент Claude):** B1 (частково), B2 `/api/meta`, B4 `/api/events`, M16 формула оцінки точок і порівняння, B12 `/api/rank`
+- **Зараз (агент Claude):** B1 (частково), B2 `/api/meta`, B4 `/api/events`, M16 формула оцінки точок і порівняння, B12 `/api/rank` — PR #13 на рев'ю
 - **Гілка (агент Claude):** `claude/wizardly-keller-qd77lt`
 
 ### Велес

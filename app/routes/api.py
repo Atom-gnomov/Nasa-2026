@@ -156,6 +156,11 @@ def launch_window():
     return _not_implemented("/api/launch-window")
 
 
+@bp.post("/advice")
+def advice():
+    return _not_implemented("/api/advice")
+
+
 @bp.errorhandler(HTTPException)
 def json_error(err: HTTPException):
     return _error(err.code or 500, err.description or err.name)

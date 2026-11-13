@@ -5,7 +5,9 @@ from datetime import datetime, timezone
 from flask import Blueprint, abort, current_app, jsonify, request
 from werkzeug.exceptions import HTTPException
 
-from app.services import catalogs, dsn, elevation, metrics, ranking, sites, system, temperature
+from app.services import catalogs, dsn, elevation, metrics, models3d, ranking, sites, system, temperature
+from app.services import advice as advice_service
+from app.services import search as search_service
 from app.services import events as events_service
 from app.services import meta as meta_service
 from app.services import timeline as timeline_service
@@ -176,6 +178,30 @@ def events_list():
         return _error(503, str(exc))
 
 
+@bp.get("/models")
+def models():
+    """Маніфест 3D-моделей Сонця, Землі й Місяця: що є на сервері, джерела, ліцензії, запасний вигляд."""
+    return jsonify(models3d.models_manifest())
+
+
+@bp.get("/scene")
+def scene():
+    """Опис 3D-сцени на момент часу: положення, орієнтація, освітлення, маркери, вибрана точка Місяця.
+
+    /api/scene?datetime=2027-07-01T00:00Z&lat=-89.5&lon=0  (lat і lon — разом, необов'язково)
+    """
+    when = _parse_datetime(request.args.get("datetime"))
+    if ("lat" in request.args) != ("lon" in request.args):
+        abort(400, description="Параметри lat і lon задаються разом")
+    lat = _parse_float("lat", -90, 90) if "lat" in request.args else None
+    lon = _parse_float("lon", -180, 360) if "lon" in request.args else None
+    markers = request.args.get("markers", "1") not in ("0", "false")
+    try:
+        return jsonify(models3d.scene(when, lat, lon, markers))
+    except RuntimeError as exc:
+        return _error(503, str(exc))
+
+
 @bp.get("/system")
 def system_state():
     """Стан системи для 3D-сцен і освітлення глобуса: /api/system?datetime=2027-01-01T00:00Z"""
@@ -234,7 +260,14 @@ def get_elevation():
 
 @bp.post("/search")
 def search():
-    return _not_implemented("/api/search")
+    """Підбір найкращих точок у регіоні за вимогами й пріоритетами (docs/MATH.md, §19)."""
+    try:
+        body, start, end = _period_body()
+        return jsonify(search_service.search(body, start, end))
+    except ValueError as exc:  # включно з ranking.RankError і помилками періоду
+        return _error(400, str(exc))
+    except RuntimeError as exc:
+        return _error(503, str(exc))
 
 
 @bp.get("/launch-window")
@@ -244,28 +277,41 @@ def launch_window():
 
 @bp.post("/advice")
 def advice():
-    return _not_implemented("/api/advice")
+    """Поради й пояснення від відкритої LLM до готових результатів (лише тлумачення, не розрахунок)."""
+    try:
+        return jsonify(advice_service.advise(request.get_json(silent=True)))
+    except ValueError as exc:
+        return _error(400, str(exc))
+    except RuntimeError as exc:  # включно з advice.AdviceUnavailable і llm.LlmError
+        return _error(503, str(exc))
+
+
+def _utc(value: str) -> datetime:
+    dt = datetime.fromisoformat(str(value))
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def _period_body(required: tuple[str, ...] = ()) -> tuple[dict, datetime, datetime]:
+    """JSON-тіло POST-запиту з періодом: (тіло, start, end). Помилка запиту — ValueError (400)."""
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        raise ValueError("Тіло запиту має бути JSON-об'єктом")
+    for key in (*required, "start", "end"):
+        if key not in body:
+            raise ValueError(f"Поле {key} обов'язкове")
+    try:
+        return body, _utc(body["start"]), _utc(body["end"])
+    except ValueError as exc:
+        raise ValueError("Невірний формат start/end, очікується ISO 8601") from exc
 
 
 @bp.post("/rank")
 def rank():
     """Ранжування точок і порівняння найкращої з наступною (docs/MATH.md, §19)."""
-    body = request.get_json(silent=True)
-    if not isinstance(body, dict):
-        return _error(400, "Тіло запиту має бути JSON-об'єктом")
-    for key in ("points", "start", "end"):
-        if key not in body:
-            return _error(400, f"Поле {key} обов'язкове")
-    if not isinstance(body["points"], list) or not all(isinstance(p, dict) for p in body["points"]):
-        return _error(400, "points має бути списком об'єктів")
     try:
-        start = datetime.fromisoformat(str(body["start"]))
-        end = datetime.fromisoformat(str(body["end"]))
-    except ValueError:
-        return _error(400, "Невірний формат start/end, очікується ISO 8601")
-    start = start if start.tzinfo else start.replace(tzinfo=timezone.utc)
-    end = end if end.tzinfo else end.replace(tzinfo=timezone.utc)
-    try:
+        body, start, end = _period_body(("points",))
+        if not isinstance(body["points"], list) or not all(isinstance(p, dict) for p in body["points"]):
+            raise ValueError("points має бути списком об'єктів")
         return jsonify(ranking.rank(body, start, end))
     except ranking.SiteNotFound as exc:
         return _error(404, str(exc))

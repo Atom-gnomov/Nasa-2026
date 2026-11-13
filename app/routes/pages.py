@@ -18,6 +18,12 @@ def moon():
     return render_template("moon.html", active_tab="moon")
 
 
+@bp.get("/search")
+def search():
+    """«Підбір» живе на сторінці «Місяць» під глобусом (результати позначаються на карті): стара адреса веде туди."""
+    return redirect(url_for("pages.moon") + "#search")
+
+
 @bp.get("/system")
 @bp.get("/system/<mode>")
 def system(mode: str = "earth-moon"):

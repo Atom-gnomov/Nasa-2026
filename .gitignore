@@ -9,3 +9,7 @@ data_cache/
 *.bsp
 *.bpc
 *.tif
+# Секрети: ключі сервісів лише в .env на своїй машині або в секретах CI, ніколи в git
+.env
+.env.*
+!.env.example

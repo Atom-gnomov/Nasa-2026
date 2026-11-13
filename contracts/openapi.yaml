@@ -214,6 +214,42 @@ paths:
         "400": {$ref: "#/components/responses/BadRequest"}
         "501": {$ref: "#/components/responses/NotImplemented"}
 
+  /models:
+    get:
+      tags: [system]
+      x-status: implemented
+      summary: Маніфест 3D-моделей Сонця, Землі й Місяця — що є на сервері, джерела, ліцензії, запасний вигляд
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ModelsManifest"}
+
+  /scene:
+    get:
+      tags: [system]
+      x-status: implemented
+      summary: Опис 3D-сцени на момент часу — положення, орієнтація, освітлення, маркери, вибрана точка Місяця
+      description: |
+        Усе, що потрібно 3D-виду, одним запитом: геоцентричні положення Сонця й Місяця (ICRF, км), матриці
+        орієнтації Землі й Місяця (ICRF → ITRS / MOON_ME), напрямок світла, маркери станцій DSN на Землі й місць
+        каталогу на Місяці (одиничні вектори в системі тіла, без математики широти/довготи на клієнті), вибрана точка
+        з напрямками на Сонце й Землю. `extras` зарезервовано під ракету, модуль і траєкторію (пропозиція П-5).
+      parameters:
+        - $ref: "#/components/parameters/datetime"
+        - {name: lat, in: query, description: Широта вибраної точки на Місяці (разом із lon), schema: {type: number, minimum: -90, maximum: 90}}
+        - {name: lon, in: query, description: Довгота вибраної точки на Місяці (разом із lat), schema: {type: number, minimum: -180, maximum: 360}}
+        - {name: markers, in: query, description: "0 — без маркерів (легша відповідь)", schema: {type: string, enum: ["0", "1", "false", "true"], default: "1"}}
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Scene"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "503": {$ref: "#/components/responses/Unavailable"}
+
   /system:
     get:
       tags: [system]
@@ -331,8 +367,16 @@ paths:
   /search:
     post:
       tags: [planning]
-      x-status: planned
-      summary: Підбір ланцюжків «старт → Місяць → DSN → точка на Землі» за вимогами й пріоритетами
+      x-status: implemented
+      summary: Підбір найкращих точок у регіоні за вимогами й пріоритетами (з найкращою станцією DSN для кожної)
+      description: |
+        Будує сітку кандидатів у `region`, оцінює кожну тією самою формулою, що й `/rank`
+        (docs/MATH.md, §19), і повертає `limit` найкращих: допустимі (виконують `min_sun_hours` /
+        `min_comm_hours`) — першими. Для кожної точки вказується станція DSN з найбільшою кількістю
+        годин зв'язку за період. Пошук обмежений бюджетом часу сервера: якщо його вичерпано, відповідь
+        містить оцінені кандидати й `grid.truncated: true`.
+        Місце старту, вартість, ризик і час польоту (`launch_site_ids`, `trajectory`, фактори
+        cost / risk / flight_time) з'являться з моделлю запусків — поки запит із ними відхиляється (400).
       requestBody:
         required: true
         content:
@@ -345,12 +389,12 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/SearchResponse"}
         "400": {$ref: "#/components/responses/BadRequest"}
-        "501": {$ref: "#/components/responses/NotImplemented"}
+        "503": {$ref: "#/components/responses/Unavailable"}
 
   /advice:
     post:
       tags: [planning]
-      x-status: planned
+      x-status: implemented
       summary: Поради й пояснення від відкритої LLM щодо готових результатів розрахунків (друга черга)
       description: |
         LLM лише інтерпретує числа, надані у `facts`; вона нічого не рахує. Усі числа у відповіді
@@ -908,55 +952,107 @@ components:
     SearchRequest:
       type: object
       required: [start, end]
+      additionalProperties: false
       properties:
         start: {type: string, format: date-time}
         end: {type: string, format: date-time}
         region:
           type: object
-          description: Область пошуку на Місяці; без неї — уся поверхня
+          additionalProperties: false
+          description: Область пошуку на Місяці. Без неї — південна полярна область 80–90° пд. ш. (вся Місяць — з крупнішою сіткою, напр. grid_step_deg ≥ 5).
           properties:
-            lat_min: {type: number}
-            lat_max: {type: number}
-            lon_min: {type: number}
-            lon_max: {type: number}
-        height_m: {type: number, default: 0}
+            lat_min: {type: number, minimum: -90, maximum: 90, default: -90}
+            lat_max: {type: number, minimum: -90, maximum: 90, default: -80}
+            lon_min: {type: number, minimum: -180, maximum: 180, default: -180}
+            lon_max: {type: number, minimum: -180, maximum: 180, default: 180}
+        grid_step_deg: {type: number, minimum: 0.25, maximum: 30, default: 2, description: Крок сітки кандидатів по широті; по довготі — з поправкою на cos(широти)}
+        max_candidates: {type: integer, minimum: 1, maximum: 400, default: 200, description: Якщо сітка більша — 400 з порадою збільшити крок або зменшити область}
+        include_catalog: {type: boolean, default: false, description: Додати до кандидатів місця з каталогу}
+        step_h: {type: number, minimum: 1, maximum: 24, default: 6, description: Крок часу оцінки, год (грубіший за /rank, бо кандидатів багато)}
+        height_m: {type: number, minimum: 0, maximum: 1000, default: 0}
         min_sun_hours: {type: number, minimum: 0, description: Повзунок «години Сонця»}
         min_comm_hours: {type: number, minimum: 0, description: Повзунок «години зв'язку»}
-        earth_target: {$ref: "#/components/schemas/LatLon"}
-        launch_site_ids: {type: array, items: {type: string}}
-        trajectory: {$ref: "#/components/schemas/Trajectory"}
+        earth_target: {oneOf: [{$ref: "#/components/schemas/LatLon"}, {type: "null"}], description: Точка на Землі, куди потрібен зв'язок; поки лише повертається в ланцюжку}
+        launch_site_ids: {type: array, items: {type: string}, description: Ще не підтримується (модель запусків) — 400}
+        trajectory: {oneOf: [{$ref: "#/components/schemas/Trajectory"}, {type: "null"}], description: Ще не підтримується (модель запусків) — 400}
         priorities:
           type: array
-          description: Фактори від найважливішого (порядок блоків після перетягування) → ваги ROC
-          items: {$ref: "#/components/schemas/Factor"}
+          description: Від найважливішого; порядок задає ваги ROC. За замовчуванням [energy, comms].
+          minItems: 1
           uniqueItems: true
+          items: {$ref: "#/components/schemas/RankFactor"}
         mode: {type: string, enum: [weighted, maximin], default: weighted}
+        params:
+          type: object
+          description: Перевизначення опорних шкал (як у /rank)
+          additionalProperties: {type: number}
         limit: {type: integer, minimum: 1, maximum: 100, default: 20}
 
     Chain:
       type: object
-      required: [moon_site, dsn_station_id, score_pct, factors, pareto]
+      description: Кандидат із оцінкою; місце старту з'явиться з моделлю запусків
+      required: [rank, moon_site, dsn_station_id, dsn_hours, launch_site_id, earth_target, feasible, violations, score_pct, pareto, factors, summary, horizon_source]
       properties:
-        launch_site_id: {type: [string, "null"]}
-        moon_site: {$ref: "#/components/schemas/LatLon"}
-        dsn_station_id: {type: string}
+        rank: {type: integer, minimum: 1}
+        moon_site:
+          type: object
+          required: [lat, lon]
+          properties:
+            site_id: {type: [string, "null"]}
+            name: {type: [string, "null"]}
+            lat: {type: number}
+            lon: {type: number}
+        dsn_station_id: {type: [string, "null"], description: Станція з найбільшою кількістю годин зв'язку за період; null — зв'язку немає}
+        dsn_hours: {type: number, description: Годин, коли ця станція доступна}
+        launch_site_id: {type: [string, "null"], description: Завжди null, доки немає моделі запусків}
         earth_target: {oneOf: [{$ref: "#/components/schemas/LatLon"}, {type: "null"}]}
+        feasible: {type: boolean}
+        violations:
+          type: array
+          items: {$ref: "#/components/schemas/RankViolation"}
         score_pct: {type: number, minimum: 0, maximum: 100}
-        pareto: {type: boolean, description: Недомінований варіант}
+        pareto: {type: boolean, description: Недомінований серед допустимих кандидатів}
         factors:
           type: object
           description: Нормалізовані оцінки 0..1 за кожним фактором
           additionalProperties: {type: number, minimum: 0, maximum: 1}
-        summary: {$ref: "#/components/schemas/PeriodSummary"}
+        summary: {$ref: "#/components/schemas/RankSummary"}
+        horizon_source: {type: string}
 
     SearchResponse:
       type: object
-      required: [weights, chains]
+      required: [period, mode, priorities, weights, params, grid, chains, comparison]
       properties:
+        period:
+          type: object
+          required: [start, end, period_h, step_h]
+          properties:
+            start: {type: string, format: date-time}
+            end: {type: string, format: date-time}
+            period_h: {type: number}
+            step_h: {type: number}
+        mode: {type: string, enum: [weighted, maximin]}
+        priorities: {type: array, items: {$ref: "#/components/schemas/RankFactor"}}
         weights:
           type: object
           additionalProperties: {type: number}
+        params:
+          type: object
+          additionalProperties: {type: number}
+        grid:
+          type: object
+          required: [step_deg, candidates, evaluated, truncated]
+          properties:
+            step_deg: {type: number}
+            candidates: {type: integer, description: Скільки кандидатів у сітці}
+            evaluated: {type: integer, description: Скільки встигли оцінити в межах бюджету часу}
+            truncated: {type: boolean, description: true — бюджет часу вичерпано, частину кандидатів не оцінено}
+            budget_s: {type: number}
         chains: {type: array, items: {$ref: "#/components/schemas/Chain"}}
+        comparison:
+          oneOf:
+            - {$ref: "#/components/schemas/RankComparison"}
+            - {type: "null"}
 
     LaunchWindow:
       type: object
@@ -1188,3 +1284,156 @@ components:
           oneOf:
             - {$ref: "#/components/schemas/RankComparison"}
             - {type: "null"}
+
+    Vec3Unit:
+      type: array
+      items: {type: number, minimum: -1, maximum: 1}
+      minItems: 3
+      maxItems: 3
+
+    Matrix3:
+      type: array
+      minItems: 3
+      maxItems: 3
+      items: {$ref: "#/components/schemas/Vector3"}
+
+    ModelAsset:
+      type: object
+      required: [id, body, kind, url, available, size_bytes, source, source_url, license, note]
+      properties:
+        id: {type: string}
+        body: {type: string, enum: [sun, earth, moon]}
+        kind: {type: string, enum: [gltf, texture, heightmap, slope]}
+        url: {type: string, description: Адреса на цьому сервері (/assets/...)}
+        available: {type: boolean, description: Файл існує в data_cache на сервері}
+        size_bytes: {type: [integer, "null"]}
+        source: {type: string}
+        source_url: {type: string}
+        license: {type: string}
+        note: {type: string}
+
+    BodyModels:
+      type: object
+      required: [id, name, radius_km, fallback, assets, complete]
+      properties:
+        id: {type: string, enum: [sun, earth, moon]}
+        name: {type: string}
+        radius_km: {type: number}
+        flattening: {type: number, description: Стиснення еліпсоїда (Земля — WGS84); для куль відсутнє}
+        fallback:
+          type: object
+          required: [kind, color, emissive]
+          properties:
+            kind: {const: sphere}
+            color: {type: string, pattern: "^#[0-9a-f]{6}$"}
+            emissive: {type: boolean}
+        assets: {type: array, items: {$ref: "#/components/schemas/ModelAsset"}}
+        complete: {type: boolean, description: Усі моделі й текстури тіла є на сервері}
+
+    ModelsManifest:
+      type: object
+      required: [bodies, all_available, missing, build_commands, note]
+      properties:
+        bodies: {type: array, items: {$ref: "#/components/schemas/BodyModels"}}
+        all_available: {type: boolean}
+        missing: {type: array, items: {type: string}, description: id відсутніх файлів}
+        build_commands: {type: array, items: {type: string}, description: Команди, що готують відсутні файли}
+        note: {type: string}
+
+    SceneBody:
+      type: object
+      required: [id, name, radius_km, flattening, position_km, orientation, rotation_deg, unit_to_sun, fallback, models]
+      properties:
+        id: {type: string, enum: [sun, earth, moon]}
+        name: {type: string}
+        radius_km: {type: number}
+        flattening: {type: number}
+        position_km: {$ref: "#/components/schemas/Vector3"}
+        orientation:
+          oneOf:
+            - {$ref: "#/components/schemas/Matrix3"}
+            - {type: "null"}
+          description: Матриця ICRF → система тіла; null — немає (Сонце)
+        rotation_deg: {type: [number, "null"], description: Зоряний час Гринвіча для Землі, градуси}
+        unit_to_sun:
+          oneOf:
+            - {$ref: "#/components/schemas/Vec3Unit"}
+            - {type: "null"}
+          description: Одиничний вектор від тіла на Сонце (ICRF); null для самого Сонця
+        fallback: {$ref: "#/components/schemas/BodyModels/properties/fallback"}
+        models: {$ref: "#/components/schemas/BodyModels"}
+
+    SceneMarkerEarth:
+      type: object
+      required: [id, name, lat, lon, unit_itrs]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        lat: {type: number}
+        lon: {type: number}
+        unit_itrs: {$ref: "#/components/schemas/Vec3Unit"}
+
+    SceneMarkerMoon:
+      type: object
+      required: [id, name, lat, lon, category, unit_me]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        lat: {type: number}
+        lon: {type: number}
+        category: {type: string}
+        unit_me: {$ref: "#/components/schemas/Vec3Unit"}
+
+    SceneSelected:
+      type: object
+      description: Вибрана точка на Місяці (гладка сфера); кути рельєфу — у /metrics і /horizon
+      required: [lat, lon, unit_me, sun_direction_me, sun_elevation_deg, sun_azimuth_deg, sun_enu, earth_direction_me, earth_elevation_deg, earth_azimuth_deg, earth_enu]
+      properties:
+        lat: {type: number}
+        lon: {type: number}
+        unit_me: {$ref: "#/components/schemas/Vec3Unit"}
+        sun_direction_me: {$ref: "#/components/schemas/Vec3Unit"}
+        sun_elevation_deg: {type: number}
+        sun_azimuth_deg: {type: number}
+        sun_enu: {$ref: "#/components/schemas/Vec3Unit", description: "Напрямок на Сонце в (схід, північ, зеніт) точки — для виду «з поверхні»"}
+        earth_direction_me: {$ref: "#/components/schemas/Vec3Unit"}
+        earth_elevation_deg: {type: number}
+        earth_azimuth_deg: {type: number}
+        earth_enu: {$ref: "#/components/schemas/Vec3Unit"}
+
+    Scene:
+      type: object
+      required: [datetime, frame, orientation_note, light, bodies, sub_solar_point, sub_earth_point, moon_illumination, markers, selected, extras]
+      properties:
+        datetime: {type: string, format: date-time}
+        frame: {const: icrf_geocentric_km}
+        orientation_note: {type: string}
+        light:
+          type: object
+          required: [direction_icrf, source]
+          properties:
+            direction_icrf: {$ref: "#/components/schemas/Vec3Unit"}
+            source: {const: sun}
+        bodies: {type: array, minItems: 3, maxItems: 3, items: {$ref: "#/components/schemas/SceneBody"}}
+        sub_solar_point: {$ref: "#/components/schemas/LatLon"}
+        sub_earth_point: {$ref: "#/components/schemas/LatLon"}
+        moon_illumination:
+          type: object
+          required: [fraction, phase_angle_deg]
+          properties:
+            fraction: {type: number, minimum: 0, maximum: 1}
+            phase_angle_deg: {type: number}
+        markers:
+          type: object
+          required: [earth, moon]
+          properties:
+            earth: {type: array, items: {$ref: "#/components/schemas/SceneMarkerEarth"}}
+            moon: {type: array, items: {$ref: "#/components/schemas/SceneMarkerMoon"}}
+        selected:
+          oneOf:
+            - {$ref: "#/components/schemas/SceneSelected"}
+            - {type: "null"}
+        extras:
+          type: array
+          description: Зарезервовано під ракету, модуль і траєкторію (пропозиція П-5); поки порожній
+          items: {type: object}

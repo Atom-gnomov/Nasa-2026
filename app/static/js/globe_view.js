@@ -10,6 +10,7 @@
 // Позиція вершини — зважена сума трьох видів (куля, карта, полюс), тому перемикання — плавна анімація.
 import * as THREE from "three";
 import { createScene } from "./three/scene.js";
+import { subscribeHighlights } from "./highlights.js";
 import { getState, setState, subscribe } from "./state.js";
 
 const ASSETS = "/assets/globe/";
@@ -675,7 +676,12 @@ async function main() {
     return pts;
   };
   const sitePoints = makePoints(9, 0xdfe6ff);
+  const resultPoints = makePoints(11, 0x4fc3f7); // результати підбору (вкладка «Підбір» на цій же сторінці)
+  const resultBest = makePoints(19, 0x7bed9f); // найкращий результат
   const selectedPoint = makePoints(15, 0xf5b942);
+  selectedPoint.renderOrder = 4; // вибране місце завжди поверх точок результатів і каталогу
+  let results = [];
+  subscribeHighlights((list) => { results = list; });
   let sites = [];
   fetch("/api/sites").then((r) => r.json()).then((list) => { sites = list; }).catch(() => {});
 
@@ -889,6 +895,18 @@ async function main() {
     }
     sitePoints.geometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(pts.length ? pts : [0, 0, 0]), 3));
     sitePoints.geometry.setDrawRange(0, pts.length / 3);
+
+    const others = [];
+    const best = [];
+    for (const r of results) {
+      if (w[2] >= 0.35 && r.lat > POLAR_EDGE_LAT) continue;
+      const p = viewPosition(w, r.lat, r.lon, liftFor(r.lat, r.lon));
+      if (facingCamera(p)) (r.rank === 1 ? best : others).push(...p.toArray());
+    }
+    for (const [layer, list] of [[resultPoints, others], [resultBest, best]]) {
+      layer.geometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(list.length ? list : [0, 0, 0]), 3));
+      layer.geometry.setDrawRange(0, list.length / 3);
+    }
 
     const { lat, lon } = getState();
     let show = lat !== null && lon !== null && (w[2] < 0.35 || lat <= POLAR_EDGE_LAT);

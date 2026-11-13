@@ -1,7 +1,6 @@
 // Модуль «Глобус Місяця» (вкладка «Місяць»).
-// Зараз: список місць і введення координат.
-// TODO: Three.js-глобус (текстури CGI Moon Kit), вибір точки кліком, маркери місць.
-import { getState, setState } from "./state.js";
+// Список місць і введення координат; сам 3D-глобус — globe_view.js.
+import { getState, setState, subscribe } from "./state.js";
 
 const select = document.getElementById("site-select");
 const latInput = document.getElementById("lat-input");
@@ -36,6 +35,15 @@ document.getElementById("coords-apply")?.addEventListener("click", () => {
   const lat = Number(latInput.value);
   const lon = Number(lonInput.value);
   if (Number.isFinite(lat) && Number.isFinite(lon)) setState({ site: null, lat, lon });
+});
+
+// Точку можна вибрати й кліком по глобусу — поля координат показують поточний вибір.
+subscribe(({ lat, lon, site }) => {
+  if (lat !== null && lon !== null) {
+    latInput.value = Number(lat.toFixed(4));
+    lonInput.value = Number(lon.toFixed(4));
+  }
+  if (!site && select) select.value = "";
 });
 
 loadSites();

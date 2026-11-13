@@ -5,7 +5,10 @@ from datetime import datetime, timezone
 from flask import Blueprint, abort, current_app, jsonify, request
 from werkzeug.exceptions import HTTPException
 
-from app.services import catalogs, dsn, metrics, sites
+from app.services import catalogs, dsn, elevation, metrics, ranking, sites, system, temperature
+from app.services import events as events_service
+from app.services import meta as meta_service
+from app.services import timeline as timeline_service
 
 bp = Blueprint("api", __name__)
 
@@ -123,27 +126,110 @@ def compare():
 
 @bp.get("/meta")
 def meta():
-    return _not_implemented("/api/meta")
+    """Версії, джерела даних і ліміти: /api/meta"""
+    return jsonify(meta_service.meta(API_VERSION))
 
 
 @bp.get("/horizon")
 def horizon_mask():
-    return _not_implemented("/api/horizon")
+    """Маска горизонту з рельєфу LOLA: /api/horizon?lat=-89.67&lon=129.78&height=2"""
+    lat = _parse_float("lat", -90, 90)
+    lon = _parse_float("lon", -180, 360)
+    height_m = _parse_optional_float("height", 0.0, 0.0, 1000.0)
+    return jsonify(timeline_service.horizon_mask(lat, lon, height_m))
 
 
 @bp.get("/timeline")
 def timeline():
-    return _not_implemented("/api/timeline")
+    """Ряди й підсумки за період: /api/timeline?lat=..&lon=..&start=..&end=..&step_h=1"""
+    lat = _parse_float("lat", -90, 90)
+    lon = _parse_float("lon", -180, 360)
+    height_m = _parse_optional_float("height", 0.0, 0.0, 1000.0)
+    if "start" not in request.args or "end" not in request.args:
+        abort(400, description="Параметри start і end обов'язкові")
+    start = _parse_datetime(request.args["start"])
+    end = _parse_datetime(request.args["end"])
+    step_h = _parse_optional_float("step_h", 1.0, 0.1, 24.0)
+    try:
+        return jsonify(timeline_service.timeline(lat, lon, start, end, step_h, height_m))
+    except ValueError as exc:
+        return _error(400, str(exc))
+    except RuntimeError as exc:
+        return _error(503, str(exc))
 
 
 @bp.get("/events")
 def events_list():
-    return _not_implemented("/api/events")
+    """Сходи й заходи Сонця, Землі й доступність станцій DSN: /api/events?lat=..&lon=..&start=..&end=.."""
+    lat = _parse_float("lat", -90, 90)
+    lon = _parse_float("lon", -180, 360)
+    height_m = _parse_optional_float("height", 0.0, 0.0, 1000.0)
+    if "start" not in request.args or "end" not in request.args:
+        abort(400, description="Параметри start і end обов'язкові")
+    start = _parse_datetime(request.args["start"])
+    end = _parse_datetime(request.args["end"])
+    try:
+        return jsonify(events_service.point_events(lat, lon, start, end, height_m))
+    except ValueError as exc:
+        return _error(400, str(exc))
+    except RuntimeError as exc:
+        return _error(503, str(exc))
 
 
 @bp.get("/system")
 def system_state():
-    return _not_implemented("/api/system")
+    """Стан системи для 3D-сцен і освітлення глобуса: /api/system?datetime=2027-01-01T00:00Z"""
+    when = _parse_datetime(request.args.get("datetime"))
+    try:
+        return jsonify(system.system_state(when))
+    except RuntimeError as exc:
+        return _error(503, str(exc))
+
+
+@bp.get("/orbits")
+def get_orbits():
+    """Оскулюючі орбіти Місяця й Землі для 3D-виду: /api/orbits?datetime=2027-01-01T00:00Z"""
+    when = _parse_datetime(request.args.get("datetime"))
+    try:
+        return jsonify(system.orbits(when))
+    except (RuntimeError, ValueError) as exc:
+        return _error(503, str(exc))
+
+
+@bp.get("/temperature")
+def get_temperature():
+    """Температура в точці (Diviner): /api/temperature?lat=-89.67&lon=129.78&datetime=2027-01-01T00:00Z"""
+    lat = _parse_float("lat", -90, 90)
+    lon = _parse_float("lon", -180, 360)
+    when = _parse_datetime(request.args.get("datetime"))
+    try:
+        return jsonify(temperature.temperature_point(lat, lon, when))
+    except RuntimeError as exc:
+        return _error(503, str(exc))
+
+
+@bp.get("/temperature/map")
+def get_temperature_map():
+    """Мапа температури для шару глобуса: /api/temperature/map?kind=now&datetime=..."""
+    kind = request.args.get("kind", "now")
+    when = _parse_datetime(request.args.get("datetime"))
+    try:
+        return jsonify(temperature.temperature_map(kind, when))
+    except ValueError as exc:
+        return _error(400, str(exc))
+    except RuntimeError as exc:
+        return _error(503, str(exc))
+
+
+@bp.get("/elevation")
+def get_elevation():
+    """Висота LOLA в точці: /api/elevation?lat=-89.67&lon=129.78"""
+    lat = _parse_float("lat", -90, 90)
+    lon = _parse_float("lon", -180, 360)
+    try:
+        return jsonify(elevation.elevation(lat, lon))
+    except RuntimeError as exc:
+        return _error(503, str(exc))
 
 
 @bp.post("/search")
@@ -159,6 +245,34 @@ def launch_window():
 @bp.post("/advice")
 def advice():
     return _not_implemented("/api/advice")
+
+
+@bp.post("/rank")
+def rank():
+    """Ранжування точок і порівняння найкращої з наступною (docs/MATH.md, §19)."""
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return _error(400, "Тіло запиту має бути JSON-об'єктом")
+    for key in ("points", "start", "end"):
+        if key not in body:
+            return _error(400, f"Поле {key} обов'язкове")
+    if not isinstance(body["points"], list) or not all(isinstance(p, dict) for p in body["points"]):
+        return _error(400, "points має бути списком об'єктів")
+    try:
+        start = datetime.fromisoformat(str(body["start"]))
+        end = datetime.fromisoformat(str(body["end"]))
+    except ValueError:
+        return _error(400, "Невірний формат start/end, очікується ISO 8601")
+    start = start if start.tzinfo else start.replace(tzinfo=timezone.utc)
+    end = end if end.tzinfo else end.replace(tzinfo=timezone.utc)
+    try:
+        return jsonify(ranking.rank(body, start, end))
+    except ranking.SiteNotFound as exc:
+        return _error(404, str(exc))
+    except ValueError as exc:  # включно з ranking.RankError і помилками періоду
+        return _error(400, str(exc))
+    except RuntimeError as exc:
+        return _error(503, str(exc))
 
 
 @bp.errorhandler(HTTPException)

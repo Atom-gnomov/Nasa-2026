@@ -44,7 +44,7 @@ def board_claims(ref: str) -> dict[str, list[str]]:
         elif current and line.strip().startswith("- **Зараз:**"):
             ids = TASK_ID.findall(line)
             if ids:
-                claims[current] = ids
+                claims.setdefault(current, []).extend(ids)
     return claims
 
 

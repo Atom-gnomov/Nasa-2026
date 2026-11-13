@@ -1,8 +1,12 @@
 [
-  {"id": "apollo-11", "name": "Apollo 11 (Море Спокою)", "lat": 0.6741, "lon": 23.4730, "category": "apollo", "note": "Перша висадка людей, 1969"},
-  {"id": "apollo-17", "name": "Apollo 17 (Таврус-Літтров)", "lat": 20.1908, "lon": 30.7717, "category": "apollo", "note": "Остання місія Apollo, 1972"},
-  {"id": "change-4", "name": "Chang'e 4 (кратер фон Карман)", "lat": -45.4446, "lon": 177.5991, "category": "international", "note": "Перша посадка на зворотному боці, 2019"},
-  {"id": "chandrayaan-3", "name": "Chandrayaan-3 (точка Шів Шакті)", "lat": -69.3733, "lon": 32.3191, "category": "international", "note": "Посадка біля південного полюса, 2023"},
-  {"id": "shackleton", "name": "Кратер Шеклтон (центр, наближено)", "lat": -89.66, "lon": 129.78, "category": "artemis", "note": "Район кандидатів Artemis; координати наближені"},
-  {"id": "south-pole", "name": "Південний полюс", "lat": -90.0, "lon": 0.0, "category": "custom", "note": "Опорна точка"}
+  {"id": "apollo-11", "name": "Apollo 11 (Море Спокою)", "lat": 0.67416, "lon": 23.47314, "category": "apollo", "note": "Перша висадка людей, 1969. Місячний модуль; LRO, Wagner et al. 2017 — https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_sites.html", "verified": true},
+  {"id": "apollo-12", "name": "Apollo 12 (Океан Бур)", "lat": -3.0128, "lon": -23.4219, "category": "apollo", "note": "1969. Місячний модуль; LRO, Wagner et al. 2017 — https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_sites.html", "verified": true},
+  {"id": "apollo-14", "name": "Apollo 14 (Фра Мауро)", "lat": -3.64589, "lon": -17.47194, "category": "apollo", "note": "1971. Місячний модуль; LRO, Wagner et al. 2017 — https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_sites.html", "verified": true},
+  {"id": "apollo-15", "name": "Apollo 15 (Гедлі–Апенніни)", "lat": 26.13239, "lon": 3.63330, "category": "apollo", "note": "1971. Місячний модуль; LRO, Wagner et al. 2017 — https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_sites.html", "verified": true},
+  {"id": "apollo-16", "name": "Apollo 16 (Декарт)", "lat": -8.9734, "lon": 15.5011, "category": "apollo", "note": "1972. Місячний модуль; LRO, Wagner et al. 2017 — https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_sites.html", "verified": true},
+  {"id": "apollo-17", "name": "Apollo 17 (Таврус-Літтров)", "lat": 20.1911, "lon": 30.7723, "category": "apollo", "note": "Остання місія Apollo, 1972. Місячний модуль; LRO, Wagner et al. 2017 — https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_sites.html", "verified": true},
+  {"id": "change-4", "name": "Chang'e 4 (кратер фон Карман)", "lat": -45.4561, "lon": 177.5885, "category": "international", "note": "Перша посадка на зворотному боці, 2019. Уточнення LROC за NAC DTM (висота −5927 м) — https://www.lroc.asu.edu/images/1100", "verified": true},
+  {"id": "chandrayaan-3", "name": "Chandrayaan-3 (точка Шів Шакті)", "lat": -69.3741, "lon": 32.32, "category": "international", "note": "Посадка 23.08.2023; LROC (висота 532 м) — https://www.lroc.asu.edu/images/1314", "verified": true},
+  {"id": "shackleton", "name": "Кратер Шеклтон (центр)", "lat": -89.67, "lon": 129.78, "category": "artemis", "note": "Центр кратера, діаметр 20,92 км; Gazetteer of Planetary Nomenclature (IAU/USGS) — https://planetarynames.wr.usgs.gov/Feature/5450", "verified": true},
+  {"id": "south-pole", "name": "Південний полюс", "lat": -90.0, "lon": 0.0, "category": "custom", "note": "Опорна точка: полюс системи MEAN EARTH/POLAR AXIS", "verified": true}
 ]

@@ -31,13 +31,14 @@ export function vector3ToLatLon(v) {
 }
 
 // Створює сцену в контейнері host. Повертає об'єкти сцени та dispose().
-export function createScene(host, { background = 0x000000 } = {}) {
+// logarithmicDepthBuffer — для сцен із відстанями, що різняться в мільйони разів (система Сонце–Земля–Місяць).
+export function createScene(host, { background = 0x000000, logarithmicDepthBuffer = false } = {}) {
   if (!hasWebGL()) {
     host.innerHTML = '<p class="placeholder">3D недоступне: браузер не підтримує WebGL 2</p>';
     return null;
   }
   host.innerHTML = "";
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   host.append(renderer.domElement);
 

@@ -33,6 +33,9 @@
 | **NASA SVS — CGI Moon Kit** | Кольорова карта Місяця (LROC, до 16K) і карта висот LOLA (displacement) для 3D-глобуса. Основне джерело текстур для Three.js | https://svs.gsfc.nasa.gov/4720 |
 | **NASA Visible Earth — Blue Marble** | Текстури Землі (день, ніч, хмари) для 3D-виду системи | https://visibleearth.nasa.gov/collection/1484/blue-marble |
 | **NASA 3D Resources** | Готові 3D-моделі (LRO, посадкові модулі тощо) | https://github.com/nasa/NASA-3D-Resources |
+| **NASA — Sun 3D Model (HEAT)** | ✅ (`moon`) Модель Сонця glTF (4 МБ) для 3D-виду системи; текстура світіння схематична | https://science.nasa.gov/learn/heat/resource/sun-3d-model/ |
+| **NASA 3D Resources — Earth (A)** | ✅ (`moon`) Карта Землі 1440×720 (USGS & NASA/JPL): рельєф, розфарбований як суходіл/океан, не фото. «Earth» (STL для друку) і «Earth (B)» (фото диска Apollo 10) для кулі не підходять | https://science.nasa.gov/3d-resources/earth-a/ |
+| **NASA SVS — Moon 3D Models (14959)** | GLB-моделі Місяця (колір, сітка, рельєф 8K). ⚠️ У варіантах із сіткою й рельєфом «стягнуті» полюси — для південного полюса не підходять; беремо вихідні карти CGI Moon Kit | https://svs.gsfc.nasa.gov/14959 |
 | **Cesium Moon Terrain** | Готові 3D Tiles усього Місяця (LOLA + LROC WAC) для CesiumJS. Потрібен акаунт Cesium ion. ⚠️ На форумі повідомляють про зсув висот ~2,5 км відносно LOLA — не використовувати для абсолютних висот | https://cesium.com/platform/cesium-ion/content/cesium-moon-terrain |
 
 ## 2. Рельєф південного полюса (радіогоризонт, тіні)
@@ -44,6 +47,7 @@
 | **PGDA — High-Resolution LOLA Topography for South Pole Sites** | DEM місць посадки з аналізом невизначеності освітленості | https://pgda.gsfc.nasa.gov/products/78 |
 | **PGDA — Shape-from-Shading DEMs** | Уточнені DEM окремих районів полюса (LOLA + знімки LROC NAC) | https://pgda.gsfc.nasa.gov/products/104 |
 | **PDS Geosciences — LOLA** | Глобальні дані LOLA (для пошуку по всьому Місяцю) | https://pds-geosciences.wustl.edu/missions/lro/lola.htm |
+| **PDS — LOLA GDR (lrolol_1xxx)** | ✅ (`moon`) Використано: LDEM_16 і LDEM_64 (V3.1, циліндрична), LDEM_80S_80M і LDEM_875S_20M (V2.0, полярна стереографічна). Формати й проєкції — мітки .LBL і `catalog/dsmap*.cat` | https://pds-geosciences.wustl.edu/lro/lro-l-lola-3-rdr-v1/lrolol_1xxx/data/lola_gdr/ |
 
 ## 3. Освітленість і температура
 
@@ -51,6 +55,8 @@
 |---|---|---|
 | **PGDA — Lunar Polar Illumination** (Mazarico et al., 2011) | Готові карти середньої освітленості полюсів за 18,6-річний цикл (240 і 60 м/піксель). Підходить для валідації розрахунків і швидкого фільтра «години Сонця» | https://pgda.gsfc.nasa.gov/products/69 |
 | **LRO Diviner (UCLA)** | Карти температури поверхні, зокрема сезонні полярні продукти. Потрібно для оцінки температурного режиму | https://www.diviner.ucla.edu/data |
+| **PDS — Diviner GCP** (Williams et al., 2017) | ✅ (`moon`) Болометрична температура 0,5° × 0,5° за місцевим часом (бін 15 хв), 2009–2015; 18 смуг ASCII по ~156 МБ | https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/data_derived_gcp/ |
+| **PDS — Diviner PRP, південь** (Paige et al., 2010) | ✅ (`moon`) Трикутна сітка ~0,5 км (квадрат 600 × 600 км): річні середня й максимум T, глибина стабільного льоду. Код льоду −1 у мітці не описаний (див. MATH.md §11.1) | https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/data_derived_prp/ |
 | **LPI — Near-Surface Temperatures, South Pole 85°S–90°S** | Модельна карта температур біля південного полюса | https://hdl.handle.net/20.500.11753/1336 |
 
 ## 4. Ефемериди: положення Сонця, Землі та Місяця

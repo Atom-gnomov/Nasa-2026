@@ -84,8 +84,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Велес
 
-- **Зараз:** D2 — звірка DSN і космодромів, мінімальні кути антен; D5 — джерела порогів профілів місії
-- **Гілка:** `veles/D2-dsn-launch-sites`, `veles/D5-profile-sources`
+- **Зараз:** —
+- **Гілка:** —
 
 ### Ярило
 
@@ -132,6 +132,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 - F13 — `datetime` з URL нормалізується до UTC — гілка `veles/F13-datetime-utc`, PR #17
 - F3 — Кроки календаря ±1 год / ±1 доба / ±29,53 доби — гілка `veles/F3-calendar-steps`, PR #18
 - F4 — Порівняння двох місць (`compare.js`) — гілка `veles/F4-compare`, PR #19
+- D2 — Станції DSN за 810-005 модуль 301 Rev. P, примітки до місць старту — гілка `veles/D2-dsn-launch-sites`, PR #29
+- D5 — Пороги профілів місії з першоджерел (`mission_thresholds.json`) — гілка `veles/D5-profile-sources`, PR #30
 
 ### Ярило
 

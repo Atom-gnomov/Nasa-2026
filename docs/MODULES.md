@@ -409,7 +409,7 @@ tests/                  → тести для всіх модулів
 
 Вимоги до них розпишемо, коли MVP буде готовий.
 
-## М19. Оцінка й порівняння точок — ✅ (PR #13)
+## М19. Оцінка й порівняння точок, пошук — ✅ (PR #13, #23)
 **Файли:** `app/core/site_score.py`, `app/services/ranking.py`, `app/services/events.py`, `app/services/meta.py`, тести `tests/test_core_site_score.py`, `tests/test_api_rank.py`
 **Призначення:** знайти найкращі точки за вимогами й пріоритетами та пояснити, чим одна краща за іншу. Формули — [MATH.md](MATH.md), §19.
 
@@ -426,7 +426,7 @@ tests/                  → тести для всіх модулів
 **Пропозиції:**
 - …
 
-## М20. Поради ШІ — ✅ (PR #24)
+## М20. Поради ШІ — ✅ (PR #24, злито)
 **Файли:** `app/adapters/llm.py`, `app/core/advice_check.py`, `app/services/advice.py`, блок у `_search.html` + `search.js`, тести `tests/test_api_advice.py`, `tests/test_llm_adapter.py`, `tests/test_core_advice_check.py`, `tests/test_no_secrets.py`
 **Призначення:** пояснення й поради до готових результатів пошуку. ШІ лише тлумачить числа з `facts`, нічого не рахує; усі числа відповіді перевіряються за вхідними даними (`verified`).
 
@@ -439,7 +439,7 @@ tests/                  → тести для всіх модулів
 **Пропозиції:**
 - …
 
-## М21. Бекенд 3D-моделей — ✅ (PR #24)
+## М21. Бекенд 3D-моделей — ✅ (PR #24, злито)
 **Файли:** `app/services/models3d.py`, маршрути `/api/models`, `/api/scene` в `app/routes/api.py`, тести `tests/test_api_scene.py`
 **Призначення:** одним запитом дати 3D-виду все, що потрібно для сцени «Сонце — Земля — Місяць».
 

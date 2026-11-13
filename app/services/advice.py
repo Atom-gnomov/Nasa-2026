@@ -94,6 +94,7 @@ def _validate(body: object) -> dict:
 
 def _parse_model_output(text: str) -> tuple[str, list[dict], list[str]]:
     """Витягує {summary, tips, caveats} з відповіді моделі; якщо це не JSON — увесь текст як summary."""
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.S | re.I)  # міркування моделей-«мислителів»
     cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip(), flags=re.I)
     start, end = cleaned.find("{"), cleaned.rfind("}")
     try:

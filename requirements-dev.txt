@@ -1,5 +1,8 @@
 -r requirements.txt
 pytest>=8
-# Контрактні тести (tests/test_contracts.py)
+# Лінтер (pyproject.toml) і CI
+ruff>=0.6
+# Контрактні тести (tests/test_contracts.py, tests/test_openapi_spec.py)
 jsonschema>=4.18
 PyYAML>=6
+openapi-spec-validator>=0.7

@@ -90,7 +90,6 @@ def build_gcp() -> dict:
     # Заповнення коротких прогалин у місцевому часі: лінійно між сусідніми бінами по колу доби
     filled = tbol.copy()
     max_gap = int(round(GAP_FILL_H / GCP_LT_STEP_H))
-    idx = np.arange(n_lt)
     flat = filled.reshape(-1, n_lt)
     have = flat > 0
     rows = np.nonzero(have.any(axis=1) & ~have.all(axis=1))[0]
@@ -152,7 +151,8 @@ def build_prp() -> dict:
     ice_ok = np.isfinite(out["ice_depth_m"])
     print(f"PRP: {len(arr)} трикутників за {time.time() - t0:.0f} с; T сер. {np.nanmin(out['avg_k']):.0f}…"
           f"{np.nanmax(out['avg_k']):.0f} K, макс. {np.nanmin(out['max_k']):.0f}…{np.nanmax(out['max_k']):.0f} K; "
-          f"лід стабільний у {ice_ok.mean() * 100:.2f}% комірок, глибина до {np.nanmax(out['ice_depth_m']):.2f} м", flush=True)
+          f"лід стабільний у {ice_ok.mean() * 100:.2f}% комірок, "
+          f"глибина до {np.nanmax(out['ice_depth_m']):.2f} м", flush=True)
     return {"size": n, "cell_m": PRP_CELL_M, "half_extent_m": PRP_HALF_M,
             "projection": "south_polar_stereographic (LOLA dsmap_polar.cat)",
             "ice_depth_max_m": float(np.nanmax(out["ice_depth_m"])) if ice_ok.any() else None,

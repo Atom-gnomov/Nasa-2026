@@ -31,3 +31,9 @@ def system(mode: str = "earth-moon"):
 def globe_asset(filename: str):
     """Текстури глобуса з data_cache/globe (готує tools/build_globe_textures.py)."""
     return send_from_directory(current_app.config["CACHE_DIR"] / "globe", filename, max_age=86400)
+
+
+@bp.get("/assets/system/<path:filename>")
+def system_asset(filename: str):
+    """Моделі й текстури 3D-виду системи з data_cache/system (готує tools/build_system_assets.py)."""
+    return send_from_directory(current_app.config["CACHE_DIR"] / "system", filename, max_age=86400)

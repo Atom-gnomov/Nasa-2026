@@ -99,12 +99,24 @@
     <canvas id="temp-chart" class="temp-chart" width="520" height="280" aria-label="Добова крива температури"></canvas>
     <p id="temp-summary" class="muted small">Виберіть місце на Місяці</p>
     <h2>Порівняння</h2>
-    {# TODO (модуль compare.js): друге місце, таблиця порівняння #}
-    <p class="placeholder">Порівняння двох місць — у розробці</p>
+    {# Модуль compare.js: два місця каталогу поруч (GET /api/compare); вибір — у спільному стані compare #}
+    <div id="compare" class="compare">
+      <div class="compare-pick">
+        <label>Місце A <select id="compare-a"><option value="">—</option></select></label>
+        <label>Місце B <select id="compare-b"><option value="">—</option></select></label>
+      </div>
+      <p id="compare-status" class="muted small">Виберіть два місця зі списку</p>
+      <table id="compare-table" class="compare-table" hidden>
+        <thead><tr><th scope="col">На дату календаря</th><th scope="col"></th><th scope="col"></th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <p class="muted small">✓ — краще значення для посадкового апарата на сонячних панелях зі зв'язком через DSN. Рядки без позначки довідкові або рівні з точністю показу.</p>
+    </div>
   </div>
 </section>
 {% endblock %}
 {% block scripts %}
 <script type="module" src="{{ url_for('static', filename='js/moon_globe.js') }}"></script>
 <script type="module" src="{{ url_for('static', filename='js/globe_view.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/compare.js') }}"></script>
 {% endblock %}

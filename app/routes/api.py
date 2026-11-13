@@ -5,7 +5,8 @@ from datetime import datetime, timezone
 from flask import Blueprint, abort, current_app, jsonify, request
 from werkzeug.exceptions import HTTPException
 
-from app.services import catalogs, dsn, elevation, metrics, ranking, sites, system, temperature
+from app.services import catalogs, dsn, elevation, metrics, models3d, ranking, sites, system, temperature
+from app.services import advice as advice_service
 from app.services import search as search_service
 from app.services import events as events_service
 from app.services import meta as meta_service
@@ -177,6 +178,30 @@ def events_list():
         return _error(503, str(exc))
 
 
+@bp.get("/models")
+def models():
+    """Маніфест 3D-моделей Сонця, Землі й Місяця: що є на сервері, джерела, ліцензії, запасний вигляд."""
+    return jsonify(models3d.models_manifest())
+
+
+@bp.get("/scene")
+def scene():
+    """Опис 3D-сцени на момент часу: положення, орієнтація, освітлення, маркери, вибрана точка Місяця.
+
+    /api/scene?datetime=2027-07-01T00:00Z&lat=-89.5&lon=0  (lat і lon — разом, необов'язково)
+    """
+    when = _parse_datetime(request.args.get("datetime"))
+    if ("lat" in request.args) != ("lon" in request.args):
+        abort(400, description="Параметри lat і lon задаються разом")
+    lat = _parse_float("lat", -90, 90) if "lat" in request.args else None
+    lon = _parse_float("lon", -180, 360) if "lon" in request.args else None
+    markers = request.args.get("markers", "1") not in ("0", "false")
+    try:
+        return jsonify(models3d.scene(when, lat, lon, markers))
+    except RuntimeError as exc:
+        return _error(503, str(exc))
+
+
 @bp.get("/system")
 def system_state():
     """Стан системи для 3D-сцен і освітлення глобуса: /api/system?datetime=2027-01-01T00:00Z"""
@@ -252,7 +277,13 @@ def launch_window():
 
 @bp.post("/advice")
 def advice():
-    return _not_implemented("/api/advice")
+    """Поради й пояснення від відкритої LLM до готових результатів (лише тлумачення, не розрахунок)."""
+    try:
+        return jsonify(advice_service.advise(request.get_json(silent=True)))
+    except ValueError as exc:
+        return _error(400, str(exc))
+    except RuntimeError as exc:  # включно з advice.AdviceUnavailable і llm.LlmError
+        return _error(503, str(exc))
 
 
 def _utc(value: str) -> datetime:

@@ -61,8 +61,44 @@ def test_real_response_becomes_table_rows(client, tmp_path):
     assert "кандидатів" in out["note"] and out["cmp"]
 
 
-def test_search_page_and_navigation(client):
-    html = client.get("/search").get_data(as_text=True)
-    for marker in ('id="s-run"', 'id="s-priorities"', 'id="s-sun"', 'id="s-comm"', 'data-mode="maximin"', "search.js"):
-        assert marker in html
-    assert 'href="/search"' in client.get("/moon").get_data(as_text=True)
+def test_search_lives_on_the_moon_page_under_the_globe(client):
+    """Підбір і глобус — на одній сторінці: результати позначаються на карті Місяця."""
+    html = client.get("/moon").get_data(as_text=True)
+    for marker in ('id="s-run"', 'id="s-priorities"', 'id="s-sun"', 'id="s-comm"', 'data-mode="maximin"',
+                   'id="s-advice"', "search.js", 'id="moon-globe"', 'href="/moon#search"'):
+        assert marker in html, marker
+    assert html.index('id="moon-globe"') < html.index('id="search"')  # карта вище за підбір
+    res = client.get("/search")
+    assert res.status_code == 302 and res.headers["Location"].endswith("/moon#search")
+
+
+def test_advice_facts_from_real_search_are_accepted_by_advice_api(client, app, tmp_path, monkeypatch):
+    """Факти, які збирає фронтенд зі справжньої відповіді /api/search, проходять контракт і /api/advice."""
+    from app.adapters import llm
+    from app.services import advice as advice_service
+
+    advice_service.reset_state()
+    app.config.update(LLM_BASE_URL="https://llm.example/v1", LLM_MODEL="fake", LLM_API_KEY="k")
+    seen = {}
+
+    def fake_chat(cfg, system, user, max_tokens=900):
+        seen["user"] = json.loads(user)
+        top = seen["user"]["facts"]["top"][0]
+        return json.dumps({"summary": f"Найкраща точка набрала {top['score_pct']}.", "tips": [], "caveats": []}), "fake"
+
+    monkeypatch.setattr(llm, "chat", fake_chat)
+    body = {"start": "2027-01-01T00:00:00Z", "end": "2027-01-08T00:00:00Z", "region": {"lat_min": -90, "lat_max": -85},
+            "grid_step_deg": 2.5, "priorities": ["energy", "comms"], "limit": 8}
+    data = client.post("/api/search", json=body).get_json()
+    (tmp_path / "r.json").write_text(json.dumps(data), encoding="utf-8")
+    script = ("import fs from 'node:fs';"
+              "const r = JSON.parse(fs.readFileSync('r.json', 'utf8'));"
+              "console.log(JSON.stringify(s.buildAdviceFacts(r, s.DEFAULT_FORM)));")
+    facts = run_node(script, tmp_path)
+    res = client.post("/api/advice", json={"facts": facts, "language": "uk", "audience": "planner"})
+    assert res.status_code == 200, res.get_json()
+    assert_valid(api_validator("AdviceResponse"), res.get_json())
+    assert res.get_json()["verified"] is True
+    assert len(seen["user"]["facts"]["top"]) == 5
+    advice_service.reset_state()
+

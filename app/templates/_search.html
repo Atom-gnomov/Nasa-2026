@@ -1,7 +1,6 @@
-{% extends "base.html" %}
-{% block title %}Підбір — Lunar Site Explorer{% endblock %}
-{% block content %}
-<section id="search" class="search-layout">
+{# Підбір точок: вимоги, пріоритети, результати й порада ШІ (static/js/search.js). Підключається на вкладці «Місяць»,
+   бо результати показуються на глобусі цієї ж сторінки (static/js/highlights.js → globe_view.js). #}
+<section id="search" class="search-layout" aria-label="Підбір точок">
   <div class="side-panel search-form">
     <h2>Вимоги</h2>
     <label>Період від дати календаря, діб
@@ -58,11 +57,21 @@
         <tbody></tbody>
       </table>
     </div>
-    <p class="muted small">★ — недомінована точка (жодна допустима не краща за всіма факторами). Клік по рядку показує місце в оверлеї метрик; <a href="{{ url_for('pages.moon') }}">глобус</a> відкриє його на карті. Оцінка — за абсолютними шкалами (docs/MATH.md, §19), тож не залежить від інших кандидатів.</p>
-    {# TODO: показ результатів на глобусі (globe_view.js) і місце старту / вартість — після моделі запусків #}
+    <section id="s-advice" class="advice" hidden>
+      <h3>Порада ШІ</h3>
+      <p class="muted small">ШІ лише пояснює готові результати пошуку й радить, що змінити; він нічого не рахує. Порада — не розрахунок.</p>
+      <div class="advice-controls">
+        <input type="text" id="s-advice-question" maxlength="500" placeholder="Питання до результатів (необов'язково)">
+        <select id="s-advice-audience" aria-label="Для кого відповідь">
+          <option value="planner">Для планувальника</option>
+          <option value="public">Простою мовою</option>
+        </select>
+        <button type="button" id="s-advice-ask">Запитати ШІ</button>
+      </div>
+      <p id="s-advice-status" class="globe-warn" role="status" hidden></p>
+      <div id="s-advice-out" hidden></div>
+    </section>
+    <p class="muted small">★ — недомінована точка (жодна допустима не краща за всіма факторами). Результати позначено на карті Місяця вище (зелена — найкраща, блакитні — решта). Клік по рядку вибирає місце: воно з'являється на карті й в оверлеї метрик. Оцінка — за абсолютними шкалами (docs/MATH.md, §19), тож не залежить від інших кандидатів.</p>
+    {# TODO: місце старту / вартість / ризик у результатах — після моделі запусків #}
   </div>
 </section>
-{% endblock %}
-{% block scripts %}
-<script type="module" src="{{ url_for('static', filename='js/search.js') }}"></script>
-{% endblock %}

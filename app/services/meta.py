@@ -6,7 +6,7 @@ from pathlib import Path
 
 from flask import current_app
 
-from app.services import elevation, events, metrics, ranking, timeline
+from app.services import advice, elevation, events, metrics, ranking, timeline
 
 
 def _temperature_source() -> dict | None:
@@ -33,6 +33,10 @@ def meta(api_version: str) -> dict:
     temp = _temperature_source()
     if temp:
         sources.append(temp)
+    llm_model = advice.available()
+    if llm_model:
+        sources.append({"id": "llm", "kind": "other",
+                        "description": f"Поради ШІ (OpenAI-сумісний API), модель {llm_model}; ключ не розкривається"})
     sources += [
         {"id": "sites", "kind": "sites", "description": "Каталог місць посадки (app/data/sites.json)"},
         {"id": "dsn", "kind": "stations", "description": "Станції DSN (app/data/dsn_stations.json)"},

@@ -84,8 +84,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Велес
 
-- **Зараз:** F3 — кроки календаря ±1 год / ±1 доба / ±29,53 доби; F4 — порівняння двох місць (`compare.js`)
-- **Гілка:** `veles/F3-calendar-steps`, `veles/F4-compare`
+- **Зараз:** —
+- **Гілка:** —
 
 ### Ярило
 
@@ -125,6 +125,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 - F1 — Спільний стан: `height`, `mode`, `compare` в URL — гілка `veles/F1-state-url`, PR #15
 - F12 — Стан із посилання зберігається в `localStorage` — гілка `veles/F12-link-storage`, PR #16
 - F13 — `datetime` з URL нормалізується до UTC — гілка `veles/F13-datetime-utc`, PR #17
+- F3 — Кроки календаря ±1 год / ±1 доба / ±29,53 доби — гілка `veles/F3-calendar-steps`, PR #18
+- F4 — Порівняння двох місць (`compare.js`) — гілка `veles/F4-compare`, PR #19
 
 ### Ярило
 

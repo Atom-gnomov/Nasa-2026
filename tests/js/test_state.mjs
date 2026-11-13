@@ -136,6 +136,50 @@ test("parseUrlState відкидає некоректні значення", asy
   assert.deepEqual(parseUrlState("?compare=apollo-11,apollo-12&compare=apollo-11&compare=apollo-14").compare, ["apollo-11", "apollo-12", "apollo-14"]);
 });
 
+test("datetime з URL нормалізується до UTC «YYYY-MM-DDTHH:mmZ» (F13)", async () => {
+  const { normalizeDatetime, parseUrlState } = (await openTab("/")).mod;
+  const cases = {
+    "2027-07-01T12:00Z": "2027-07-01T12:00Z",
+    "2027-07-01t12:00z": "2027-07-01T12:00Z",
+    "2027-07-01T12:00:59Z": "2027-07-01T12:00Z", // секунди відкидаються, як у календарі
+    "2027-07-01T12:00:00.000Z": "2027-07-01T12:00Z",
+    "2027-07-01T12:00:00+02:00": "2027-07-01T10:00Z", // приклад із рев'ю PR #15
+    "2027-07-01T12:00:00+0200": "2027-07-01T10:00Z",
+    "2027-07-01T12:00:00 02:00": "2027-07-01T10:00Z", // незакодований «+» у URL
+    "2027-07-01T00:30-03:30": "2027-07-01T04:00Z",
+    "2027-07-01T23:30-01:00": "2027-07-02T00:30Z", // перехід через північ
+    "2028-02-29T12:00Z": "2028-02-29T12:00Z", // високосний рік
+    "2027-07-01T12:00": "2027-07-01T12:00Z", // без зони — UTC
+  };
+  for (const [raw, expected] of Object.entries(cases)) assert.equal(normalizeDatetime(raw), expected, raw);
+  const rejected = [
+    "2027-07-01", // дата без часу — зауваження рев'ю
+    "2027-07-01T",
+    "2027-07-01T12",
+    "2027-02-30T00:00Z", // Date.parse «перекочує» на 2 березня
+    "2027-02-29T00:00Z",
+    "2027-13-01T00:00Z",
+    "2027-07-01T24:00Z",
+    "2027-07-01T12:60Z",
+    "2027-07-01T12:00+25:00",
+    "1814432400000",
+    "вчора",
+    "",
+    null,
+  ];
+  for (const raw of rejected) assert.equal(normalizeDatetime(raw), undefined, String(raw));
+
+  assert.equal(parseUrlState("?datetime=2027-07-01T12:00:00%2B02:00").datetime, "2027-07-01T10:00Z");
+  assert.equal(parseUrlState("?datetime=2027-07-01T12:00:00+02:00").datetime, "2027-07-01T10:00Z");
+  assert.equal("datetime" in parseUrlState("?datetime=2027-07-01"), false);
+});
+
+test("посилання з датою в іншій зоні відкривається в UTC і адреса виправляється", async () => {
+  const tab = await openTab("/moon?datetime=2027-07-01T12:00:00%2B02:00&lat=1&lon=2");
+  assert.equal(tab.mod.getState().datetime, "2027-07-01T10:00Z");
+  assert.equal(tab.url.searchParams.get("datetime"), "2027-07-01T10:00Z");
+});
+
 test("serializeUrlState зберігає чужі параметри й читається назад", async () => {
   const { parseUrlState, serializeUrlState } = (await openTab("/")).mod;
   const query = serializeUrlState(SHARED, "?debug=1&lat=5");

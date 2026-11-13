@@ -26,12 +26,33 @@ const num = (raw, min, max) => {
   return Number.isFinite(v) && v >= min && v <= max ? v : undefined;
 };
 
+// Дата й час ISO 8601 → UTC у форматі стану «YYYY-MM-DDTHH:mmZ»; секунди відкидаються.
+// Без часу — відкидається; без зони — вважається UTC (як у календарі). Неіснуючі дати
+// (30 лютого, 24:00) відкидаються, а не «перекочуються», як у Date.parse.
+// Незакодований «+» зони в URL приходить як пробіл: «12:00:00 02:00» = «12:00:00+02:00».
+const DATETIME = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(Z|[+\- ]\d{2}:?\d{2})?$/i;
+
+export function normalizeDatetime(raw) {
+  const m = DATETIME.exec(String(raw ?? "").trim());
+  if (!m) return undefined;
+  const [y, mo, d, h, mi, s] = m.slice(1, 7).map((v) => Number(v ?? 0));
+  const zone = m[7] ?? "Z";
+  const zoneH = /^z$/i.test(zone) ? 0 : Number(zone.slice(1, 3));
+  const zoneM = /^z$/i.test(zone) ? 0 : Number(zone.slice(-2));
+  if (h > 23 || mi > 59 || s > 59 || zoneH > 23 || zoneM > 59) return undefined;
+  const wall = new Date(Date.UTC(y, mo - 1, d, h, mi, s));
+  if (wall.getUTCFullYear() !== y || wall.getUTCMonth() !== mo - 1 || wall.getUTCDate() !== d) return undefined;
+  const offsetMin = (zone[0] === "-" ? -1 : 1) * (zoneH * 60 + zoneM);
+  const out = new Date(wall.getTime() - offsetMin * 60000).toISOString().slice(0, 16) + "Z";
+  return /^\d{4}-/.test(out) ? out : undefined;
+}
+
 // Параметри URL → частковий стан. Некоректні значення відкидаються.
 export function parseUrlState(search) {
   const params = new URLSearchParams(search);
   const out = {};
-  const datetime = params.get("datetime");
-  if (datetime && Number.isFinite(Date.parse(datetime))) out.datetime = datetime;
+  const datetime = normalizeDatetime(params.get("datetime"));
+  if (datetime) out.datetime = datetime;
   if (params.get("site")) out.site = params.get("site");
   const lat = num(params.get("lat"), -90, 90);
   const lon = num(params.get("lon"), -180, 360);

@@ -1,13 +1,13 @@
-"""Збирає метрики для оверлею: Сонце, Земля, зв'язок (docs/MATH.md, §5–9)."""
+"""Збирає метрики для оверлею: Сонце, Земля, зв'язок, енергія (docs/MATH.md, §5–10)."""
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 
 import numpy as np
 
-from app.core import events
+from app.core import events, frames, power
 from app.core.ephemeris import get_ephemeris
 from app.core.horizon import EARTH_ANGULAR_RADIUS_DEG, SUN_ANGULAR_RADIUS_DEG, disk_fraction
 from app.services import dsn, horizon
@@ -41,6 +41,14 @@ class SiteMetrics:
     hours_to_earthrise: float | None = None
     # None у hours_to_* означає «події немає в межах event_search_hours» (напр., полярний день).
     event_search_hours: float = SEARCH_DAYS * 24
+    # --- додано зворотно сумісно (docs/MATH.md, §9–10) ---
+    local_solar_time_h: float | None = None  # 12 год — Сонце на меридіані точки
+    sun_distance_km: float | None = None
+    solar_irradiance_w_m2: float | None = None  # S = 1361 · (1 а.о. / r)²
+    panel_power_vertical_w_m2: float | None = None  # 1 м², η = 0,30, вертикальна зі стеженням за Сонцем
+    panel_power_horizontal_w_m2: float | None = None  # 1 м², η = 0,30, лежить на ґрунті
+    horizon_source: str | None = None  # DEM, з якого збудовано маску горизонту, або flat
+    stations: list[dict] = field(default_factory=list)  # усі станції DSN у цей момент
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -76,8 +84,20 @@ def site_metrics(lat: float, lon: float, when: datetime, height_m: float = 0.0) 
     def first(evts, rising):
         return next((e for e in evts if e.rising == rising), None)
 
-    link = dsn.best_link(dsn.station_links(eph, t, lat, lon, mask, dsn.load_stations(), height_m))
+    links = dsn.station_links(eph, t, lat, lon, mask, dsn.load_stations(), height_m)
+    link = dsn.best_link(links)
     distance = float(link.distance_km) if link else float(earth.distance_km)
+
+    _, sub_lon = frames.vector_to_latlon(eph.sun_vector_me(t))
+    sun_km = float(sun.distance_km)
+    stations = [{
+        "id": lk.station.id,
+        "name": lk.station.name,
+        "moon_elevation_deg": round(float(lk.moon_elevation_deg), 2),  # Місяць над горизонтом станції
+        "station_elevation_deg": round(float(lk.station_elevation_deg), 3),  # станція над горизонтом точки
+        "min_elevation_deg": lk.station.min_elevation_deg,
+        "available": bool(np.all(lk.available)),
+    } for lk in links]
 
     return SiteMetrics(
         lat=lat,
@@ -98,4 +118,12 @@ def site_metrics(lat: float, lon: float, when: datetime, height_m: float = 0.0) 
         hours_to_sunrise=_hours_until(jd0, first(sun_events, True)),
         hours_to_earthset=_hours_until(jd0, first(earth_events, False)),
         hours_to_earthrise=_hours_until(jd0, first(earth_events, True)),
+        local_solar_time_h=round(float((12.0 + (((lon - float(sub_lon)) + 180.0) % 360.0 - 180.0) / 15.0) % 24.0), 3),
+        sun_distance_km=round(sun_km, 0),
+        solar_irradiance_w_m2=round(float(power.solar_irradiance(sun_km)), 1),
+        panel_power_vertical_w_m2=round(float(power.panel_power_w(sun.elevation_deg, sun_frac, sun_km)), 1),
+        panel_power_horizontal_w_m2=round(float(power.panel_power_w(sun.elevation_deg, sun_frac, sun_km,
+                                                                     mode="horizontal")), 1),
+        horizon_source=horizon.mask_source(lat, lon),
+        stations=stations,
     )

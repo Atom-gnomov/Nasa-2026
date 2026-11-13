@@ -2,14 +2,63 @@
 {% block title %}Система — Lunar Site Explorer{% endblock %}
 {% block content %}
 <section class="system-layout">
-  <div class="mode-switch">
-    <a href="{{ url_for('pages.system', mode='earth-moon') }}" class="{{ 'active' if mode == 'earth-moon' }}">Земля + Місяць</a>
-    <a href="{{ url_for('pages.system', mode='sun-moon-earth') }}" class="{{ 'active' if mode == 'sun-moon-earth' }}">Сонце–Місяць–Земля</a>
+  <div class="system-toolbar">
+    <div class="seg mode-switch" role="group" aria-label="Режим">
+      <a href="{{ url_for('pages.system', mode='earth-moon') }}" data-mode="earth-moon" class="{{ 'active' if mode == 'earth-moon' }}">Земля + Місяць</a>
+      <a href="{{ url_for('pages.system', mode='sun-moon-earth') }}" data-mode="sun-moon-earth" class="{{ 'active' if mode == 'sun-moon-earth' }}">Сонце–Місяць–Земля</a>
+    </div>
+    <div class="seg" role="group" aria-label="Центр огляду">
+      <button type="button" data-focus="overview" class="active">Огляд</button>
+      <button type="button" data-focus="sun">Сонце</button>
+      <button type="button" data-focus="earth">Земля</button>
+      <button type="button" data-focus="moon">Місяць</button>
+      <button type="button" data-focus="moonview" title="Камера на лінії Земля → Місяць: видно справжню фазу">Місяць із Землі</button>
+    </div>
+    <label>Масштаб
+      <select id="system-scale">
+        <option value="schematic" selected>схематичний</option>
+        <option value="real">реальний</option>
+      </select>
+    </label>
+    <label title="Справжній шлях тіла з DE440 за ±½ періоду (пунктир) поверх оскулюючого еліпса"><input type="checkbox" id="system-path"> Справжній шлях</label>
+    <span class="time-controls">
+      <button type="button" id="system-play" aria-label="Відтворити">▶</button>
+      <select id="system-speed" aria-label="Швидкість">
+        <option value="3600">1 год/с</option>
+        <option value="21600">6 год/с</option>
+        <option value="86400" selected>1 доба/с</option>
+        <option value="604800">7 діб/с</option>
+      </select>
+      <button type="button" id="system-now">Зараз</button>
+    </span>
   </div>
-  <div id="system-view" class="canvas-host" data-mode="{{ mode }}">
-    {# TODO (модуль system_view.js): Three.js-сцена, режими синхронізовані через state.js #}
-    <p class="placeholder">Тут буде 3D-вид системи ({{ mode }})</p>
+  <div class="system-main">
+    {# Three.js-сцена (модуль static/js/system_view.js); моделі — tools/build_system_assets.py #}
+    <div id="system-view" class="canvas-host system-host" data-mode="{{ mode }}">
+      <p class="placeholder">Завантаження 3D-виду системи…</p>
+    </div>
+    <aside class="side-panel system-info">
+      <h2>Стан системи</h2>
+      <dl id="system-facts">
+        <dt>Момент (UTC)</dt><dd data-fact="datetime">—</dd>
+        <dt>Земля–Місяць</dt><dd data-fact="distance">—</dd>
+        <dt>Фаза Місяця</dt><dd data-fact="phase">—</dd>
+        <dt>Сонце в зеніті над Землею</dt><dd data-fact="earth_sun">—</dd>
+        <dt>Місяць у зеніті над Землею</dt><dd data-fact="earth_moon">—</dd>
+        <dt>Сонце в зеніті над Місяцем</dt><dd data-fact="moon_sun">—</dd>
+        <dt>Вибрана точка</dt><dd data-fact="point">—</dd>
+        <dt>Станції DSN, що бачать Місяць</dt><dd data-fact="dsn">—</dd>
+        <dt>Орбіта Місяця (оскулююча)</dt><dd data-fact="orbit_moon">—</dd>
+        <dt>Орбіта Землі (оскулююча)</dt><dd data-fact="orbit_earth">—</dd>
+      </dl>
+      <p class="muted small">Клік по Місяцю вибирає точку посадки (як на вкладці «Місяць»).</p>
+    </aside>
   </div>
+  <p id="system-note" class="muted small"></p>
+  <details class="globe-sources">
+    <summary>Джерела даних і точність</summary>
+    <ul id="system-sources"></ul>
+  </details>
 </section>
 {% endblock %}
 {% block scripts %}

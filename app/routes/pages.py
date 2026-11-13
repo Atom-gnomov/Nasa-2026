@@ -18,6 +18,12 @@ def moon():
     return render_template("moon.html", active_tab="moon")
 
 
+@bp.get("/search")
+def search():
+    """Вкладка «Підбір»: найкращі точки за вимогами й пріоритетами (POST /api/search)."""
+    return render_template("search.html", active_tab="search")
+
+
 @bp.get("/system")
 @bp.get("/system/<mode>")
 def system(mode: str = "earth-moon"):

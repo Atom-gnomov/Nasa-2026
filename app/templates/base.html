@@ -21,6 +21,7 @@
     <nav class="tabs">
       <a href="{{ url_for('pages.moon') }}" class="{{ 'active' if active_tab == 'moon' }}">Місяць</a>
       <a href="{{ url_for('pages.system') }}" class="{{ 'active' if active_tab == 'system' }}">Система</a>
+      <a href="{{ url_for('pages.search') }}" class="{{ 'active' if active_tab == 'search' }}">Підбір</a>
     </nav>
     {# Календар — спільний для всіх вкладок (модуль static/js/calendar.js) #}
     <div class="calendar">

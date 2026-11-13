@@ -56,13 +56,16 @@ def thermal_fraction(lat: float, lon: float, when: datetime, params: ScoreParams
     return float(np.mean((values >= params.temp_min_k) & (values <= params.temp_max_k)))
 
 
-def _point_summary(p: dict, start: datetime, end: datetime, step_h: float, height_m: float,
-                   need_thermal: bool, params: ScoreParams) -> tuple[dict, str]:
+def evaluate_point(p: dict, start: datetime, end: datetime, step_h: float, height_m: float,
+                   need_thermal: bool, params: ScoreParams) -> tuple[dict, str, dict[str, float]]:
+    """Підсумки точки за період (як /timeline) + частка відкритого неба (+ температура), джерело горизонту
+    й години доступності кожної станції DSN: {station_id: години}."""
     tl = timeline.timeline(p["lat"], p["lon"], start, end, step_h, height_m)
     summary = dict(tl["summary"])
     summary["sky_view_fraction"] = timeline.horizon_mask(p["lat"], p["lon"], height_m)["sky_view_fraction"]
     summary["thermal_fraction"] = thermal_fraction(p["lat"], p["lon"], start, params) if need_thermal else None
-    return summary, tl["horizon_source"]
+    station_hours = {st["station_id"]: round(sum(st["available"]) * tl["step_h"], 2) for st in tl["stations"]}
+    return summary, tl["horizon_source"], station_hours
 
 
 def rank(request: dict, start: datetime, end: datetime) -> dict:
@@ -83,7 +86,7 @@ def rank(request: dict, start: datetime, end: datetime) -> dict:
 
     summaries, sources = [], []
     for p in points:
-        summary, source = _point_summary(p, start, end, step_h, height_m, "temperature" in priorities, params)
+        summary, source, _ = evaluate_point(p, start, end, step_h, height_m, "temperature" in priorities, params)
         summaries.append(summary)
         sources.append(source)
 

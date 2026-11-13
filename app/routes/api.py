@@ -6,6 +6,7 @@ from flask import Blueprint, abort, current_app, jsonify, request
 from werkzeug.exceptions import HTTPException
 
 from app.services import catalogs, dsn, elevation, metrics, ranking, sites, system, temperature
+from app.services import search as search_service
 from app.services import events as events_service
 from app.services import meta as meta_service
 from app.services import timeline as timeline_service
@@ -234,7 +235,14 @@ def get_elevation():
 
 @bp.post("/search")
 def search():
-    return _not_implemented("/api/search")
+    """Підбір найкращих точок у регіоні за вимогами й пріоритетами (docs/MATH.md, §19)."""
+    try:
+        body, start, end = _period_body()
+        return jsonify(search_service.search(body, start, end))
+    except ValueError as exc:  # включно з ranking.RankError і помилками періоду
+        return _error(400, str(exc))
+    except RuntimeError as exc:
+        return _error(503, str(exc))
 
 
 @bp.get("/launch-window")
@@ -247,25 +255,32 @@ def advice():
     return _not_implemented("/api/advice")
 
 
+def _utc(value: str) -> datetime:
+    dt = datetime.fromisoformat(str(value))
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def _period_body(required: tuple[str, ...] = ()) -> tuple[dict, datetime, datetime]:
+    """JSON-тіло POST-запиту з періодом: (тіло, start, end). Помилка запиту — ValueError (400)."""
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        raise ValueError("Тіло запиту має бути JSON-об'єктом")
+    for key in (*required, "start", "end"):
+        if key not in body:
+            raise ValueError(f"Поле {key} обов'язкове")
+    try:
+        return body, _utc(body["start"]), _utc(body["end"])
+    except ValueError as exc:
+        raise ValueError("Невірний формат start/end, очікується ISO 8601") from exc
+
+
 @bp.post("/rank")
 def rank():
     """Ранжування точок і порівняння найкращої з наступною (docs/MATH.md, §19)."""
-    body = request.get_json(silent=True)
-    if not isinstance(body, dict):
-        return _error(400, "Тіло запиту має бути JSON-об'єктом")
-    for key in ("points", "start", "end"):
-        if key not in body:
-            return _error(400, f"Поле {key} обов'язкове")
-    if not isinstance(body["points"], list) or not all(isinstance(p, dict) for p in body["points"]):
-        return _error(400, "points має бути списком об'єктів")
     try:
-        start = datetime.fromisoformat(str(body["start"]))
-        end = datetime.fromisoformat(str(body["end"]))
-    except ValueError:
-        return _error(400, "Невірний формат start/end, очікується ISO 8601")
-    start = start if start.tzinfo else start.replace(tzinfo=timezone.utc)
-    end = end if end.tzinfo else end.replace(tzinfo=timezone.utc)
-    try:
+        body, start, end = _period_body(("points",))
+        if not isinstance(body["points"], list) or not all(isinstance(p, dict) for p in body["points"]):
+            raise ValueError("points має бути списком об'єктів")
         return jsonify(ranking.rank(body, start, end))
     except ranking.SiteNotFound as exc:
         return _error(404, str(exc))

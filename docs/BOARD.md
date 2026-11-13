@@ -84,8 +84,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Велес
 
-- **Зараз:** —
-- **Гілка:** —
+- **Зараз:** F3 — кроки календаря ±1 год / ±1 доба / ±29,53 доби; F4 — порівняння двох місць (`compare.js`)
+- **Гілка:** `veles/F3-calendar-steps`, `veles/F4-compare`
 
 ### Ярило
 

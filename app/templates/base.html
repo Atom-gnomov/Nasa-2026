@@ -34,17 +34,57 @@
   {# Оверлей метрик — поверх усього сайту (модуль static/js/overlay.js) #}
   <aside id="metrics-overlay" class="overlay">
     <h2>Метрики</h2>
-    <dl>
-      <dt>Місце</dt><dd data-metric="site">—</dd>
-      <dt>Кут Сонця</dt><dd data-metric="sun_elevation_deg">—</dd>
-      <dt>Сонце видно</dt><dd data-metric="sun_visible_fraction">—</dd>
-      <dt>Кут Землі</dt><dd data-metric="earth_elevation_deg">—</dd>
-      <dt>Земля видна</dt><dd data-metric="earth_visible">—</dd>
-      <dt>До заходу Сонця, год</dt><dd data-metric="hours_to_sunset">—</dd>
-      <dt>До заходу Землі, год</dt><dd data-metric="hours_to_earthset">—</dd>
-      <dt>Затримка сигналу, с</dt><dd data-metric="signal_delay_s">—</dd>
-    </dl>
+    <p class="overlay-place" data-m="site">—</p>
     <p class="overlay-status" id="overlay-status"></p>
+    {# Розділи заповнює static/js/overlay.js з кількох ендпоінтів; кожен незалежний #}
+    <details open data-section="place"><summary>Місце й рельєф</summary><dl>
+      <dt>Висота поверхні</dt><dd data-m="elevation">—</dd>
+      <dt>Нахил схилу</dt><dd data-m="slope">—</dd>
+      <dt>Місцевий сонячний час</dt><dd data-m="local_time">—</dd>
+      <dt>Горизонт (найвища точка)</dt><dd data-m="horizon_max">—</dd>
+      <dt>Відкрите небо</dt><dd data-m="sky_view">—</dd>
+    </dl></details>
+    <details open data-section="sun"><summary>Сонце й енергія</summary><dl>
+      <dt>Кут Сонця</dt><dd data-m="sun_elevation">—</dd>
+      <dt>Азимут Сонця</dt><dd data-m="sun_azimuth">—</dd>
+      <dt>Сонце видно</dt><dd data-m="sun_visible">—</dd>
+      <dt>До заходу Сонця</dt><dd data-m="sunset">—</dd>
+      <dt>До сходу Сонця</dt><dd data-m="sunrise">—</dd>
+      <dt>Сонячний потік</dt><dd data-m="irradiance">—</dd>
+      <dt>Панель 1 м² вертикальна</dt><dd data-m="power_vertical">—</dd>
+      <dt>Панель 1 м² горизонтальна</dt><dd data-m="power_horizontal">—</dd>
+    </dl></details>
+    <details open data-section="earth"><summary>Земля й зв'язок</summary><dl>
+      <dt>Кут Землі</dt><dd data-m="earth_elevation">—</dd>
+      <dt>Азимут Землі</dt><dd data-m="earth_azimuth">—</dd>
+      <dt>Земля видна</dt><dd data-m="earth_visible">—</dd>
+      <dt>До заходу Землі</dt><dd data-m="earthset">—</dd>
+      <dt>До сходу Землі</dt><dd data-m="earthrise">—</dd>
+      <dt>Відстань до Землі</dt><dd data-m="earth_distance">—</dd>
+      <dt>Затримка сигналу</dt><dd data-m="signal_delay">—</dd>
+      <dt>Рекомендована станція</dt><dd data-m="station">—</dd>
+      <dt>Станції DSN зараз</dt><dd data-m="stations">—</dd>
+    </dl></details>
+    <details open data-section="temp"><summary>Температура (LRO Diviner)</summary><dl>
+      <dt>Зараз</dt><dd data-m="temp_now">—</dd>
+      <dt>За місячну добу</dt><dd data-m="temp_range">—</dd>
+      <dt>Середня за добу</dt><dd data-m="temp_mean">—</dd>
+      <dt>Полюс: річна середня / макс.</dt><dd data-m="temp_prp">—</dd>
+      <dt>Водяний лід стабільний</dt><dd data-m="ice">—</dd>
+    </dl></details>
+    <details open data-section="radiation"><summary>Радіація (оцінка)</summary><dl>
+      <dt>Доза ГКП</dt><dd data-m="dose">—</dd>
+    </dl></details>
+    <details open data-section="period"><summary>За місячну добу від дати</summary><dl>
+      <dt>Сонце світить</dt><dd data-m="period_sun">—</dd>
+      <dt>Найдовша ніч</dt><dd data-m="period_night">—</dd>
+      <dt>Земля над горизонтом</dt><dd data-m="period_earth">—</dd>
+      <dt>Зв'язок із DSN</dt><dd data-m="period_comm">—</dd>
+      <dt>Найдовша перерва зв'язку</dt><dd data-m="period_gap">—</dd>
+      <dt>Енергія панелі 1 м²</dt><dd data-m="period_energy">—</dd>
+    </dl></details>
+    <p class="overlay-note">Спостерігач на поверхні. Горизонт, тіні й зв'язок — з рельєфу LOLA; Сонце, Земля, DSN — DE440;
+      температура — вимірювання Diviner; доза — Chang'e 4 LND × частка відкритого неба.</p>
   </aside>
 
   <script type="module" src="{{ url_for('static', filename='js/calendar.js') }}"></script>

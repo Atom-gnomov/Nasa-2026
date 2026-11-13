@@ -156,8 +156,8 @@ paths:
   /horizon:
     get:
       tags: [point]
-      x-status: planned
-      summary: Маска горизонту точки (для графіка горизонту й 3D-виду «з поверхні»)
+      x-status: implemented
+      summary: Маска горизонту точки з рельєфу LOLA (графік горизонту, 3D-вид «з поверхні», доза ГКП)
       parameters:
         - $ref: "#/components/parameters/lat"
         - $ref: "#/components/parameters/lon"
@@ -169,12 +169,11 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/HorizonMask"}
         "400": {$ref: "#/components/responses/BadRequest"}
-        "501": {$ref: "#/components/responses/NotImplemented"}
 
   /timeline:
     get:
       tags: [period]
-      x-status: planned
+      x-status: implemented
       summary: Часові ряди й підсумки за період (графіки, повзунки «години Сонця / зв'язку»)
       parameters:
         - $ref: "#/components/parameters/lat"
@@ -193,7 +192,7 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/Timeline"}
         "400": {$ref: "#/components/responses/BadRequest"}
-        "501": {$ref: "#/components/responses/NotImplemented"}
+        "503": {$ref: "#/components/responses/Unavailable"}
 
   /events:
     get:
@@ -228,6 +227,60 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/SystemState"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "503": {$ref: "#/components/responses/Unavailable"}
+
+  /orbits:
+    get:
+      tags: [system]
+      x-status: implemented
+      summary: Оскулюючі орбіти Місяця й Землі (ICRF, км) і справжній шлях за ±½ періоду — для 3D-виду
+      parameters:
+        - $ref: "#/components/parameters/datetime"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Orbits"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "503": {$ref: "#/components/responses/Unavailable"}
+
+  /temperature:
+    get:
+      tags: [point]
+      x-status: implemented
+      summary: Температура поверхні в точці за вимірюваннями LRO Diviner (на дату за місцевим часом, добова крива, полярний PRP)
+      parameters:
+        - $ref: "#/components/parameters/lat"
+        - $ref: "#/components/parameters/lon"
+        - $ref: "#/components/parameters/datetime"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/TemperaturePoint"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "503": {$ref: "#/components/responses/Unavailable"}
+
+  /temperature/map:
+    get:
+      tags: [point]
+      x-status: implemented
+      summary: Мапа температури (Diviner) для шару глобуса — коди 0…255 у base64
+      parameters:
+        - name: kind
+          in: query
+          description: now — на дату за місцевим часом; max / min / mean — за місячну добу; prp_* та ice_depth — південний полюс
+          schema: {enum: [now, max, min, mean, prp_max, prp_avg, ice_depth], default: now}
+        - $ref: "#/components/parameters/datetime"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/TemperatureMap"}
         "400": {$ref: "#/components/responses/BadRequest"}
         "503": {$ref: "#/components/responses/Unavailable"}
 
@@ -507,6 +560,25 @@ components:
         hours_to_earthset: {type: [number, "null"]}
         hours_to_earthrise: {type: [number, "null"]}
         event_search_hours: {type: number, description: Вікно пошуку подій; null у hours_to_* = події немає в цьому вікні}
+        local_solar_time_h: {type: number, minimum: 0, maximum: 24, description: "Місцевий сонячний час: 12 год — Сонце на меридіані точки"}
+        sun_distance_km: {type: number}
+        solar_irradiance_w_m2: {type: number, description: "S = 1361 · (1 а.о. / r)² (docs/MATH.md, §10)"}
+        panel_power_vertical_w_m2: {type: number, description: Вертикальна панель 1 м² зі стеженням за Сонцем, η = 0,30, з тінню від рельєфу}
+        panel_power_horizontal_w_m2: {type: number, description: Горизонтальна панель 1 м², η = 0,30}
+        horizon_source: {type: string, description: "Набір DEM, з якого збудовано маску горизонту, або flat"}
+        stations:
+          type: array
+          description: Усі станції DSN у цей момент (умови зв'язку — docs/MATH.md, §9.2)
+          items:
+            type: object
+            required: [id, name, moon_elevation_deg, station_elevation_deg, min_elevation_deg, available]
+            properties:
+              id: {type: string}
+              name: {type: string}
+              moon_elevation_deg: {type: number, description: Місяць над горизонтом станції}
+              station_elevation_deg: {type: number, description: Станція над математичним горизонтом точки на Місяці}
+              min_elevation_deg: {type: number}
+              available: {type: boolean, description: Станція видна з точки над маскою рельєфу й Місяць вище мінімального кута антени}
 
     CompareItem:
       type: object
@@ -530,6 +602,8 @@ components:
         source: {type: string, description: "flat — гладка сфера; інакше id набору DEM (див. /meta)", examples: [flat, lola_20m]}
         max_distance_km: {type: number}
         sky_view_fraction: {type: number, minimum: 0, maximum: 1.2, description: Частка відкритого неба відносно півсфери}
+        max_elevation_deg: {type: number, description: Найвища точка горизонту}
+        gcr_dose_usv_per_day: {type: number, description: "Оцінка дози ГКП: 1369 мкЗв/добу (Chang'e 4 LND, Zhang et al. 2020) × частка відкритого неба (docs/MATH.md, §12)"}
 
     Track:
       type: object
@@ -561,6 +635,8 @@ components:
         longest_night_h: {type: number}
         longest_comm_gap_h: {type: number}
         energy_wh_per_m2: {type: number, description: Вертикальна панель зі стеженням, η = 0,30}
+        earth_hours: {type: number, description: Години, коли центр диска Землі над маскою горизонту (незалежно від станцій)}
+        earth_fraction: {type: number, minimum: 0, maximum: 1}
 
     Timeline:
       type: object
@@ -575,6 +651,7 @@ components:
         earth: {$ref: "#/components/schemas/Track"}
         stations: {type: array, items: {$ref: "#/components/schemas/StationTrack"}}
         summary: {$ref: "#/components/schemas/PeriodSummary"}
+        horizon_source: {type: string, description: "Набір DEM, з якого збудовано маску горизонту, або flat"}
 
     Event:
       type: object
@@ -643,6 +720,127 @@ components:
             fraction: {type: number, minimum: 0, maximum: 1, description: Частка освітленого диска}
             phase_angle_deg: {type: number, minimum: 0, maximum: 180, description: Кут Сонце–Місяць–Земля}
 
+    OrbitTrack:
+      type: object
+      description: |
+        Оскулююча кеплерівська орбіта з вектора стану DE440 (замкнений еліпс через поточне положення тіла)
+        і справжній шлях тіла за ±½ періоду. Координати — ICRF відносно центрального тіла, км.
+      required: [center, body, elements, points_km, path_km, max_deviation_km]
+      additionalProperties: false
+      properties:
+        center: {enum: [earth, sun]}
+        body: {enum: [moon, earth_moon_barycenter]}
+        elements:
+          type: object
+          required: [a_km, e, inclination_deg, period_days, periapsis_km, apoapsis_km]
+          additionalProperties: false
+          properties:
+            a_km: {type: number, exclusiveMinimum: 0}
+            e: {type: number, minimum: 0, exclusiveMaximum: 1}
+            inclination_deg: {type: number, description: Нахил до площини екліптики J2000}
+            period_days: {type: number, exclusiveMinimum: 0}
+            periapsis_km: {type: number}
+            apoapsis_km: {type: number}
+        points_km: {type: array, items: {$ref: "#/components/schemas/Vector3"}, minItems: 3}
+        path_km: {type: array, items: {$ref: "#/components/schemas/Vector3"}, minItems: 2}
+        max_deviation_km: {type: number, minimum: 0, description: Найбільше відхилення справжнього шляху від еліпса}
+
+    Orbits:
+      type: object
+      required: [datetime, frame, moon, earth]
+      additionalProperties: false
+      properties:
+        datetime: {type: string, format: date-time}
+        frame: {const: icrf_km}
+        moon: {$ref: "#/components/schemas/OrbitTrack"}
+        earth: {$ref: "#/components/schemas/OrbitTrack"}
+
+    TemperatureSource:
+      type: object
+      required: [name, url, reference]
+      additionalProperties: false
+      properties:
+        name: {type: string}
+        url: {type: string, format: uri}
+        reference: {type: string}
+
+    TemperaturePoint:
+      type: object
+      description: |
+        Болометрична температура LRO Diviner (GCP, комірка 0,5°, бін місцевого часу 15 хв, вимірювання 2009–2015).
+        Місцевий сонячний час: 12 год + (довгота − довгота підсонячної точки) / 15°. null — немає вимірювань.
+      required: [lat, lon, datetime, local_time_h, sub_solar_lon, now_k, max_k, min_k, mean_k, diurnal, cell, prp, source]
+      additionalProperties: false
+      properties:
+        lat: {type: number}
+        lon: {type: number, minimum: -180, maximum: 180}
+        datetime: {type: string, format: date-time}
+        local_time_h: {type: number, minimum: 0, maximum: 24}
+        sub_solar_lon: {type: number}
+        now_k: {type: [number, "null"]}
+        max_k: {type: [number, "null"]}
+        min_k: {type: [number, "null"]}
+        mean_k: {type: [number, "null"]}
+        diurnal:
+          type: array
+          items:
+            type: object
+            required: [ltim_h, tbol_k]
+            additionalProperties: false
+            properties:
+              ltim_h: {type: number}
+              tbol_k: {type: [number, "null"]}
+        cell:
+          type: object
+          required: [lat, lon, res_deg]
+          properties:
+            lat: {type: number}
+            lon: {type: number}
+            res_deg: {type: number}
+        prp:
+          description: Південний полюс (Diviner PRP, ~0,5 км); null — точка поза ділянкою
+          oneOf:
+            - type: "null"
+            - type: object
+              required: [avg_k, max_k, ice_depth_m, cell_m]
+              additionalProperties: false
+              properties:
+                avg_k: {type: number}
+                max_k: {type: number}
+                ice_depth_m: {type: [number, "null"], description: "Глибина стабільного водяного льоду; null — нестабільний"}
+                cell_m: {type: number}
+        source: {$ref: "#/components/schemas/TemperatureSource"}
+
+    TemperatureMap:
+      type: object
+      description: |
+        Сітка кодів 0…255 (base64, рядок 0 — південь / низ полярної площини): значення = code.offset + (код − 1) · code.scale,
+        код 0 — немає даних. equirectangular — довгота −180…180, широта −90…90; south_polar_stereographic — площина
+        dsmap_polar.cat (x праворуч — 90° сх., y угору — 0°), сторона 2 · half_extent_m.
+      required: [kind, datetime, title, units, projection, width, height, code, range, note, source, codes_b64]
+      additionalProperties: false
+      properties:
+        kind: {enum: [now, max, min, mean, prp_max, prp_avg, ice_depth]}
+        datetime: {type: string, format: date-time}
+        title: {type: string}
+        units: {enum: [K, m]}
+        projection: {enum: [equirectangular, south_polar_stereographic]}
+        width: {type: integer, minimum: 1}
+        height: {type: integer, minimum: 1}
+        half_extent_m: {type: number}
+        sub_solar_lon: {type: number}
+        code:
+          type: object
+          required: [offset, scale]
+          additionalProperties: false
+          properties:
+            offset: {type: number}
+            scale: {type: number, exclusiveMinimum: 0}
+        range: {type: array, items: {type: number}, minItems: 2, maxItems: 2}
+        note: {type: string}
+        source: {$ref: "#/components/schemas/TemperatureSource"}
+        codes_b64: {type: string}
+
     Elevation:
       type: object
       description: |
@@ -655,6 +853,9 @@ components:
         lon: {type: number, minimum: -180, maximum: 180}
         height_m: {type: number}
         radius_km: {type: number}
+        slope_deg: {type: number, minimum: 0, maximum: 90, description: Нахил поверхні на базі slope_baseline_m}
+        aspect_deg: {type: number, minimum: 0, maximum: 360, description: "Експозиція: азимут, куди схил іде вниз (від півночі за годинниковою)"}
+        slope_baseline_m: {type: number, description: "База різниць (4 кроки DEM)"}
         source:
           type: object
           required: [id, product_version, resolution_m, projection, url]

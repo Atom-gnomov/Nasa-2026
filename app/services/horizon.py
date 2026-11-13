@@ -30,11 +30,11 @@ def _terrain_mask(dems: tuple, lat: float, lon: float, observer_height_m: float)
 
 
 def mask_source(lat: float, lon: float) -> str:
-    """Ідентифікатор DEM, з якого береться рельєф у точці, або 'smooth_sphere'."""
+    """Ідентифікатор DEM, з якого береться рельєф у точці, або 'flat' (гладка сфера, як у контракті)."""
     for dem in elevation.available():
         if dem.covers(lat, lon):
             return dem.id
-    return "smooth_sphere"
+    return "flat"
 
 
 def load_mask(lat: float, lon: float, observer_height_m: float = 0.0) -> HorizonMask:

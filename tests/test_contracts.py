@@ -177,6 +177,82 @@ def test_system_rotations_are_consistent(client):
     assert angle(rm.T @ unit(s["sub_earth_point"]), -moon) < 0.01
 
 
+def test_orbits_match_reference_values(client):
+    """Оскулюючі орбіти: формат, замкненість і відомі значення.
+
+    Земля (барицентр З–М): a ≈ 1 а.о., e ≈ 0,0167, нахил до екліптики J2000 ≈ 0 (JPL, середні
+    елементи J2000: a = 1,00000261 а.о., e = 0,01671123). Місяць: a ≈ 384 400 км, нахил 5,14° ± 0,15°
+    (коливання), сидеричний місяць 27,32 д; оскулюючі елементи коливаються навколо середніх.
+    """
+    pytest.importorskip("naif_de440")
+    o = client.get("/api/orbits?datetime=2027-07-01T00:00").get_json()
+    assert_valid(api_validator("Orbits"), o)
+    s = client.get("/api/system?datetime=2027-07-01T00:00").get_json()
+
+    earth = o["earth"]["elements"]
+    assert earth["a_km"] / 149_597_870.7 == pytest.approx(1.0, abs=2e-4)
+    assert earth["e"] == pytest.approx(0.0167, abs=5e-4)
+    assert earth["inclination_deg"] < 0.01
+    assert earth["period_days"] == pytest.approx(365.25, abs=0.1)
+    assert o["earth"]["max_deviation_km"] < 20_000  # 0,013 % від 1 а.о. за рік
+
+    moon = o["moon"]["elements"]
+    assert moon["a_km"] == pytest.approx(384_400, rel=0.02)
+    assert 4.9 < moon["inclination_deg"] < 5.4
+    assert moon["period_days"] == pytest.approx(27.32, abs=0.3)
+    assert o["moon"]["max_deviation_km"] < 0.04 * moon["a_km"]  # збурення від Сонця — до кількох %
+
+    # Еліпс проходить через поточне положення Місяця (найближча з 720 точок — у межах кроку дуги)
+    pts = np.array(o["moon"]["points_km"])
+    gap = np.min(np.linalg.norm(pts - np.array(s["moon_km"]), axis=1))
+    assert gap < 2 * np.pi * moon["apoapsis_km"] / len(pts)
+
+
+def test_horizon_response(client):
+    """Без DEM (модульні тести) — гладка сфера: небо відкрите повністю, доза = відкрита поверхня Chang'e 4."""
+    h = client.get("/api/horizon?lat=0.67416&lon=23.47314").get_json()
+    assert_valid(api_validator("HorizonMask"), h)
+    assert h["source"] == "flat"
+    assert h["sky_view_fraction"] == pytest.approx(1.0, abs=1e-6)
+    assert h["gcr_dose_usv_per_day"] == pytest.approx(1369.0, abs=0.5)
+
+
+def test_timeline_apollo_11_synodic_month(client):
+    """Apollo 11 (екватор, видимий бік) за два синодичні місяці: Сонце ~½ часу, ціла ніч ~14,8 доби,
+    Земля завжди над горизонтом, хоча б одна станція DSN — ~98 % часу (docs/MATH.md, §9.2).
+    Вікно у два місяці — щоб найдовша ніч не була розрізана межею періоду."""
+    pytest.importorskip("naif_de440")
+    t = client.get("/api/timeline?lat=0.67416&lon=23.47314&start=2027-07-01T00:00&end=2027-08-29T01:28&step_h=1").get_json()
+    assert_valid(api_validator("Timeline"), t)
+    s = t["summary"]
+    assert len(t["times"]) == len(t["sun"]["elevation_deg"]) == len(t["stations"][0]["available"])
+    assert s["sun_fraction"] == pytest.approx(0.5, abs=0.03)
+    assert s["longest_night_h"] == pytest.approx(14.77 * 24, abs=12)
+    assert s["earth_fraction"] == 1.0
+    assert 0.9 < s["comm_fraction"] < 1.0
+    assert 0 < s["energy_wh_per_m2"] < 0.30 * 1420 * s["sun_hours"]  # не більше за повний потік
+
+
+def test_timeline_validation(client):
+    assert client.get("/api/timeline?lat=0&lon=0&start=2027-01-02T00:00&end=2027-01-01T00:00").status_code == 400
+    assert client.get("/api/timeline?lat=0&lon=0").status_code == 400
+
+
+def test_elevation_slope_and_aspect(app, tmp_path):
+    """Синтетичний DEM: висота росте на схід на 40 м за піксель 1° → схил «дивиться» на захід (270°)."""
+    from tests.test_core_dem import CYL_LABEL
+
+    data = np.tile(np.arange(360) * 80, (180, 1))  # DN · 0,5 м = 40 м на піксель
+    (tmp_path / "ldem_1.lbl").write_text(
+        CYL_LABEL.format(lines=180, samples=360, ppd=1, loff=89.5, soff=179.5), encoding="latin-1")
+    data.astype("<i2").tofile(tmp_path / "ldem_1.img")
+    app.config["DEM_DIR"] = tmp_path
+    e = app.test_client().get("/api/elevation?lat=0&lon=10.5").get_json()
+    expected = np.degrees(np.arctan(40.0 / (2 * np.pi * 1_737_400 / 360)))  # 40 м на ~30,3 км ≈ 0,076°
+    assert e["slope_deg"] == pytest.approx(expected, abs=0.006)
+    assert e["aspect_deg"] == pytest.approx(270.0, abs=0.5)
+
+
 def test_elevation_response(app, tmp_path):
     """Сервіс висот на синтетичному глобальному DEM: формат відповіді й вибір джерела."""
     from tests.test_core_dem import CYL_LABEL

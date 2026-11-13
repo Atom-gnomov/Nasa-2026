@@ -15,6 +15,10 @@ from skyfield.framelib import itrs
 
 from app.core import frames
 from app.core.ephemeris import get_ephemeris
+from app.core.orbits import GM_EARTH, GM_MOON, GM_SUN, Orbit, osculating_orbit
+
+ORBIT_POINTS = 720  # точок замкненого еліпса — лінія гладка за будь-якого наближення
+PATH_POINTS = 241  # точок справжнього шляху за ±½ періоду
 
 
 def _latlon(vec_me) -> dict:
@@ -61,4 +65,52 @@ def system_state(when: datetime) -> dict:
             "fraction": round((1.0 + cos_phase) / 2.0, 5),
             "phase_angle_deg": round(phase_deg, 4),
         },
+    }
+
+
+def _orbit_dict(orbit: Orbit, center: str, body: str, path_km: np.ndarray) -> dict:
+    dev = orbit.deviation_km(path_km)
+    return {
+        "center": center,
+        "body": body,
+        "elements": {
+            "a_km": round(orbit.a_km, 1),
+            "e": round(orbit.e, 6),
+            "inclination_deg": round(orbit.inclination_deg, 4),
+            "period_days": round(orbit.period_days, 4),
+            "periapsis_km": round(orbit.periapsis_km, 1),
+            "apoapsis_km": round(orbit.apoapsis_km, 1),
+        },
+        "points_km": [[round(float(v), 1) for v in p] for p in orbit.points(ORBIT_POINTS)],
+        "path_km": [[round(float(v), 1) for v in p] for p in path_km],
+        "max_deviation_km": round(float(dev.max()), 1),
+    }
+
+
+def orbits(when: datetime) -> dict:
+    """Оскулюючі орбіти Місяця (навколо Землі) і барицентру Земля–Місяць (навколо Сонця), ICRF, км.
+
+    Еліпс — точний розв'язок задачі двох тіл для поточного вектора стану (DE440): замкнений і
+    проходить через тіло. path_km — справжній шлях за ±½ періоду, max_deviation_km — найбільше
+    відхилення справжнього шляху від еліпса (збурення, для Місяця — головно від Сонця).
+    """
+    eph = get_ephemeris()
+    t = eph.time(when)
+    emb = eph.kernel["earth barycenter"]
+
+    m = (eph.moon - eph.earth).at(t)
+    moon_orbit = osculating_orbit(m.position.km, m.velocity.km_per_s, GM_EARTH + GM_MOON)
+    ts = eph.ts.tt_jd(t.tt + np.linspace(-0.5, 0.5, PATH_POINTS) * moon_orbit.period_days)
+    moon_path = (eph.moon - eph.earth).at(ts).position.km.T
+
+    s = (emb - eph.sun).at(t)
+    earth_orbit = osculating_orbit(s.position.km, s.velocity.km_per_s, GM_SUN + GM_EARTH + GM_MOON)
+    ts = eph.ts.tt_jd(t.tt + np.linspace(-0.5, 0.5, PATH_POINTS) * earth_orbit.period_days)
+    earth_path = (emb - eph.sun).at(ts).position.km.T
+
+    return {
+        "datetime": t.utc_datetime().replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "frame": "icrf_km",
+        "moon": _orbit_dict(moon_orbit, "earth", "moon", moon_path),
+        "earth": _orbit_dict(earth_orbit, "sun", "earth_moon_barycenter", earth_path),
     }

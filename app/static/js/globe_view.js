@@ -131,6 +131,104 @@ const commonFragment = /* glsl */ `
     c = mix(c, uGridColor, 0.55 * g);
     return mix(c, vec3(1.0, 0.55, 0.2), 0.8 * major);
   }
+
+  // ---------- Шари аналізу ----------
+  uniform float uLayer;        // 0 — поверхня, 1 — рельєф (гіпсометрія), 2 — температура
+  uniform vec2 uHRangeM;       // шкала висот, м
+  uniform float uContourOn;
+  uniform float uContourStep;  // крок ізоліній, м
+  uniform sampler2D uTempMap;  // коди 0…255 (0 — немає даних)
+  uniform float uTempPolar;    // 1 — текстура в площині південної полярної проєкції
+  uniform float uTempHalf;     // половина сторони полярної текстури, радіуси Місяця
+  uniform vec2 uTempCode;      // значення = x + (код − 1) · y
+  uniform vec2 uTempRange;     // діапазон кольорової шкали
+  uniform float uTempRamp;     // 0 — температура, 1 — глибина льоду
+  varying float vHm;           // висота вершини, м (інтерпольована)
+
+  // Гіпсометрична шкала (sRGB): низини — фіолетово-сині, рівнини — зелені, височини — жовто-коричневі, вершини — білі
+  const vec3 HYPSO[8] = vec3[8](vec3(0.20, 0.08, 0.42), vec3(0.10, 0.32, 0.78), vec3(0.12, 0.64, 0.74),
+    vec3(0.30, 0.72, 0.32), vec3(0.93, 0.85, 0.32), vec3(0.86, 0.47, 0.18), vec3(0.58, 0.22, 0.13), vec3(0.97, 0.96, 0.95));
+  // Теплова шкала (sRGB): холодне — темно-синє, гаряче — жовто-біле
+  const vec3 THERMAL[8] = vec3[8](vec3(0.02, 0.02, 0.18), vec3(0.18, 0.06, 0.48), vec3(0.50, 0.06, 0.58),
+    vec3(0.82, 0.14, 0.38), vec3(0.97, 0.40, 0.12), vec3(1.00, 0.68, 0.10), vec3(1.00, 0.90, 0.45), vec3(1.00, 1.00, 0.95));
+  // Глибина льоду: біля поверхні — білий/блакитний, глибше — темно-синій
+  const vec3 ICE[4] = vec3[4](vec3(0.92, 0.98, 1.00), vec3(0.45, 0.80, 0.96), vec3(0.14, 0.42, 0.80), vec3(0.05, 0.10, 0.35));
+
+  vec3 ramp8(const vec3 c[8], float t) {
+    float x = clamp(t, 0.0, 1.0) * 7.0;
+    int i = int(min(floor(x), 6.0));
+    return pow(mix(c[i], c[i + 1], x - float(i)), vec3(2.2));  // sRGB → лінійний
+  }
+
+  vec3 rampIce(float t) {
+    float x = clamp(t, 0.0, 1.0) * 3.0;
+    int i = int(min(floor(x), 2.0));
+    return pow(mix(ICE[i], ICE[i + 1], x - float(i)), vec3(2.2));
+  }
+
+  float viewShade(vec2 s) {
+    vec3 nn = normalize(vUp - uExag * (s.x * vEast + s.y * vNorth));
+    return max(dot(nn, uLight), 0.0);
+  }
+
+  vec3 reliefLayer(vec2 s) {
+    float t = (vHm - uHRangeM.x) / max(uHRangeM.y - uHRangeM.x, 1.0);
+    return ramp8(HYPSO, t) * (0.5 + 0.65 * viewShade(s));
+  }
+
+  // Значення з температурної текстури в точці (lat, lon); −1e9 — немає даних
+  float tempValue(vec2 ll) {
+    vec2 uv;
+    if (uTempPolar > 0.5) {
+      if (ll.y > 0.0) return -1e9;
+      float r = 2.0 * tan(0.7853981634 + radians(ll.y) * 0.5);
+      float lo = radians(ll.x);
+      if (r > uTempHalf) return -1e9;  // показуємо вписане коло (як і API)
+      uv = 0.5 + vec2(r * sin(lo), r * cos(lo)) / (2.0 * uTempHalf);
+    } else {
+      uv = vec2((ll.x + 180.0) / 360.0, (ll.y + 90.0) / 180.0);
+    }
+    float code = floor(texture2D(uTempMap, uv).r * 255.0 + 0.5);
+    if (code < 0.5) return -1e9;
+    return uTempCode.x + (code - 1.0) * uTempCode.y;
+  }
+
+  // Межа полярного продукту: коло r = uTempHalf у площині проєкції
+  float polarEdge(vec2 ll) {
+    if (uTempPolar < 0.5 || ll.y > 0.0) return 0.0;
+    float r = 2.0 * tan(0.7853981634 + radians(ll.y) * 0.5);
+    float fw = max(fwidth(r), 1e-7);
+    return 1.0 - smoothstep(0.8 * fw, 2.0 * fw, abs(r - uTempHalf));
+  }
+
+  vec3 tempLayer(vec2 ll, vec2 s, vec3 base) {
+    float v = tempValue(ll);
+    float shade = viewShade(s);
+    vec3 c;
+    if (v < -1e8) {
+      c = base * (0.12 + 0.25 * shade);  // немає вимірювань — тьмяна поверхня
+    } else {
+      float t = (v - uTempRange.x) / max(uTempRange.y - uTempRange.x, 1e-6);
+      c = (uTempRamp > 0.5 ? rampIce(t) : ramp8(THERMAL, t)) * (0.72 + 0.4 * shade);
+    }
+    return mix(c, vec3(0.9), 0.85 * polarEdge(ll));
+  }
+
+  vec3 drawContours(vec3 c) {
+    if (uContourOn < 0.5) return c;
+    float minor = gridLine(vHm, uContourStep, 0.8);
+    float major = gridLine(vHm, uContourStep * 5.0, 1.6);
+    c = mix(c, vec3(0.0), 0.35 * minor);
+    return mix(c, vec3(0.0), 0.65 * major);
+  }
+
+  vec3 applyLayer(vec3 base, vec2 s, vec2 ll, float sunVisible) {
+    vec3 c;
+    if (uLayer > 1.5) c = tempLayer(ll, s, base);
+    else if (uLayer > 0.5) c = reliefLayer(s);
+    else c = lighting(base, s, ll, sunVisible);
+    return drawGrid(drawContours(c), ll);
+  }
 `;
 
 const viewFrames = /* glsl */ `
@@ -153,6 +251,7 @@ const globeVertex = /* glsl */ `
   attribute vec2 aLonLat;
   attribute float aHeight;  // висота / радіус Місяця
   varying vec2 vLonLat;
+  varying float vHm;
   ${viewFrames}
   const float EDGE = ${POLAR_EDGE_LAT.toFixed(1)};
   void main() {
@@ -163,6 +262,7 @@ const globeVertex = /* glsl */ `
     vec3 p = uW.x * up * (1.0 + h) + uW.y * vec3(lo, la, h) + uW.z * vec3(r * sin(lo), r * cos(lo), h);
     setFrames(lo, la);
     vLonLat = aLonLat;
+    vHm = aHeight * 1737400.0;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
   }
 `;
@@ -184,8 +284,7 @@ const globeFragment = /* glsl */ `
     vec2 s = (texture2D(uSlope, uv).rg * 255.0 - 128.0) / 127.0 * uSlopeScale;
     // Без маски рельєфу: диск Сонця над математичним горизонтом
     float vis = clamp((sunElAz(vLonLat).x + SUN_R) / (2.0 * SUN_R), 0.0, 1.0);
-    vec3 c = lighting(base, s, vLonLat, vis);
-    gl_FragColor = vec4(drawGrid(c, vLonLat), 1.0);
+    gl_FragColor = vec4(applyLayer(base, s, vLonLat, vis), 1.0);
     #include <colorspace_fragment>
   }
 `;
@@ -194,6 +293,7 @@ const tileVertex = /* glsl */ `
   attribute vec2 aXY;       // площина полярної проєкції, одиниці — радіус Місяця
   attribute float aHeight;  // висота / радіус Місяця
   varying vec2 vXY;
+  varying float vHm;
   ${viewFrames}
   void main() {
     float la = -1.5707963268 + 2.0 * atan(0.5 * length(aXY));
@@ -203,6 +303,7 @@ const tileVertex = /* glsl */ `
     vec3 p = uW.x * up * (1.0 + h) + uW.z * vec3(aXY, h);
     setFrames(lo, la);
     vXY = aXY;
+    vHm = aHeight * 1737400.0;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
   }
 `;
@@ -254,8 +355,7 @@ const tileFragment = /* glsl */ `
       vec2 ea = sunElAz(ll);
       vis = clamp((ea.x - horizonAt(uv, ea.y) + SUN_R) / (2.0 * SUN_R), 0.0, 1.0);
     }
-    vec3 c = lighting(base, s, ll, vis);
-    gl_FragColor = vec4(drawGrid(c, ll), 1.0);
+    gl_FragColor = vec4(applyLayer(base, s, ll, vis), 1.0);
     #include <colorspace_fragment>
   }
 `;
@@ -347,6 +447,97 @@ function heightAtM({ meta, heights }, lat, lon) {
   return heights[i * nLon + j];
 }
 
+// ---------- Температура: підписи й добовий графік ----------
+const kelvin = (v) => `${Math.round(v)} K (${Math.round(v - 273.15)} °C)`;
+const fmtHours = (h) => {
+  const m = Math.round(h * 60) % 1440;
+  return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+};
+
+function describeTemperature(t) {
+  const parts = [];
+  if (t.now_k != null) parts.push(`T ${kelvin(t.now_k)} о ${fmtHours(t.local_time_h)} місц. часу`);
+  else parts.push(`немає вимірювань о ${fmtHours(t.local_time_h)} місц. часу`);
+  if (t.min_k != null && t.max_k != null) parts.push(`за добу ${Math.round(t.min_k)}…${Math.round(t.max_k)} K`);
+  if (t.prp) {
+    const ice = t.prp.ice_depth_m != null ? `лід стабільний з ${t.prp.ice_depth_m.toFixed(2)} м` : "лід нестабільний";
+    parts.push(`полюс 0,5 км: річний макс. ${Math.round(t.prp.max_k)} K, середня ${Math.round(t.prp.avg_k)} K, ${ice}`);
+  }
+  return parts.join("; ");
+}
+
+/** Добова крива температури (Diviner) для точки: вісь X — місцевий час 0…24 год, Y — K. */
+function drawDiurnalChart(canvas, t) {
+  // Малюємо в справжньому розмірі елемента (і щільності пікселів), щоб підписи не дрібніли
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.max(200, canvas.clientWidth), h = Math.max(120, canvas.clientHeight);
+  canvas.width = Math.round(w * dpr);
+  canvas.height = Math.round(h * dpr);
+  const g = canvas.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const css = getComputedStyle(document.documentElement);
+  const muted = css.getPropertyValue("--muted").trim() || "#8a92a6";
+  const text = css.getPropertyValue("--text").trim() || "#e6e8ee";
+  const accent = css.getPropertyValue("--accent").trim() || "#f5b942";
+  g.clearRect(0, 0, w, h);
+  const pad = { l: 40, r: 8, t: 8, b: 20 };
+  const pts = t.diurnal.filter((p) => p.tbol_k != null);
+  g.font = "11px system-ui";
+  if (!pts.length) { g.fillStyle = muted; g.fillText("Немає вимірювань Diviner у цій комірці", pad.l, h / 2); return; }
+  const yMax = Math.max(400, ...pts.map((p) => p.tbol_k));
+  const X = (lt) => pad.l + (lt / 24) * (w - pad.l - pad.r);
+  const Y = (k) => h - pad.b - (k / yMax) * (h - pad.t - pad.b);
+  g.strokeStyle = "rgba(138,146,166,0.25)";
+  g.fillStyle = muted;
+  for (let k = 0; k <= yMax; k += 100) {
+    g.beginPath(); g.moveTo(pad.l, Y(k)); g.lineTo(w - pad.r, Y(k)); g.stroke();
+    g.fillText(`${k} K`, 2, Y(k) + 4);
+  }
+  for (let lt = 0; lt <= 24; lt += 6) g.fillText(`${lt}:00`, Math.min(X(lt) - 10, w - 30), h - 5);
+  g.strokeStyle = "rgba(90,169,255,0.6)"; g.setLineDash([4, 4]);
+  g.beginPath(); g.moveTo(pad.l, Y(273.15)); g.lineTo(w - pad.r, Y(273.15)); g.stroke(); g.setLineDash([]);
+  g.fillStyle = "rgba(90,169,255,0.9)"; g.fillText("0 °C", w - pad.r - 26, Y(273.15) - 3);
+  // Лінія: з'єднуємо виміряні біни через прогалини до 2 год (як у мапі), довші — розрив
+  const step = t.diurnal.length > 1 ? t.diurnal[1].ltim_h - t.diurnal[0].ltim_h : 0.25;
+  g.strokeStyle = text; g.lineWidth = 1.6; g.beginPath();
+  let prev = null;
+  for (const p of pts) {
+    if (prev && p.ltim_h - prev.ltim_h <= 2 + step / 2) g.lineTo(X(p.ltim_h), Y(p.tbol_k));
+    else g.moveTo(X(p.ltim_h), Y(p.tbol_k));
+    prev = p;
+  }
+  g.stroke(); g.lineWidth = 1;
+  // виміряні біни — крапки
+  g.fillStyle = text;
+  for (const p of pts) { g.beginPath(); g.arc(X(p.ltim_h), Y(p.tbol_k), 1.4, 0, 2 * Math.PI); g.fill(); }
+  // поточний місцевий час
+  g.strokeStyle = accent; g.beginPath(); g.moveTo(X(t.local_time_h), pad.t); g.lineTo(X(t.local_time_h), h - pad.b); g.stroke();
+  if (t.now_k != null) { g.fillStyle = accent; g.beginPath(); g.arc(X(t.local_time_h), Y(t.now_k), 4, 0, 2 * Math.PI); g.fill(); }
+}
+
+/** Порожня текстура кодів (код 0 — «немає даних»), поки температурні дані не завантажено. */
+function emptyCodeTexture() {
+  const t = new THREE.DataTexture(new Uint8Array([0]), 1, 1, THREE.RedFormat, THREE.UnsignedByteType);
+  t.needsUpdate = true;
+  return t;
+}
+
+/** Текстура кодів 0…255 з байтів (рядок 0 — південь / низ полярної площини). */
+function codeTexture(bytes, width, height) {
+  const t = new THREE.DataTexture(bytes, width, height, THREE.RedFormat, THREE.UnsignedByteType);
+  t.magFilter = THREE.NearestFilter; // без змішування кодів: кожна комірка — справжнє значення продукту
+  t.minFilter = THREE.NearestFilter;
+  t.wrapS = THREE.RepeatWrapping;
+  t.unpackAlignment = 1;
+  t.needsUpdate = true;
+  return t;
+}
+
+// Кольорові шкали для легенди (ті самі зупинки, що й у шейдері)
+const HYPSO_CSS = ["#33146b", "#1a52c7", "#1fa3bd", "#4db852", "#edd952", "#db7830", "#943821", "#f7f5f2"];
+const THERMAL_CSS = ["#05052e", "#2e0f7a", "#800f94", "#d12461", "#f7661f", "#ffad1a", "#ffe673", "#fffff2"];
+const ICE_CSS = ["#ebfaff", "#73ccf5", "#246bcc", "#0d1a59"];
+
 function dotTexture() {
   const c = document.createElement("canvas");
   c.width = c.height = 32;
@@ -372,6 +563,9 @@ function renderSources(meta) {
     ["Сонце: JPL DE440 (skyfield), орієнтація Місяця IAU 2015 (Archinal et al. 2018), система MEAN EARTH/POLAR AXIS", "https://ssd.jpl.nasa.gov/planets/eph_export.html"],
     ["Проєкції: LOLA dsmap.cat / dsmap_polar.cat (полярна: 0° угорі, 90° сх. праворуч)", "https://pds-geosciences.wustl.edu/lro/lro-l-lola-3-rdr-v1/lrolol_1xxx/catalog/"],
     ["Місця посадки: NSSDC (Apollo, Wagner et al. 2017), LROC (Chang'e 4, Chandrayaan-3), газетир IAU/USGS (Шеклтон)", "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_sites.html"],
+    ["Температура: LRO Diviner GCP — болометрична температура 0,5° × 0,5° за місцевим часом (бін 15 хв), вимірювання 2009–2015 (Williams et al. 2017)", "https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/data_derived_gcp/"],
+    ["Південний полюс: LRO Diviner PRP — річні середня й максимальна температура та глибина стабільного льоду, ~0,5 км (Paige et al. 2010)", "https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/data_derived_prp/"],
+    ["Шар «Рельєф»: гіпсометрична шкала за висотами LOLA відносно сфери 1737,4 км; ізолінії — за тими самими висотами", "https://pds-geosciences.wustl.edu/lro/lro-l-lola-3-rdr-v1/lrolol_1xxx/data/lola_gdr/"],
   ];
   list.replaceChildren(...items.map(([text, href]) => {
     const li = document.createElement("li");
@@ -419,6 +613,17 @@ async function main() {
     uGridColor: { value: new THREE.Color(0xf5b942) },
     uColor: { value: data.color },
     uSlopeScale: { value: data.meta.slope.slope_scale },
+    // шари аналізу (керує layerControls нижче)
+    uLayer: { value: 0 },
+    uHRangeM: { value: new THREE.Vector2(-9000, 11000) },
+    uContourOn: { value: 0 },
+    uContourStep: { value: 1000 },
+    uTempMap: { value: emptyCodeTexture() },
+    uTempPolar: { value: 0 },
+    uTempHalf: { value: 1 },
+    uTempCode: { value: new THREE.Vector2(0, 1) },
+    uTempRange: { value: new THREE.Vector2(0, 400) },
+    uTempRamp: { value: 0 },
   };
   const tileEdge = { value: -90 };
   const globe = new THREE.Mesh(buildGlobeGeometry(data), new THREE.ShaderMaterial({
@@ -619,9 +824,16 @@ async function main() {
         const q = new URLSearchParams({ lat: hit.lat.toFixed(5), lon: hit.lon.toFixed(5) });
         const res = await fetch(`/api/elevation?${q}`, { signal: elevAbort.signal });
         const e = await res.json();
-        cursorEl.textContent = res.ok
+        let text = res.ok
           ? `Курсор: ${where} · висота ${e.height_m.toFixed(0)} м (LOLA ${e.source.id.toUpperCase()}, ${fmtDist(e.source.resolution_m)}/пікс.)`
           : `Курсор: ${where} · висота: ${e.detail}`;
+        if (layer === "temp") {
+          q.set("datetime", getState().datetime);
+          const tr = await fetch(`/api/temperature?${q}`, { signal: elevAbort.signal });
+          const t = await tr.json();
+          text += tr.ok ? ` · ${describeTemperature(t)}` : ` · температура: ${t.detail}`;
+        }
+        cursorEl.textContent = text;
       } catch (err) {
         if (err.name !== "AbortError") cursorEl.textContent = `Курсор: ${where}`;
       }
@@ -726,6 +938,181 @@ async function main() {
     }
     for (let i = used; i < labelPool.length; i++) labelPool[i].style.display = "none";
   }
+
+  // ---------- Шари аналізу: рельєф і температура ----------
+  let layer = "color";
+  const legend = $("layer-legend");
+  const reliefMin = $("relief-min");
+  const reliefMax = $("relief-max");
+  const tempKindSel = $("temp-kind");
+  let tempMeta = null; // відповідь /api/temperature/map
+  let tempKey = null;
+  let tempAbort = null;
+  const gradientCss = (stops) => `linear-gradient(to right, ${stops.join(", ")})`;
+  const niceStep = (x) => {
+    const p = 10 ** Math.floor(Math.log10(Math.max(x, 1e-9)));
+    return [1, 2, 2.5, 5, 10].map((m) => m * p).find((v) => v >= x) ?? 10 * p;
+  };
+
+  function updateContourStep() {
+    const sel = $("contour-step").value;
+    const range = shared.uHRangeM.value.y - shared.uHRangeM.value.x;
+    shared.uContourStep.value = sel === "auto" ? niceStep(range / 20) : Number(sel);
+  }
+
+  function applyReliefRange() {
+    const lo = Number(reliefMin.value);
+    let hi = Number(reliefMax.value);
+    if (!(hi > lo)) { hi = lo + 100; reliefMax.value = hi; }
+    shared.uHRangeM.value.set(lo, hi);
+    updateContourStep();
+    updateLegend();
+  }
+
+  function updateLegend() {
+    legend.hidden = layer === "color" && !shared.uContourOn.value;
+    legend.querySelector(".relief-only").hidden = layer !== "relief";
+    document.querySelector(".temp-only").hidden = layer !== "temp";
+    const note = $("legend-note");
+    const step = shared.uContourStep.value;
+    const contourNote = shared.uContourOn.value ? ` Ізолінії: кожні ${step} м, жирні — кожні ${step * 5} м.` : "";
+    if (layer === "relief" || (layer === "color" && shared.uContourOn.value)) {
+      $("legend-title").textContent = "Висота над сферою 1737,4 км (LOLA)";
+      $("legend-bar").style.background = gradientCss(HYPSO_CSS);
+      $("legend-min").textContent = `${(shared.uHRangeM.value.x / 1000).toFixed(1)} км`;
+      $("legend-max").textContent = `${(shared.uHRangeM.value.y / 1000).toFixed(1)} км`;
+      note.textContent = `Колір і ізолінії — за висотами вершин сітки (0,25° ≈ 7,6 км на кулі; 1,2 км і 0,3 км біля полюса), ` +
+        `тіні — за нахилами з детальніших DEM; точна висота з найдетальнішого DEM — під курсором.${contourNote}`;
+      legend.querySelector(".legend-bar").hidden = false;
+    } else if (layer === "temp") {
+      if (!tempMeta) { $("legend-title").textContent = "Температура: завантаження…"; note.textContent = ""; return; }
+      const ice = tempMeta.units === "m";
+      const fmt = (v) => (ice ? `${v.toFixed(2)} м` : `${Math.round(v)} K (${Math.round(v - 273.15)} °C)`);
+      $("legend-title").textContent = tempMeta.title;
+      $("legend-bar").style.background = gradientCss(ice ? ICE_CSS : THERMAL_CSS);
+      $("legend-min").textContent = fmt(tempMeta.range[0]);
+      $("legend-max").textContent = fmt(tempMeta.range[1]);
+      note.textContent = `${tempMeta.note}${contourNote}`;
+    }
+  }
+
+  async function loadTemperature() {
+    if (layer !== "temp") return;
+    const kind = tempKindSel.value;
+    const { datetime } = getState();
+    const key = kind === "now" ? `${kind}|${datetime}` : kind;
+    if (key === tempKey) return;
+    tempAbort?.abort();
+    tempAbort = new AbortController();
+    tempMeta = null;
+    updateLegend();
+    try {
+      const res = await fetch(`/api/temperature/map?${new URLSearchParams({ kind, datetime })}`, { signal: tempAbort.signal });
+      const m = await res.json();
+      if (!res.ok) throw new Error(m.detail);
+      const bytes = Uint8Array.from(atob(m.codes_b64), (c) => c.charCodeAt(0));
+      shared.uTempMap.value.dispose();
+      shared.uTempMap.value = codeTexture(bytes, m.width, m.height);
+      shared.uTempPolar.value = m.projection === "south_polar_stereographic" ? 1 : 0;
+      shared.uTempHalf.value = (m.half_extent_m ?? R_M) / R_M;
+      shared.uTempCode.value.set(m.code.offset, m.code.scale);
+      shared.uTempRange.value.set(m.range[0], m.range[1]);
+      shared.uTempRamp.value = m.units === "m" ? 1 : 0;
+      tempMeta = m;
+      tempKey = key;
+      updateLegend();
+    } catch (err) {
+      if (err.name === "AbortError") return;
+      tempKey = null;
+      $("legend-title").textContent = `Температура недоступна: ${err.message}`;
+    }
+  }
+
+  function setLayer(next) {
+    layer = next;
+    shared.uLayer.value = { color: 0, relief: 1, temp: 2 }[next];
+    for (const b of document.querySelectorAll("[data-layer]")) b.classList.toggle("active", b.dataset.layer === next);
+    updateLegend();
+    loadTemperature();
+  }
+
+  /** Висота з найдетальнішої сітки вершин (полярні ділянки або глобальна 0,25°) — для шкали «Авто». */
+  function gridHeight(lat, lon) {
+    for (const t of [...tiles].reverse()) {
+      if (lat > t.meta.edge_lat) continue;
+      const half = t.meta.half_extent_m / R_M;
+      const n = t.meta.height.segments + 1;
+      const r = 2 * Math.tan(Math.PI / 4 + (lat * DEG) / 2);
+      const x = r * Math.sin(lon * DEG), y = r * Math.cos(lon * DEG);
+      const j = Math.round(((x + half) / (2 * half)) * (n - 1));
+      const i = Math.round(((y + half) / (2 * half)) * (n - 1)); // рядок 0 — низ (−y)
+      if (i >= 0 && j >= 0 && i < n && j < n) return t.heights[i * n + j];
+    }
+    return heightAtM(data, lat, lon);
+  }
+
+  for (const b of document.querySelectorAll("[data-layer]")) b.addEventListener("click", () => setLayer(b.dataset.layer));
+  $("contour-toggle").addEventListener("change", (ev) => {
+    shared.uContourOn.value = ev.target.checked ? 1 : 0;
+    updateContourStep();
+    updateLegend();
+  });
+  $("contour-step").addEventListener("change", () => { updateContourStep(); updateLegend(); });
+  reliefMin.addEventListener("change", applyReliefRange);
+  reliefMax.addEventListener("change", applyReliefRange);
+  $("relief-global").addEventListener("click", () => { reliefMin.value = -9000; reliefMax.value = 11000; applyReliefRange(); });
+  $("relief-auto").addEventListener("click", function auto() {
+    if (anim) { setTimeout(auto, 250); return; } // під час переходу між видами точки не вибираються
+    const hs = [];
+    for (let i = 0; i <= 24; i++) {
+      for (let j = 0; j <= 16; j++) {
+        const hit = pick(-1 + (2 * i) / 24, -1 + (2 * j) / 16);
+        if (hit) hs.push(gridHeight(hit.lat, hit.lon));
+      }
+    }
+    if (hs.length < 5) return;
+    hs.sort((a, b) => a - b);
+    const lo = hs[Math.floor(hs.length * 0.01)], hi = hs[Math.ceil(hs.length * 0.99) - 1];
+    const step = niceStep(Math.max(hi - lo, 50) / 10);
+    reliefMin.value = Math.floor(lo / step) * step;
+    reliefMax.value = Math.ceil(hi / step) * step;
+    applyReliefRange();
+  });
+  tempKindSel.addEventListener("change", () => { tempKey = null; loadTemperature(); });
+
+  // Панель «Температура в точці»: добова крива Diviner для вибраного місця
+  const chart = $("temp-chart");
+  const chartSummary = $("temp-summary");
+  let pointKey = null;
+  let pointAbort = null;
+  async function updateTempPanel() {
+    const { lat, lon, datetime } = getState();
+    if (!chart) return;
+    if (lat === null || lon === null) { chartSummary.textContent = "Виберіть місце на Місяці"; return; }
+    const key = `${lat}|${lon}|${datetime}`;
+    if (key === pointKey) return;
+    pointKey = key;
+    pointAbort?.abort();
+    pointAbort = new AbortController();
+    try {
+      const res = await fetch(`/api/temperature?${new URLSearchParams({ lat, lon, datetime })}`, { signal: pointAbort.signal });
+      const t = await res.json();
+      if (!res.ok) throw new Error(t.detail);
+      drawDiurnalChart(chart, t);
+      chartSummary.textContent = `${describeTemperature(t)}. Комірка Diviner 0,5° × 0,5°, місцевий час кроком 15 хв.`;
+    } catch (err) {
+      if (err.name === "AbortError") return;
+      pointKey = null;
+      chartSummary.textContent = `Температура недоступна: ${err.message}`;
+    }
+  }
+
+  let tempTimer = null;
+  subscribe(() => {
+    clearTimeout(tempTimer);
+    tempTimer = setTimeout(() => { loadTemperature(); updateTempPanel(); }, 300);
+  });
+  applyReliefRange();
 
   renderer.setAnimationLoop((now) => {
     if (anim) {

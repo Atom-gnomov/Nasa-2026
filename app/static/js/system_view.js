@@ -137,7 +137,12 @@ function glowTexture() {
 }
 
 // ---------- Розкладка тіл у сцені (режим × масштаб) ----------
-// Напрямки завжди справжні; у схематичному масштабі збільшено розміри тіл і стиснуто відстані.
+// Напрямки завжди справжні. У схематичному масштабі тіла збільшено, а відстані стиснуто
+// ПРОПОРЦІЙНО (множенням на сталу), тому форма орбіт — ексцентриситет, нахил — зберігається.
+const AU_SCENE = 149597.8707; // 1 а.о. у тис. км
+const K_HELIO = (real) => (real ? 1 : 1000 / AU_SCENE); // 1 а.о. → 1000 одиниць
+const K_MOON_HELIO = (real) => (real ? 1 : 90 / 384.4); // 384 400 км → 90 одиниць
+
 function layout(mode, scale, s) {
   const moonRel = toScene(s.moon_km); // Місяць відносно Землі
   const sunRel = toScene(s.sun_km); // Сонце відносно Землі
@@ -147,14 +152,14 @@ function layout(mode, scale, s) {
       earth: { pos: new THREE.Vector3(), r: real ? R_EARTH : R_EARTH * 6 },
       moon: { pos: moonRel, r: real ? R_MOON : R_MOON * 6 },
       sun: { pos: real ? sunRel : sunRel.clone().setLength(3000), r: real ? R_SUN : 160 },
-      overview: { target: new THREE.Vector3(), dist: real ? 1100 : 1100 },
+      overview: { target: new THREE.Vector3(), dist: 1100 },
     };
   }
-  const earthPos = real ? sunRel.clone().negate() : sunRel.clone().negate().setLength(1000);
+  const earthPos = sunRel.clone().negate().multiplyScalar(K_HELIO(real));
   return {
     sun: { pos: new THREE.Vector3(), r: real ? R_SUN : 70 },
     earth: { pos: earthPos, r: real ? R_EARTH : 16 },
-    moon: { pos: earthPos.clone().add(real ? moonRel : moonRel.clone().setLength(90)), r: real ? R_MOON : 6 },
+    moon: { pos: earthPos.clone().addScaledVector(moonRel, K_MOON_HELIO(real)), r: real ? R_MOON : 6 },
     overview: { target: new THREE.Vector3(), dist: real ? 420000 : 2900 },
   };
 }
@@ -232,12 +237,15 @@ async function main() {
   const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture(), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
   scene.add(glow);
 
-  // Орбіти: Місяця (навколо Землі) і Землі (навколо Сонця) — лінії за вибіркою станів
-  const orbitMat = (color) => new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.45 });
-  const moonOrbit = new THREE.Line(new THREE.BufferGeometry(), orbitMat(0x9aa4b8));
-  const earthOrbit = new THREE.Line(new THREE.BufferGeometry(), orbitMat(0x4f7fb8));
-  scene.add(moonOrbit, earthOrbit);
-  let orbitSamples = { moon: [], sun: [] };
+  // Орбіти (/api/orbits): оскулюючі еліпси — замкнені лінії з 720 точок; справжній шлях — пунктир
+  const orbitMat = (color) => new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.55 });
+  const moonOrbit = new THREE.LineLoop(new THREE.BufferGeometry(), orbitMat(0xaab3c5));
+  const earthOrbit = new THREE.LineLoop(new THREE.BufferGeometry(), orbitMat(0x5b8fd0));
+  const pathMat = (color) => new THREE.LineDashedMaterial({ color, transparent: true, opacity: 0.9, dashSize: 1, gapSize: 1 });
+  const moonPath = new THREE.Line(new THREE.BufferGeometry(), pathMat(0xf5b942));
+  const earthPath = new THREE.Line(new THREE.BufferGeometry(), pathMat(0xf5b942));
+  scene.add(moonOrbit, earthOrbit, moonPath, earthPath);
+  let orbitData = null;
 
   // Вибрана точка на Місяці: маркер, площина горизонту, стрілки на Сонце й Землю
   const pointMarker = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 8), new THREE.MeshBasicMaterial({ color: 0xf5b942 }));
@@ -308,20 +316,20 @@ async function main() {
     }
   }
 
+  // Орбіти — один запит; під час анімації оновлюються не частіше ніж раз на 0,5 с
   let orbitTimer = null;
-  function loadOrbits(ms) {
+  let orbitLoading = false;
+  let orbitMs = NaN;
+  function loadOrbits(ms, delay = 200) {
     clearTimeout(orbitTimer);
     orbitTimer = setTimeout(async () => {
-      const day = 86400000;
-      const moonTimes = Array.from({ length: 29 }, (_, k) => ms + (k - 14) * day);
-      const sunTimes = Array.from({ length: 38 }, (_, k) => ms + (k - 18) * 10 * day);
+      if (orbitLoading) return;
+      orbitLoading = true;
       try {
-        const [m, s] = await Promise.all([
-          Promise.all(moonTimes.map(fetchSystem)), Promise.all(sunTimes.map(fetchSystem)),
-        ]);
-        orbitSamples = { moon: m.map((x) => x.moon_km), sun: s.map((x) => x.sun_km) };
-      } catch { orbitSamples = { moon: [], sun: [] }; }
-    }, 250);
+        const res = await fetch(`/api/orbits?${new URLSearchParams({ datetime: isoUtc(ms) })}`);
+        if (res.ok) { orbitData = await res.json(); orbitMs = ms; }
+      } catch { /* лишаємо попередні */ } finally { orbitLoading = false; }
+    }, delay);
   }
 
   // ---------- Керування ----------
@@ -394,6 +402,8 @@ async function main() {
     if (playing) {
       simMs += dt * Number($("system-speed").value);
       if (!fetching && now - lastFetch > 70) loadState(simMs);
+      // орбіта Місяця помітно змінюється за добу (збурення) — оновлюємо, коли час відійшов на >12 год
+      if (!orbitLoading && !(Math.abs(simMs - orbitMs) < 12 * 3600000)) loadOrbits(simMs, 0);
     }
     if (!state) { renderer.render(scene, camera); return; }
 
@@ -432,21 +442,60 @@ async function main() {
     renderer.render(scene, camera);
   });
 
+  // Точки орбіт у сцені (одиниці 1000 км, відносно центрального тіла) — рахуємо раз на відповідь API
+  let orbitScene = null;
+  let orbitSceneOf = null;
+  function setLine(line, pts, center, k) {
+    const n = pts.length;
+    let attr = line.geometry.getAttribute("position");
+    if (!attr || attr.count !== n) {
+      attr = new THREE.BufferAttribute(new Float32Array(n * 3), 3);
+      line.geometry.setAttribute("position", attr);
+    }
+    for (let i = 0; i < n; i++) attr.setXYZ(i, center.x + pts[i].x * k, center.y + pts[i].y * k, center.z + pts[i].z * k);
+    attr.needsUpdate = true;
+    line.geometry.computeBoundingSphere();
+  }
+
   function updateOrbits(lay) {
-    const moonPts = orbitSamples.moon.map((km) => {
-      const rel = toScene(km);
-      return mode === "earth-moon" ? rel.add(lay.earth.pos)
-        : lay.earth.pos.clone().add(scale === "real" ? rel : rel.setLength(90));
-    });
-    moonOrbit.geometry.setFromPoints(moonPts);
-    moonOrbit.visible = moonPts.length > 1;
-    const earthPts = orbitSamples.sun.map((km) => {
-      const p = toScene(km).negate(); // Земля відносно Сонця
-      const helio = scale === "real" ? p : p.setLength(1000);
-      return mode === "earth-moon" ? helio.add(lay.sun.pos) : helio;
-    });
-    earthOrbit.geometry.setFromPoints(earthPts);
-    earthOrbit.visible = mode !== "earth-moon" && earthPts.length > 1;
+    const showPath = $("system-path").checked;
+    if (!orbitData) {
+      for (const l of [moonOrbit, earthOrbit, moonPath, earthPath]) l.visible = false;
+      return;
+    }
+    if (orbitSceneOf !== orbitData) {
+      const conv = (arr) => arr.map((v) => toScene(v));
+      orbitScene = {
+        moon: conv(orbitData.moon.points_km), moonPath: conv(orbitData.moon.path_km),
+        earth: conv(orbitData.earth.points_km), earthPath: conv(orbitData.earth.path_km),
+      };
+      orbitSceneOf = orbitData;
+    }
+    // Масштаб орбіти береться з поточної розкладки — орбіта завжди проходить через намальоване тіло
+    // (і під час плавного переходу між режимами теж)
+    const moonRel = toScene(state.moon_km);
+    const kMoon = lay.moon.pos.distanceTo(lay.earth.pos) / moonRel.length();
+    setLine(moonOrbit, orbitScene.moon, lay.earth.pos, kMoon);
+    moonOrbit.visible = true;
+    moonPath.visible = showPath;
+    if (showPath) {
+      setLine(moonPath, orbitScene.moonPath, lay.earth.pos, kMoon);
+      moonPath.computeLineDistances();
+      moonPath.material.dashSize = moonPath.material.gapSize = moonRel.length() * kMoon * 0.02;
+    }
+    const helio = mode !== "earth-moon";
+    earthOrbit.visible = helio;
+    earthPath.visible = helio && showPath;
+    if (helio) {
+      const sunRel = toScene(state.sun_km);
+      const kEarth = lay.earth.pos.distanceTo(lay.sun.pos) / sunRel.length();
+      setLine(earthOrbit, orbitScene.earth, lay.sun.pos, kEarth);
+      if (showPath) {
+        setLine(earthPath, orbitScene.earthPath, lay.sun.pos, kEarth);
+        earthPath.computeLineDistances();
+        earthPath.material.dashSize = earthPath.material.gapSize = sunRel.length() * kEarth * 0.01;
+      }
+    }
   }
 
   function updatePointAndStations(lay, earthRot, eM, mM, sunFromMoonKm) {
@@ -597,6 +646,13 @@ async function main() {
     set("moon_sun", `${fmtLat(state.sub_solar_point.lat)}, ${fmtLon(state.sub_solar_point.lon)}`);
     set("point", facts.point ?? "не вибрано (клік по Місяцю)");
     set("dsn", facts.dsn);
+    if (orbitData) {
+      const m = orbitData.moon.elements, e = orbitData.earth.elements;
+      set("orbit_moon", `a = ${fmtKm(m.a_km)}, e = ${m.e.toFixed(4)}, нахил ${m.inclination_deg.toFixed(2)}°, ` +
+        `перигей ${fmtKm(m.periapsis_km)}, апогей ${fmtKm(m.apoapsis_km)}; справжній шлях відходить до ${fmtKm(orbitData.moon.max_deviation_km)}`);
+      set("orbit_earth", `a = ${(e.a_km / 149597870.7).toFixed(6)} а.о., e = ${e.e.toFixed(5)}, період ${e.period_days.toFixed(2)} д; ` +
+        `відхилення за рік до ${fmtKm(orbitData.earth.max_deviation_km)}`);
+    }
   }
 
   // Перше завантаження: погляд під кутом ~25° до площини екліптики

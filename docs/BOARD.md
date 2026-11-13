@@ -84,8 +84,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Велес
 
-- **Зараз:** —
-- **Гілка:** —
+- **Зараз:** F12 — стан із посилання в `localStorage`; F13 — `datetime` з URL до UTC
+- **Гілка:** `veles/F12-link-storage`, `veles/F13-datetime-utc`
 
 ### Ярило
 

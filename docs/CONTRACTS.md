@@ -98,7 +98,7 @@
 | `GET /launch-window` | 📝 | `LaunchWindow` — оцінка у % по датах | вікно запуску (друга черга) |
 | `POST /advice` | 📝 | `AdviceResponse` — поради й пояснення від відкритої LLM до готових результатів | блок порад (друга черга) |
 
-✅ — реалізовано, 📝 — контракт є, сервер відповідає 501. Реалізації `/horizon`, `/timeline`, `/system`, `/orbits`, `/elevation`, `/temperature*` — у гілці `moon` (ще не злито в `main`).
+✅ — реалізовано, 📝 — контракт є, сервер відповідає 501. Реалізації `/horizon`, `/timeline`, `/system`, `/orbits`, `/elevation`, `/temperature*` — злито в `main` (PR #12).
 
 ### 2.0. `POST /advice` — особливості
 - LLM **лише інтерпретує** числа з `facts`; вона нічого не рахує. Поле `verified` у відповіді: `true`, якщо всі числа знайдено у `facts`; інакше фронтенд показує попередження «неперевірена порада».
@@ -152,12 +152,12 @@
 ### 4.1. Протоколи джерел
 | Протокол | Контракт | Хто споживає |
 |---|---|---|
-| `HeightSource(lat, lon) → м` | висота відносно сфери 1737,4 км, MOON_ME, NaN поза покриттям | `core/horizon.compute_mask`, побудова масок; ✅ реалізовано `core/dem.py` (PDS LOLA, `moon`) |
+| `HeightSource(lat, lon) → м` | висота відносно сфери 1737,4 км, MOON_ME, NaN поза покриттям | `core/horizon.compute_mask`, побудова масок; ✅ реалізовано `core/dem.py` (PDS LOLA, PR #12) |
 | `MaskStore.get/put` | маска за схемою `horizon_mask.schema.json` | `services/horizon.load_mask` |
 | `IlluminationSource.sun_fraction(lat, lon)` | частка часу 0…1 | швидкий фільтр підбору, валідація |
 | `CatalogSource.records()` | записи за схемами каталогів | каталоги місць, станцій, стартів |
 
-Ефемериди вже мають свій контракт: будь-який `.bsp` файл із тілами `sun`, `earth`, `moon` підключається змінною `LSE_EPHEMERIS_PATH`.
+Ефемериди вже мають свій контракт: будь-який `.bsp` файл із тілами `sun`, `earth`, PR #12 підключається змінною `LSE_EPHEMERIS_PATH`.
 
 ### 4.2. Порядок підключення набору даних
 1. Покласти файли в `data_cache/<dataset_id>/` (у git не потрапляють).
@@ -169,12 +169,12 @@
 ### 4.3. Що, ймовірно, дадуть і куди це піде
 | Імовірний набір | Протокол | На що звернути увагу |
 |---|---|---|
-| DEM LOLA (GeoTIFF, полярна стереографічна) | `HeightSource` | ✅ (`moon`): підключено PDS GDR — LDEM_16/64 (V3.1), LDEM_80S_80M, LDEM_875S_20M (V2.0); параметри — з міток .LBL, формули — `dsmap*.cat` |
+| DEM LOLA (GeoTIFF, полярна стереографічна) | `HeightSource` | ✅ (PR #12): підключено PDS GDR — LDEM_16/64 (V3.1), LDEM_80S_80M, LDEM_875S_20M (V2.0); параметри — з міток .LBL, формули — `dsmap*.cat` |
 | Карти освітленості PGDA / Mazarico | `IlluminationSource` | період усереднення, висота над ґрунтом (часто 0 або 2 м) |
-| Експорти JPL Horizons (таблиці) | тест-еталон для `core/ephemeris` | ✅ (`moon`): еталонні значення з API Horizons у `tests/test_contracts.py` |
+| Експорти JPL Horizons (таблиці) | тест-еталон для `core/ephemeris` | ✅ (PR #12): еталонні значення з API Horizons у `tests/test_contracts.py` |
 | Список місць CLPS / Artemis | `CatalogSource` → `sites.json` | системи координат місць (ME чи PA), джерело |
 | Координати DSN | `CatalogSource` → `dsn_stations.json` | WGS84 чи ITRF, мінімальні кути антен |
-| Температури Diviner | ✅ (`moon`) `services/temperature.py` | GCP 0,5° за місцевим часом, PRP 0,5 км; сезони в GCP не розділено |
+| Температури Diviner | ✅ (PR #12) `services/temperature.py` | GCP 0,5° за місцевим часом, PRP 0,5 км; сезони в GCP не розділено |
 
 Якщо набір не вкладається в жоден протокол — додати новий протокол у `sources.py` і описати його тут, **не змінюючи** існуючих полів API.
 

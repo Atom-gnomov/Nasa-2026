@@ -315,5 +315,55 @@
       "date": "2027-07-02",
       "score_pct": 77.5
     }
+  },
+  "AdviceRequest": {
+    "facts": {
+      "site": {
+        "name": "89,5° пд. ш., 0°",
+        "lat": -89.5,
+        "lon": 0.0
+      },
+      "period": {
+        "start": "2027-07-01T00:00:00Z",
+        "end": "2027-07-31T00:00:00Z"
+      },
+      "metrics": {
+        "sun_visible_fraction": 0.52,
+        "earth_visible_fraction": 0.5,
+        "hours_to_sunset": 242.39
+      },
+      "mission": {
+        "crew": 4,
+        "days": 30,
+        "comfort_level": "extended",
+        "mass_moon_kg": 4200,
+        "mass_leo_kg": 21000,
+        "rocket_utilization": 0.88,
+        "risk_band": "high"
+      }
+    },
+    "language": "uk",
+    "audience": "public",
+    "question": "Що змінити, щоб знизити ризик?"
+  },
+  "AdviceResponse": {
+    "summary": "Ракета майже заповнена (88 %), тому ризик запуску зараз високий.",
+    "tips": [
+      {
+        "text": "Зменште рівень «Умови й зручності» на один крок: це знизить масу на старті й заповненість ракети.",
+        "related_metric": "mission.rocket_utilization"
+      },
+      {
+        "text": "Розгляньте дату з довшим освітленим періодом, щоб потрібні були менші акумулятори.",
+        "related_metric": "metrics.sun_visible_fraction"
+      }
+    ],
+    "caveats": [
+      "Оцінки ризику евристичні й подані діапазоном.",
+      "Порада ШІ — не розрахунок."
+    ],
+    "model": "llama-3.1-8b-instruct",
+    "generated_utc": "2027-06-01T12:00:00Z",
+    "verified": true
   }
 }

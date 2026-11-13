@@ -239,6 +239,7 @@ tests/                  → тести для всіх модулів
 **MVP:**
 - `getState()`, `setState(patch)`, `subscribe(fn)`.
 - Синхронізація між вкладками через `localStorage` і параметри URL (`?datetime=&site=&lat=&lon=&height=&mode=&compare=`), щоб посиланням можна було поділитися; URL оновлюється без перезавантаження (`history.replaceState`), посилання — повний знімок стану (CONTRACTS.md §5.1; F1, PR #15).
+- Стан із посилання одразу зберігається в `localStorage` (F12, PR #16); `datetime` з URL нормалізується до UTC `YYYY-MM-DDTHH:mmZ` (F13, PR #17).
 - Некоректні значення з URL відкидаються; помилки доступу до `localStorage` (приватний режим) і обмеження частоти `replaceState` не ламають сторінку.
 - Тести: `tests/js/test_state.mjs` (`node --test`), обгортка `tests/test_state_js.py`.
 

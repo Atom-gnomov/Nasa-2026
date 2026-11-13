@@ -1,32 +1,47 @@
 {
   "Meta": {
     "api_version": "1.0.0",
-    "ephemeris": "JPL DE440",
-    "moon_orientation": "IAU 2015 (Archinal et al., 2018)",
-    "moon_radius_km": 1737.4,
     "data_sources": [
       {
+        "description": "JPL DE440 (Park et al., 2021) через skyfield",
         "id": "de440",
         "kind": "ephemeris",
-        "description": "JPL DE440 через пакет naif-de440",
-        "version": "2020-12-21"
+        "url": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/",
+        "version": "DE440"
       },
       {
+        "description": "Гладка сфера (DEM LOLA не завантажено)",
         "id": "flat",
-        "kind": "horizon_masks",
-        "description": "Гладка сфера (рельєф ще не підключено)"
+        "kind": "horizon_masks"
+      },
+      {
+        "description": "Каталог місць посадки (app/data/sites.json)",
+        "id": "sites",
+        "kind": "sites"
+      },
+      {
+        "description": "Станції DSN (app/data/dsn_stations.json)",
+        "id": "dsn",
+        "kind": "stations"
+      },
+      {
+        "description": "Місця старту (app/data/launch_sites.json)",
+        "id": "launch_sites",
+        "kind": "launch_sites"
       }
     ],
+    "ephemeris": "JPL DE440",
     "limits": {
-      "max_period_days": 3653,
-      "max_points": 20000,
-      "event_search_hours": 720
-    }
+      "event_search_hours": 720.0,
+      "max_event_period_days": 120,
+      "max_period_days": 400,
+      "max_points": 5000,
+      "max_rank_points": 30
+    },
+    "moon_orientation": "IAU 2015 (Archinal et al., 2018)",
+    "moon_radius_km": 1737.4
   },
   "HorizonMask": {
-    "lat": -89.5,
-    "lon": 0.0,
-    "observer_height_m": 2.0,
     "azimuth_step_deg": 90.0,
     "elevations_deg": [
       -0.087,
@@ -34,49 +49,16 @@
       -0.087,
       -0.087
     ],
-    "source": "flat",
-    "max_distance_km": 0,
-    "sky_view_fraction": 1.0015
-  },
-  "Timeline": {
+    "gcr_dose_usv_per_day": 1371.1,
     "lat": -89.5,
     "lon": 0.0,
-    "height_m": 2.0,
-    "step_h": 4.0,
-    "times": [
-      "2027-07-01T00:00:00Z",
-      "2027-07-01T04:00:00Z",
-      "2027-07-01T08:00:00Z",
-      "2027-07-01T12:00:00Z",
-      "2027-07-01T16:00:00Z",
-      "2027-07-01T20:00:00Z"
-    ],
-    "sun": {
-      "azimuth_deg": [
-        216.79,
-        214.75,
-        212.71,
-        210.67,
-        208.62,
-        206.58
-      ],
-      "elevation_deg": [
-        -1.268,
-        -1.275,
-        -1.28,
-        -1.286,
-        -1.29,
-        -1.294
-      ],
-      "visible_fraction": [
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0
-      ]
-    },
+    "max_distance_km": 200.0,
+    "max_elevation_deg": -0.087,
+    "observer_height_m": 2.0,
+    "sky_view_fraction": 1.0015,
+    "source": "flat"
+  },
+  "Timeline": {
     "earth": {
       "azimuth_deg": [
         353.61,
@@ -84,7 +66,8 @@
         353.98,
         354.19,
         354.4,
-        354.62
+        354.62,
+        354.86
       ],
       "elevation_deg": [
         6.783,
@@ -92,9 +75,11 @@
         6.628,
         6.533,
         6.427,
-        6.309
+        6.309,
+        6.179
       ],
       "visible_fraction": [
+        1.0,
         1.0,
         1.0,
         1.0,
@@ -103,13 +88,17 @@
         1.0
       ]
     },
+    "height_m": 2.0,
+    "horizon_source": "flat",
+    "lat": -89.5,
+    "lon": 0.0,
     "stations": [
       {
-        "station_id": "goldstone",
         "available": [
           false,
           false,
           false,
+          true,
           true,
           true,
           true
@@ -120,17 +109,19 @@
           -17.0,
           23.21,
           70.07,
-          56.16
-        ]
+          56.16,
+          10.27
+        ],
+        "station_id": "goldstone"
       },
       {
-        "station_id": "madrid",
         "available": [
           false,
           true,
           true,
           true,
           true,
+          false,
           false
         ],
         "moon_elevation_deg": [
@@ -139,18 +130,20 @@
           65.4,
           56.73,
           13.6,
-          -18.74
-        ]
+          -18.74,
+          -19.22
+        ],
+        "station_id": "madrid"
       },
       {
-        "station_id": "canberra",
         "available": [
           true,
           false,
           false,
           false,
           false,
-          false
+          false,
+          true
         ],
         "moon_elevation_deg": [
           27.8,
@@ -158,83 +151,300 @@
           -47.38,
           -77.99,
           -34.37,
-          7.43
-        ]
+          7.43,
+          27.18
+        ],
+        "station_id": "canberra"
       }
     ],
+    "step_h": 4.0,
     "summary": {
-      "period_h": 24.0,
-      "sun_hours": 0.0,
-      "comm_hours": 24.0,
-      "sun_fraction": 0.0,
       "comm_fraction": 1.0,
-      "longest_night_h": 24.0,
+      "comm_hours": 28.0,
+      "earth_fraction": 1.0,
+      "earth_hours": 28.0,
+      "energy_wh_per_m2": 0.0,
       "longest_comm_gap_h": 0.0,
-      "energy_wh_per_m2": 0.0
-    }
+      "longest_night_h": 28.0,
+      "period_h": 28.0,
+      "sun_fraction": 0.0,
+      "sun_hours": 0.0
+    },
+    "sun": {
+      "azimuth_deg": [
+        216.79,
+        214.75,
+        212.71,
+        210.67,
+        208.62,
+        206.58,
+        204.54
+      ],
+      "elevation_deg": [
+        -1.268,
+        -1.275,
+        -1.28,
+        -1.286,
+        -1.29,
+        -1.294,
+        -1.298
+      ],
+      "visible_fraction": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "times": [
+      "2027-07-01T00:00:00Z",
+      "2027-07-01T04:00:00Z",
+      "2027-07-01T08:00:00Z",
+      "2027-07-01T12:00:00Z",
+      "2027-07-01T16:00:00Z",
+      "2027-07-01T20:00:00Z",
+      "2027-07-02T00:00:00Z"
+    ]
   },
   "EventList": {
-    "lat": -89.5,
-    "lon": 0.0,
-    "start": "2027-07-01T00:00:00Z",
-    "end": "2027-07-31T00:00:00Z",
+    "end": "2027-07-08T00:00:00Z",
     "events": [
       {
-        "body": "earth",
-        "kind": "set",
-        "datetime": "2027-07-06T06:55:00Z"
+        "body": "station:canberra",
+        "datetime": "2027-07-01T02:42:39Z",
+        "kind": "set"
       },
       {
-        "body": "sun",
-        "kind": "rise",
-        "datetime": "2027-07-13T12:07:00Z"
+        "body": "station:madrid",
+        "datetime": "2027-07-01T02:51:05Z",
+        "kind": "rise"
+      },
+      {
+        "body": "station:goldstone",
+        "datetime": "2027-07-01T10:49:13Z",
+        "kind": "rise"
+      },
+      {
+        "body": "station:madrid",
+        "datetime": "2027-07-01T16:21:05Z",
+        "kind": "set"
       },
       {
         "body": "station:canberra",
-        "kind": "set",
-        "datetime": "2027-07-01T09:40:00Z"
+        "datetime": "2027-07-01T20:18:16Z",
+        "kind": "rise"
+      },
+      {
+        "body": "station:goldstone",
+        "datetime": "2027-07-02T00:01:24Z",
+        "kind": "set"
+      },
+      {
+        "body": "station:canberra",
+        "datetime": "2027-07-02T03:32:20Z",
+        "kind": "set"
+      },
+      {
+        "body": "station:madrid",
+        "datetime": "2027-07-02T03:44:31Z",
+        "kind": "rise"
+      },
+      {
+        "body": "station:goldstone",
+        "datetime": "2027-07-02T11:47:20Z",
+        "kind": "rise"
+      },
+      {
+        "body": "station:madrid",
+        "datetime": "2027-07-02T17:30:28Z",
+        "kind": "set"
+      },
+      {
+        "body": "station:canberra",
+        "datetime": "2027-07-02T21:27:39Z",
+        "kind": "rise"
+      },
+      {
+        "body": "station:goldstone",
+        "datetime": "2027-07-03T01:07:58Z",
+        "kind": "set"
+      },
+      {
+        "body": "station:canberra",
+        "datetime": "2027-07-03T04:36:05Z",
+        "kind": "set"
+      },
+      {
+        "body": "station:madrid",
+        "datetime": "2027-07-03T04:49:13Z",
+        "kind": "rise"
+      },
+      {
+        "body": "station:goldstone",
+        "datetime": "2027-07-03T12:53:54Z",
+        "kind": "rise"
+      },
+      {
+        "body": "station:madrid",
+        "datetime": "2027-07-03T18:32:20Z",
+        "kind": "set"
+      },
+      {
+        "body": "station:canberra",
+        "datetime": "2027-07-03T22:26:43Z",
+        "kind": "rise"
+      },
+      {
+        "body": "station:goldstone",
+        "datetime": "2027-07-04T02:08:54Z",
+        "kind": "set"
+      },
+      {
+        "body": "station:canberra",
+        "datetime": "2027-07-04T05:51:05Z",
+        "kind": "set"
+      },
+      {
+        "body": "station:madrid",
+        "datetime": "2027-07-04T06:01:24Z",
+        "kind": "rise"
+      },
+      {
+        "body": "station:goldstone",
+        "datetime": "2027-07-04T14:07:01Z",
+        "kind": "rise"
+      },
+      {
+        "body": "station:madrid",
+        "datetime": "2027-07-04T19:25:46Z",
+        "kind": "set"
+      },
+      {
+        "body": "station:canberra",
+        "datetime": "2027-07-04T23:14:31Z",
+        "kind": "rise"
+      },
+      {
+        "body": "station:goldstone",
+        "datetime": "2027-07-05T03:01:24Z",
+        "kind": "set"
+      },
+      {
+        "body": "station:canberra",
+        "datetime": "2027-07-05T07:12:39Z",
+        "kind": "set"
+      },
+      {
+        "body": "station:madrid",
+        "datetime": "2027-07-05T07:19:13Z",
+        "kind": "rise"
+      },
+      {
+        "body": "station:goldstone",
+        "datetime": "2027-07-05T15:22:01Z",
+        "kind": "rise"
+      },
+      {
+        "body": "station:madrid",
+        "datetime": "2027-07-05T20:08:54Z",
+        "kind": "set"
+      },
+      {
+        "body": "station:canberra",
+        "datetime": "2027-07-05T23:52:58Z",
+        "kind": "rise"
+      },
+      {
+        "body": "station:goldstone",
+        "datetime": "2027-07-06T00:19:13Z",
+        "kind": "set"
+      },
+      {
+        "body": "earth",
+        "datetime": "2027-07-06T06:54:50Z",
+        "kind": "set"
+      },
+      {
+        "body": "station:canberra",
+        "datetime": "2027-07-06T08:34:13Z",
+        "kind": "set"
       }
-    ]
+    ],
+    "lat": -89.5,
+    "lon": 0.0,
+    "start": "2027-07-01T00:00:00Z"
   },
   "SystemState": {
     "datetime": "2027-07-01T00:00:00Z",
-    "frame": "icrf_geocentric_km",
-    "sun_km": [
-      -22723047.0,
-      137979142.0,
-      59811470.0
+    "earth_orientation": [
+      [
+        0.147333295,
+        -0.98908683,
+        -0.000378047
+      ],
+      [
+        0.98908323,
+        0.147333779,
+        -0.002668815
+      ],
+      [
+        0.002695389,
+        1.9285e-05,
+        0.999996367
+      ]
     ],
+    "earth_rotation_deg": 278.8279,
+    "earth_sub_lunar_point": {
+      "lat": 24.1347,
+      "lon": 133.429
+    },
+    "earth_sub_solar_point": {
+      "lat": 23.1337,
+      "lon": -179.0615
+    },
+    "frame": "icrf_geocentric_km",
+    "moon_illumination": {
+      "fraction": 0.13686,
+      "phase_angle_deg": 136.5751
+    },
     "moon_km": [
-      209212.9,
-      266354.3,
-      151061.7
+      209247.656,
+      266359.86,
+      151064.057
     ],
     "moon_orientation": [
       [
-        -0.470577,
-        -0.819339,
-        -0.327478
+        -0.470577139,
+        -0.819338512,
+        -0.32747757
       ],
       [
-        0.882147,
-        -0.428732,
-        -0.19495
+        0.882147098,
+        -0.42873177,
+        -0.194950167
       ],
       [
-        0.01933,
-        -0.380622,
-        0.924528
+        0.019330142,
+        -0.38062248,
+        0.92452846
       ]
     ],
-    "sub_solar_point": {
-      "lat": 0.867,
-      "lon": -143.215
-    },
     "sub_earth_point": {
-      "lat": -6.553,
-      "lon": -6.379
+      "lat": -6.5529,
+      "lon": -6.3795
     },
-    "earth_rotation_deg": 278.828
+    "sub_solar_point": {
+      "lat": 0.8672,
+      "lon": -143.2153
+    },
+    "sun_km": [
+      -22723043.4,
+      137979145.6,
+      59811471.0
+    ]
   },
   "SearchRequest": {
     "start": "2027-01-01T00:00:00Z",

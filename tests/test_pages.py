@@ -13,7 +13,8 @@ def test_moon_page(client):
 
 def test_moon_page_has_globe_controls(client):
     html = client.get("/moon").get_data(as_text=True)
-    for marker in ('data-view="globe"', 'data-view="map"', 'data-view="polar"', "grid-toggle", "relief", "globe_view.js"):
+    markers = ('data-view="globe"', 'data-view="map"', 'data-view="polar"', "grid-toggle", "relief", "globe_view.js")
+    for marker in markers:
         assert marker in html
 
 

@@ -1,0 +1,10 @@
+[tool.ruff]
+line-length = 120
+extend-exclude = ["data_cache"]
+
+[tool.ruff.lint]
+# E/W — стиль pycodestyle, F — помилки pyflakes (невикористане, невизначене), B — типові пастки bugbear
+select = ["E", "F", "W", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

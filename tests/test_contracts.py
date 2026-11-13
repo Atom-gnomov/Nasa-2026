@@ -222,7 +222,8 @@ def test_timeline_apollo_11_synodic_month(client):
     Земля завжди над горизонтом, хоча б одна станція DSN — ~98 % часу (docs/MATH.md, §9.2).
     Вікно у два місяці — щоб найдовша ніч не була розрізана межею періоду."""
     pytest.importorskip("naif_de440")
-    t = client.get("/api/timeline?lat=0.67416&lon=23.47314&start=2027-07-01T00:00&end=2027-08-29T01:28&step_h=1").get_json()
+    t = client.get("/api/timeline?lat=0.67416&lon=23.47314&start=2027-07-01T00:00&end=2027-08-29T01:28"
+                   "&step_h=1").get_json()
     assert_valid(api_validator("Timeline"), t)
     s = t["summary"]
     assert len(t["times"]) == len(t["sun"]["elevation_deg"]) == len(t["stations"][0]["available"])

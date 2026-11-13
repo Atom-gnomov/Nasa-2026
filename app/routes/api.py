@@ -6,6 +6,7 @@ from flask import Blueprint, abort, current_app, jsonify, request
 from werkzeug.exceptions import HTTPException
 
 from app.services import catalogs, dsn, elevation, metrics, ranking, sites, system, temperature
+from app.services import advice as advice_service
 from app.services import search as search_service
 from app.services import events as events_service
 from app.services import meta as meta_service
@@ -252,7 +253,13 @@ def launch_window():
 
 @bp.post("/advice")
 def advice():
-    return _not_implemented("/api/advice")
+    """Поради й пояснення від відкритої LLM до готових результатів (лише тлумачення, не розрахунок)."""
+    try:
+        return jsonify(advice_service.advise(request.get_json(silent=True)))
+    except ValueError as exc:
+        return _error(400, str(exc))
+    except RuntimeError as exc:  # включно з advice.AdviceUnavailable і llm.LlmError
+        return _error(503, str(exc))
 
 
 def _utc(value: str) -> datetime:

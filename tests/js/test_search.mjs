@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
-  DEFAULT_FORM, REGIONS, activePriorities, buildSearchRequest, clampHours, describeComparison, gridNote, hoursShort,
+  DEFAULT_FORM, REGIONS, activePriorities, buildAdviceFacts, buildSearchRequest, clampHours, describeComparison, gridNote, hoursShort,
   hoursText, maxHours, movePriority, placeLabel, resultRows, violationText,
 } from "../../app/static/js/search.js";
 
@@ -124,3 +124,31 @@ test("рядки результатів зі зразка відповіді", (
   assert.equal(second.feasible, false);
   assert.match(second.violations[0], /Сонця/);
 });
+
+test("факти для порад: лише топ-5, готові числа відповіді, без undefined", () => {
+  const chain = (rank) => ({
+    rank, moon_site: { site_id: null, name: null, lat: -88 + rank, lon: 10 }, dsn_station_id: "madrid", dsn_hours: 100,
+    launch_site_id: null, earth_target: null, feasible: rank !== 3,
+    violations: rank === 3 ? [{ requirement: "min_sun_hours", value: 5, required: 300 }] : [],
+    score_pct: 80 - rank, pareto: false, factors: { energy: 0.5, comms: 0.4 },
+    summary: { sun_hours: 200, comm_hours: 150 }, horizon_source: "flat",
+  });
+  const response = {
+    period: { start: "2027-07-01T00:00:00Z", end: "2027-07-31T00:00:00Z", period_h: 720, step_h: 6 },
+    mode: "weighted", priorities: ["energy", "comms"], weights: { energy: 0.75, comms: 0.25 },
+    grid: { evaluated: 95, candidates: 95, truncated: false, step_deg: 2 },
+    chains: [1, 2, 3, 4, 5, 6, 7].map(chain),
+    comparison: { dominance: "tradeoff", decisive_factor: "energy", score_delta_pct: 3, per_factor: [], a_rank: 1, b_rank: 2 },
+  };
+  const facts = buildAdviceFacts(response, { ...DEFAULT_FORM, minSunHours: 300 });
+  assert.equal(facts.top.length, 5);
+  assert.equal(facts.top[2].feasible, false);
+  assert.equal(facts.requirements.min_sun_hours, 300);
+  assert.equal(facts.requirements.min_comm_hours, null);
+  assert.equal(facts.candidates.total, 95);
+  assert.deepEqual(facts.comparison.dominance, "tradeoff");
+  assert.ok(!JSON.stringify(facts).includes("undefined"));
+  assert.ok(JSON.stringify(facts).length < 12000);
+  assert.equal(buildAdviceFacts({ ...response, comparison: null }, DEFAULT_FORM).comparison, null);
+});
+

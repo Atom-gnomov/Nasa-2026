@@ -358,7 +358,7 @@ paths:
   /advice:
     post:
       tags: [planning]
-      x-status: planned
+      x-status: implemented
       summary: Поради й пояснення від відкритої LLM щодо готових результатів розрахунків (друга черга)
       description: |
         LLM лише інтерпретує числа, надані у `facts`; вона нічого не рахує. Усі числа у відповіді

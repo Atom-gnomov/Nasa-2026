@@ -146,6 +146,40 @@ export function describeComparison(cmp, labels = FACTOR_LABELS) {
   }
 }
 
+/** Факти для POST /api/advice: готові результати пошуку (лише числа й підписи з відповіді сервера). */
+export function buildAdviceFacts(response, form, top = 5) {
+  const limitFields = (c) => ({
+    rank: c.rank,
+    place: placeLabel(c.moon_site),
+    lat: c.moon_site.lat,
+    lon: c.moon_site.lon,
+    score_pct: c.score_pct,
+    feasible: c.feasible,
+    violations: c.violations,
+    factors: c.factors,
+    sun_hours: c.summary.sun_hours,
+    comm_hours: c.summary.comm_hours,
+    dsn_station_id: c.dsn_station_id,
+    dsn_hours: c.dsn_hours,
+  });
+  const cmp = response.comparison;
+  return {
+    period: response.period,
+    mode: response.mode,
+    priorities: response.priorities,
+    weights: response.weights,
+    requirements: { min_sun_hours: form.minSunHours || null, min_comm_hours: form.minCommHours || null },
+    candidates: { evaluated: response.grid.evaluated, total: response.grid.candidates, truncated: response.grid.truncated },
+    top: response.chains.slice(0, top).map(limitFields),
+    comparison: cmp && {
+      dominance: cmp.dominance,
+      decisive_factor: cmp.decisive_factor,
+      score_delta_pct: cmp.score_delta_pct,
+      per_factor: cmp.per_factor,
+    },
+  };
+}
+
 export function gridNote(grid) {
   const base = `Оцінено ${grid.evaluated} з ${grid.candidates} кандидатів (крок сітки ${grid.step_deg}°).`;
   return grid.truncated ? `${base} Бюджет часу сервера вичерпано: зменште область, збільште крок сітки або скоротіть період.` : base;
@@ -161,7 +195,10 @@ if (root) {
     list: $("#s-priorities"), mode: root.querySelectorAll("[data-mode]"), catalog: $("#s-catalog"), height: $("#s-height"),
     run: $("#s-run"), status: $("#s-status"), note: $("#s-note"), compare: $("#s-compare"),
     table: $("#s-table"), body: $("#s-table tbody"), head: $("#s-head"),
+    advice: $("#s-advice"), adviceAsk: $("#s-advice-ask"), adviceQuestion: $("#s-advice-question"),
+    adviceAudience: $("#s-advice-audience"), adviceOut: $("#s-advice-out"), adviceStatus: $("#s-advice-status"),
   };
+  let lastResponse = null;
 
   let form = structuredClone(DEFAULT_FORM);
   try { Object.assign(form, JSON.parse(localStorage.getItem(STORAGE_KEY)) ?? {}); } catch { /* приватний режим */ }
@@ -263,10 +300,64 @@ if (root) {
       tr.addEventListener("keydown", (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); open(); } });
     }
     el.table.hidden = rows.length === 0;
+    el.advice.dataset.ready = rows.length ? "1" : "";
     el.note.textContent = gridNote(response.grid);
     el.note.classList.toggle("warn", response.grid.truncated);
     el.compare.textContent = describeComparison(response.comparison);
     el.compare.hidden = !response.comparison;
+  }
+
+  // ----- Порада ШІ (POST /api/advice): блок видно лише коли сервер оголосив джерело "llm" у /api/meta -----
+  function renderAdvice(a) {
+    el.adviceOut.replaceChildren();
+    const summary = Object.assign(document.createElement("p"), { className: "advice-summary", textContent: a.summary });
+    const tips = document.createElement("ul");
+    for (const tip of a.tips) {
+      const li = document.createElement("li");
+      li.textContent = tip.text;
+      if (tip.related_metric) li.title = `Спирається на: ${tip.related_metric}`;
+      tips.append(li);
+    }
+    const caveats = document.createElement("ul");
+    caveats.className = "muted small";
+    for (const c of a.caveats) caveats.append(Object.assign(document.createElement("li"), { textContent: c }));
+    const meta = Object.assign(document.createElement("p"), {
+      className: "muted small",
+      textContent: `Модель ${a.model} · ${a.generated_utc}${a.verified ? " · числа перевірено за даними пошуку" : ""}`,
+    });
+    if (!a.verified) {
+      el.adviceOut.append(Object.assign(document.createElement("p"), {
+        className: "globe-warn", textContent: "Не всі числа у відповіді знайдено у даних пошуку — перевіряйте їх за таблицею.",
+      }));
+    }
+    el.adviceOut.append(summary, tips, caveats, meta);
+    el.adviceOut.hidden = false;
+  }
+
+  async function askAdvice() {
+    if (!lastResponse) return;
+    const body = {
+      facts: buildAdviceFacts(lastResponse, form),
+      language: "uk",
+      audience: el.adviceAudience.value,
+    };
+    const question = el.adviceQuestion.value.trim();
+    if (question) body.question = question.slice(0, 500);
+    el.adviceAsk.disabled = true;
+    el.adviceStatus.textContent = "Питаю ШІ…";
+    el.adviceStatus.hidden = false;
+    try {
+      const res = await fetch("/api/advice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || res.statusText);
+      renderAdvice(data);
+      el.adviceStatus.hidden = true;
+    } catch (err) {
+      el.adviceOut.hidden = true;
+      el.adviceStatus.textContent = err.message;
+    } finally {
+      el.adviceAsk.disabled = false;
+    }
   }
 
   async function run() {
@@ -281,6 +372,9 @@ if (root) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || res.statusText);
       renderResults(data);
+      lastResponse = data;
+      el.adviceOut.hidden = true;
+      el.adviceStatus.hidden = true;
       showStatus("");
     } catch (err) {
       if (err.name === "AbortError") return;
@@ -306,10 +400,12 @@ if (root) {
   el.catalog.addEventListener("change", () => { form.includeCatalog = el.catalog.checked; save(); });
   el.height.addEventListener("change", () => { form.heightM = clamp(numberOr(el.height, 0), 0, 1000); save(); renderForm(); });
   el.run.addEventListener("click", run);
+  el.adviceAsk.addEventListener("click", askAdvice);
 
   renderForm();
   fetch("/api/meta").then((r) => r.json()).then((meta) => {
     available = new Set((meta.data_sources ?? []).map((s) => s.id));
+    el.advice.hidden = !available.has("llm"); // поради ШІ вимкнені, доки сервер не налаштований
     renderPriorities();
   }).catch(() => { /* без /api/meta температура лишається вимкненою */ });
 }

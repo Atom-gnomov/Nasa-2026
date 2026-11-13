@@ -50,6 +50,16 @@ def test_include_catalog_adds_named_sites_without_duplicates(client):
     assert len({(round(a, 4), round(b, 4)) for a, b in coords}) == len(coords)
 
 
+def test_catalog_sites_outside_the_region_are_not_added(client):
+    data = search(client, include_catalog=True, limit=100).get_json()  # область 85–90° пд. ш.
+    named = {c["moon_site"]["site_id"] for c in data["chains"] if c["moon_site"]["site_id"]}
+    assert not named & {"apollo-11", "apollo-17", "chandrayaan-3"}
+    assert all(-90 <= c["moon_site"]["lat"] <= -85 for c in data["chains"])
+    wide = search(client, include_catalog=True, region={"lat_min": -90, "lat_max": 30}, grid_step_deg=30,
+                  limit=100).get_json()
+    assert "apollo-11" in {c["moon_site"]["site_id"] for c in wide["chains"]}
+
+
 def test_requirements_push_infeasible_down_with_violations(client):
     data = search(client, min_sun_hours=10_000, limit=100).get_json()  # період лише 240 год
     assert not any(c["feasible"] for c in data["chains"])

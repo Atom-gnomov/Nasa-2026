@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Підбір — Lunar Site Explorer{% endblock %}
+{% block content %}
+<section id="search" class="search-layout">
+  <div class="side-panel search-form">
+    <h2>Вимоги</h2>
+    <label>Період від дати календаря, діб
+      <input type="number" id="s-days" min="1" max="120" step="1" value="30">
+    </label>
+    <label>Область пошуку
+      <select id="s-region">
+        <option value="pole">Південний полюс, 80–90°</option>
+        <option value="polar">Приполярна область, 60–90° пд. ш.</option>
+        <option value="whole">Уся Місяць (грубо)</option>
+        <option value="custom">Власна область…</option>
+      </select>
+    </label>
+    <fieldset id="s-custom" class="coords" hidden>
+      <legend>Власна область</legend>
+      <label>Широта від <input type="number" id="s-lat-min" min="-90" max="90" step="0.5"></label>
+      <label>Широта до <input type="number" id="s-lat-max" min="-90" max="90" step="0.5"></label>
+      <label>Крок сітки, ° <input type="number" id="s-step" min="0.25" max="30" step="0.25"></label>
+    </fieldset>
+
+    <label class="slider">Мінімум годин Сонця
+      <input type="range" id="s-sun" min="0" max="720" step="1" value="0">
+      <output id="s-sun-out">без вимоги</output>
+    </label>
+    <label class="slider">Мінімум годин зв'язку (Земля над горизонтом, станція DSN)
+      <input type="range" id="s-comm" min="0" max="720" step="1" value="0">
+      <output id="s-comm-out">без вимоги</output>
+    </label>
+
+    <h3>Пріоритети</h3>
+    <p class="muted small">Перетягніть блок або натисніть ↑ ↓: що вище — то важливіше. Знімайте галочку, щоб не враховувати фактор.</p>
+    <ol id="s-priorities" class="priorities"></ol>
+
+    <div class="seg" role="group" aria-label="Режим оцінки">
+      <button type="button" data-mode="weighted" title="Зважена сума: ваги з порядку пріоритетів">Зважено</button>
+      <button type="button" data-mode="maximin" title="Потрібно все: оцінка = найгірший фактор">Потрібно все (мін-макс)</button>
+    </div>
+
+    <label class="inline"><input type="checkbox" id="s-catalog" checked> Додати місця з каталогу</label>
+    <label>Висота щогли/панелі, м
+      <input type="number" id="s-height" min="0" max="1000" step="1" value="0">
+    </label>
+    <button type="button" id="s-run" class="primary">Знайти</button>
+  </div>
+
+  <div class="search-results">
+    <h2>Результати</h2>
+    <p id="s-status" class="globe-warn" role="status" hidden></p>
+    <p id="s-note" class="muted small"></p>
+    <p id="s-compare" class="compare-note" hidden></p>
+    <div class="table-scroll">
+      <table id="s-table" class="results-table" hidden>
+        <thead><tr id="s-head"></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="muted small">★ — недомінована точка (жодна допустима не краща за всіма факторами). Клік по рядку показує місце в оверлеї метрик; <a href="{{ url_for('pages.moon') }}">глобус</a> відкриє його на карті. Оцінка — за абсолютними шкалами (docs/MATH.md, §19), тож не залежить від інших кандидатів.</p>
+    {# TODO: показ результатів на глобусі (globe_view.js) і місце старту / вартість — після моделі запусків #}
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script type="module" src="{{ url_for('static', filename='js/search.js') }}"></script>
+{% endblock %}

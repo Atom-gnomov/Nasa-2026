@@ -30,6 +30,11 @@ def _num(body: dict, key: str, default: float, lo: float, hi: float) -> float:
     return float(value)
 
 
+def _in_region(lat: float, lon: float, region: dict) -> bool:
+    lon = (lon + 180.0) % 360.0 - 180.0
+    return region["lat_min"] <= lat <= region["lat_max"] and region["lon_min"] <= lon <= region["lon_max"]
+
+
 def _candidates(body: dict, step_deg: float, max_candidates: int) -> list[dict]:
     region = {**DEFAULT_REGION, **(body.get("region") or {})}
     unknown = set(region) - set(DEFAULT_REGION)
@@ -42,7 +47,8 @@ def _candidates(body: dict, step_deg: float, max_candidates: int) -> list[dict]:
         raise RankError(str(exc)) from exc
     out = [{"site_id": None, "name": None, "lat": lat, "lon": lon} for lat, lon in points]
     if body.get("include_catalog"):
-        catalog = [{"site_id": s.id, "name": s.name, "lat": s.lat, "lon": s.lon} for s in sites.load_sites()]
+        catalog = [{"site_id": s.id, "name": s.name, "lat": s.lat, "lon": s.lon} for s in sites.load_sites()
+                   if _in_region(s.lat, s.lon, region)]  # місця поза областю пошуку не додаємо
         taken = {(round(c["lat"], 4), round(c["lon"], 4)) for c in catalog}
         out = [c for c in out if (round(c["lat"], 4), round(c["lon"], 4)) not in taken] + catalog
         if len(out) > max_candidates:

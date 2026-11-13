@@ -84,8 +84,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Велес
 
-- **Зараз:** —
-- **Гілка:** —
+- **Зараз:** D2 — звірка DSN і космодромів, мінімальні кути антен; D5 — джерела порогів профілів місії
+- **Гілка:** `veles/D2-dsn-launch-sites`, `veles/D5-profile-sources`
 
 ### Ярило
 

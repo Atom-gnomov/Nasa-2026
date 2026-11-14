@@ -24,6 +24,7 @@ import numpy as np
 
 from app.core import cost, risk, scoring
 from app.core.launch import best_inclination_deg, site_departure
+from app.core.launch_system import failure_from_flights
 
 FACTORS = ("fuel", "speed", "windows", "cost", "risk")
 MODES = ("weighted", "maximin")
@@ -47,6 +48,9 @@ class Candidate:
     capacity_leo_kg: float | None
     capacity_tli_kg: float | None
     price_usd_per_kg_lunar_surface: float | None = None
+    price_usd_per_kg_leo: Range | None = None  # D8: ціна за кг на НОО діапазоном; None — немає в каталозі
+    flights_total: int | None = None  # D8: усього польотів
+    flights_failed: int | None = None  # D8: з них невдалих
 
 
 @dataclass
@@ -91,6 +95,16 @@ def _fact(row: Mapping, quantity: str) -> float | None:
     return None
 
 
+def _price_range(row: Mapping) -> Range | None:
+    lo, hi = _fact(row, "price_usd_per_kg_leo_min"), _fact(row, "price_usd_per_kg_leo_max")
+    return (lo, hi) if lo is not None and hi is not None and 0 < lo <= hi else None
+
+
+def _count(row: Mapping, quantity: str) -> int | None:
+    value = _fact(row, quantity)
+    return int(value) if value is not None and value >= 0 and value == int(value) else None
+
+
 def candidates(launch_sites: Sequence[Mapping], rockets: Sequence[Mapping] = (),
                launch_systems: Sequence[Mapping] = (), include_design_targets: bool = True,
                include_inactive: bool = False) -> tuple[list[Candidate], list[dict]]:
@@ -118,6 +132,8 @@ def candidates(launch_sites: Sequence[Mapping], rockets: Sequence[Mapping] = (),
                 lon=float(s["lon"]), vehicle_id=row["id"], vehicle_name=row["name"], catalog=catalog, status=status,
                 verified_by_flight=verified, capacity_leo_kg=cap_leo, capacity_tli_kg=cap_tli,
                 price_usd_per_kg_lunar_surface=_fact(row, "price_usd_per_kg_lunar_surface"),
+                price_usd_per_kg_leo=_price_range(row),
+                flights_total=_count(row, "flights_total"), flights_failed=_count(row, "flights_failed"),
             ))
 
     for r in rockets:
@@ -185,12 +201,19 @@ def evaluate(cand: Candidate, transfer_option, moon_declination_deg: float, mass
     provisional: list[str] = []
     if cand.price_usd_per_kg_lunar_surface:  # ціна послуги доставки на поверхню (Starship) — за масу на Місяці
         launch_cost = (cand.price_usd_per_kg_lunar_surface * mass_moon_kg,) * 2
+    elif cand.price_usd_per_kg_leo:  # D8: ціна з каталогу діапазоном
+        price = cand.price_usd_per_kg_leo
+        launch_cost = (price[0] * mass_leo, price[1] * mass_leo)
     else:
         price = rocket_fallback.price_usd_per_kg
         launch_cost = (price[0] * mass_leo, price[1] * mass_leo)
         provisional.append("price_usd_per_kg")
+    if cand.flights_total and cand.flights_failed is not None:  # D8: база відмови зі статистики польотів
+        risk_params = replace(risk_params, p_launch_base=failure_from_flights(cand.flights_total,
+                                                                               cand.flights_failed)[0])
+    else:
+        provisional.append("failure_probability")
     p_launch, _ = risk.launch_risk(u, risk_params)
-    provisional.append("failure_probability")
     p = 1.0 - (1.0 - p_launch) * (1.0 - risk_params.p_transit[trajectory])
     p_range = (min(1.0, p * risk_params.uncertainty[0]), min(1.0, p * risk_params.uncertainty[1]))
 

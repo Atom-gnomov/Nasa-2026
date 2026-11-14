@@ -1570,9 +1570,22 @@ components:
 
     LaunchSystem:
       type: object
-      required: [id, name, kind, active, capacity_leo_kg, capacity_condition, drop_altitude_m, launch_site_ids]
+      required: [id, name, kind, active, capacity_leo_kg, capacity_condition, drop_altitude_m, launch_site_ids,
+                 price_usd_per_kg_leo, flights_total, flights_failed, failure_probability]
       additionalProperties: false
       properties:
+        price_usd_per_kg_leo:
+          oneOf:
+            - {$ref: "#/components/schemas/Range2"}
+            - {type: "null"}
+          description: Ціна за кг на НОО діапазоном (задача D8); null — немає в каталозі
+        flights_total: {type: [integer, "null"], minimum: 0, description: Усього польотів (D8); null — немає в каталозі}
+        flights_failed: {type: [integer, "null"], minimum: 0, description: З них невдалих (D8)}
+        failure_probability:
+          type: [number, "null"]
+          description: |
+            Ймовірність відмови зі статистики польотів за правилом спадкоємності Лапласа (невдалих + 1) / (усього + 2);
+            null — статистики немає (тоді `/mission` використовує тимчасове значення й називає його в `provisional_fields`)
         id: {type: string}
         name: {type: string}
         kind: {type: string, enum: [spaceport, sea_platform, air_launch]}

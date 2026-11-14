@@ -179,3 +179,24 @@ def test_real_catalogs_with_ephemeris():
     kourou = min(o.mass_leo_kg for o in opts if o.candidate.site_id == "kourou")
     cape = min(o.mass_leo_kg for o in opts if o.candidate.site_id == "cape-canaveral")
     assert kourou < cape  # ближче до екватора — менше палива
+
+
+def test_catalog_economics_replace_provisional_fields_in_ranking():
+    """D8 (синтетично): ціна й статистика польотів з каталогу прибирають тимчасові поля й змінюють вартість та ризик."""
+    def option(**extra):
+        facts = [{"quantity": q, "value": v} for q, v in extra.items()]
+        row = rocket("synthetic", ["cape"], leo=20000)
+        row["facts"] += facts
+        cands, _ = lr.candidates(SITES, [row])
+        return lr.evaluate(cands[0], DIRECT, 20.0, 2000.0)
+
+    plain = option()
+    assert set(plain.provisional_fields) == {"price_usd_per_kg", "failure_probability"}
+    rich = option(price_usd_per_kg_leo_min=1000, price_usd_per_kg_leo_max=1500, flights_total=100, flights_failed=0)
+    assert rich.provisional_fields == ()
+    assert rich.launch_cost_usd[1] < plain.launch_cost_usd[0]  # дешевша ракета
+    assert rich.risk_p < plain.risk_p  # 1/102 надійніше за тимчасові 2 %
+    shaky = option(price_usd_per_kg_leo_min=1000, price_usd_per_kg_leo_max=1500, flights_total=20, flights_failed=5)
+    assert shaky.risk_p > rich.risk_p
+    only_stats = option(flights_total=100, flights_failed=0)
+    assert only_stats.provisional_fields == ("price_usd_per_kg",)

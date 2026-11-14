@@ -282,6 +282,10 @@ paths:
           in: query
           description: Крок сітки, год. Сервер може збільшити крок, щоб точок було не більше limits.max_points (див. /meta).
           schema: {type: number, minimum: 0.1, maximum: 24, default: 1}
+        - name: temperature
+          in: query
+          description: "1 — додати ряд `temperature_k` і мінімум/максимум у `summary` (потрібні дані Diviner, інакше 503)"
+          schema: {type: integer, enum: [0, 1], default: 0}
       responses:
         "200":
           description: OK
@@ -972,6 +976,8 @@ components:
         energy_wh_per_m2: {type: number, description: Вертикальна панель зі стеженням, η = 0,30}
         earth_hours: {type: number, description: Години, коли центр диска Землі над маскою горизонту (незалежно від станцій)}
         earth_fraction: {type: number, minimum: 0, maximum: 1}
+        temperature_min_k: {type: [number, "null"], description: "Мінімум температури поверхні за період, K (лише з `temperature=1`)"}
+        temperature_max_k: {type: [number, "null"], description: "Максимум температури поверхні за період, K (лише з `temperature=1`)"}
 
     Timeline:
       type: object
@@ -987,6 +993,10 @@ components:
         stations: {type: array, items: {$ref: "#/components/schemas/StationTrack"}}
         summary: {$ref: "#/components/schemas/PeriodSummary"}
         horizon_source: {type: string, description: "Набір DEM, з якого збудовано маску горизонту, або flat"}
+        temperature_k:
+          type: array
+          description: "Температура поверхні в кожен момент `times`, K (LRO Diviner за місцевим сонячним часом; null — немає вимірювань); лише з `temperature=1`"
+          items: {type: [number, "null"]}
 
     Event:
       type: object

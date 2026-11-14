@@ -17,9 +17,10 @@ from flask import current_app
 from skyfield.api import wgs84
 
 from app.core import frames, launch, transfer
+from app.core import launch_optimum as launch_optimum_core
 from app.core.constants import R_EARTH_KM, R_MOON_KM, R_SUN_KM
 from app.core.ephemeris import get_ephemeris
-from app.services import catalogs, dsn, sites, system
+from app.services import catalogs, dsn, launch_optimum, sites, system
 
 NASA_MEDIA = "NASA-матеріали: вільне використання з посиланням на джерело (NASA Media Usage Guidelines)"
 # Земля — WGS84 (стиснення 1/298,257223563); Сонце й Місяць — кулі
@@ -132,31 +133,59 @@ class LaunchSiteNotFound(LookupError):
 FLIGHT_TOF_DAYS = np.arange(3.0, 5.0 + 1e-9, 0.5)  # прямий переліт (launch.TRAJECTORIES["direct"])
 
 
-def _flight_extras(when: datetime, launch_site_id: str, lat: float | None, lon: float | None) -> list[dict]:
-    """Ракета на майданчику, траєкторія найкращого прямого перельоту зі старту (TLI) в момент `when` і модуль у
-    вибраній точці (пропозиція П-5, задача G9). Траєкторія — дуга задачі двох тіл (docs/MATH.md, §21.5)."""
-    site = next((s for s in catalogs.load_launch_sites() if s["id"] == launch_site_id), None)
-    if site is None:
-        raise LaunchSiteNotFound(f"Місце старту {launch_site_id} не знайдено")
+def _iso(dt: datetime) -> str:
+    return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _flight_extras(when: datetime, launch_site_id: str, lat: float | None, lon: float | None,
+                   criterion: str = "fuel", scope: str = "spaceports") -> list[dict]:
+    """Ракета на майданчику, траєкторія прямого перельоту й модуль у вибраній точці (П-5, G9).
+
+    `launch_site_id="auto"` — оптимальна точка старту (П-12): найкращий космодром або довільна точка Землі за
+    критерієм «паливо» / «швидкість» (services.launch_optimum); тоді в extras також траса площини відльоту на Землі
+    й зведення вибору з альтернативами. Траєкторія — дуга задачі двох тіл (docs/MATH.md, §21.5)."""
     eph = get_ephemeris()
     when_utc = when.astimezone(timezone.utc) if when.tzinfo else when.replace(tzinfo=timezone.utc)
-    best = min(transfer.dv_curve(eph, when_utc, FLIGHT_TOF_DAYS), key=lambda p: p.dv_total_m_s)
+    extras_extra: list[dict] = []
+    if launch_site_id == "auto":
+        choice = launch_optimum.plan(when_utc, criterion, scope)
+        best_opt = choice["best"]
+        best, site = best_opt["_point"], best_opt["site"]
+        inclination = best_opt["inclination_deg"]
+        departure = datetime.fromisoformat(best_opt["departure_utc"].replace("Z", "+00:00"))
+        track_lat, track_lon = launch_optimum_core.ground_track(best_opt["normal_icrf"], departure, n=181)
+        extras_extra = [
+            {"kind": "ground_track", "id": "launch-plane", "departure_utc": best_opt["departure_utc"],
+             "inclination_deg": inclination,
+             "points_latlon": [[round(float(a), 3), round(float(b), 3)] for a, b in zip(track_lat, track_lon,
+                                                                                         strict=True)],
+             "note": "Траса площини відльоту на Землі в момент старту: точки на ній потрапляють у площину одразу"},
+            {"kind": "launch_choice", "id": "launch-choice", "criterion": criterion, "scope": scope,
+             "start_utc": choice["start_utc"], "best": launch_optimum.public(best_opt),
+             "alternatives": [launch_optimum.public(a) for a in choice["alternatives"][:8]]},
+        ]
+    else:
+        site = next((s for s in catalogs.load_launch_sites() if s["id"] == launch_site_id), None)
+        if site is None:
+            raise LaunchSiteNotFound(f"Місце старту {launch_site_id} не знайдено")
+        best = min(transfer.dv_curve(eph, when_utc, FLIGHT_TOF_DAYS), key=lambda p: p.dv_total_m_s)
+        inclination = launch.best_inclination_deg(site["lat"], best.min_parking_inclination_deg)
     r_m, v_m = transfer.moon_state_icrf(eph, best.arrival_utc)
     _, points = transfer.transfer_arc(r_m, v_m, best.tof_days, n=96)
-    dep = launch.site_departure(site["lat"], launch.best_inclination_deg(site["lat"], best.min_parking_inclination_deg))
-    iso = lambda dt: dt.strftime("%Y-%m-%dT%H:%M:%SZ")  # noqa: E731
+    dep = launch.site_departure(site["lat"], inclination)
     extras = [
         {"kind": "rocket", "id": f"rocket-{site['id']}", "site_id": site["id"], "name": site["name"],
          "lat": site["lat"], "lon": site["lon"], "unit_itrs": _earth_unit(site["lat"], site["lon"])},
         {"kind": "trajectory", "id": "transfer-direct", "frame": "icrf_geocentric_km",
          "points_km": [[round(float(c), 1) for c in p] for p in points],
-         "departure_utc": iso(best.departure_utc), "arrival_utc": iso(best.arrival_utc),
+         "departure_utc": _iso(best.departure_utc), "arrival_utc": _iso(best.arrival_utc),
          "tof_days": best.tof_days, "dv_tli_m_s": round(best.dv_tli_m_s, 1), "dv_loi_m_s": round(best.dv_loi_m_s, 1),
          "c3_km2_s2": round(best.c3_km2_s2, 3), "moon_at_arrival_km": [round(float(c), 1) for c in r_m],
-         "launch_site_id": site["id"], "inclination_deg": round(dep.target_inclination_deg, 3),
+         "launch_site_id": site["id"], "inclination_deg": round(float(inclination), 3),
          "windows_per_day": dep.windows_per_day,
-         "note": "Найкращий прямий переліт (3–5 діб) зі старту TLI в момент сцени; дуга — задача двох тіл від "
-                 "паркувальної орбіти 185 км до центру Місяця; ділянку виведення не показано"},
+         "note": "Прямий переліт зі старту (TLI); дуга — задача двох тіл від паркувальної орбіти 185 км до центру "
+                 "Місяця в площині його орбіти; ділянку виведення не показано"},
+        *extras_extra,
     ]
     if lat is not None and lon is not None:
         extras.append({"kind": "lander", "id": "lander", "lat": lat, "lon": (lon + 180.0) % 360.0 - 180.0,
@@ -165,7 +194,7 @@ def _flight_extras(when: datetime, launch_site_id: str, lat: float | None, lon: 
 
 
 def scene(when: datetime, lat: float | None = None, lon: float | None = None, markers: bool = True,
-          launch_site: str | None = None) -> dict:
+          launch_site: str | None = None, criterion: str = "fuel", launch_scope: str = "spaceports") -> dict:
     state = system.system_state(when)
     manifest = {b["id"]: b for b in models_manifest()["bodies"]}
     sun = np.asarray(state["sun_km"])
@@ -194,6 +223,6 @@ def scene(when: datetime, lat: float | None = None, lon: float | None = None, ma
         "markers": _markers() if markers else {"earth": [], "moon": []},
         "selected": _selected(lat, lon, when) if lat is not None and lon is not None else None,
         # ракета, траєкторія й модуль (пропозиція П-5, G9) — лише коли задано launch_site
-        "extras": _flight_extras(when, launch_site, lat, lon) if launch_site else [],
+        "extras": _flight_extras(when, launch_site, lat, lon, criterion, launch_scope) if launch_site else [],
     }
     return result

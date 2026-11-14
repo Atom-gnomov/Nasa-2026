@@ -15,6 +15,10 @@
 
 Керування: `LSE_AUTO_PREPARE=0` вимикає автозапуск (тести й CI); `LSE_AUTO_PREPARE_DATASETS` — які набори
 готувати самі (за замовчуванням `temperature,system`; глобус — важчий, вмикається явно).
+
+Режим `LSE_AUTO_PREPARE_MODE` (задача I9): `pack` (за замовчуванням) — спершу готовий пакет оброблених даних із
+GitHub Release (`datapack.py`, `app/data/data_packs.json`), `light` — легкий пакет, `full` — лише збірка зі скриптів
+із PDS. Якщо пакет ще не опубліковано чи завантаження не вдалось (мережа, контрольна сума), працює збірка зі скрипта.
 """
 
 from __future__ import annotations
@@ -29,6 +33,8 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+
+from app.services import datapack
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -111,10 +117,13 @@ class Preparer:
     """Стан і запуск підготовки даних для однієї конфігурації."""
 
     def __init__(self, config: dict, datasets: Sequence[Dataset] = DATASETS,
-                 command: Callable[[Dataset], list[str]] | None = None) -> None:
+                 command: Callable[[Dataset], list[str]] | None = None,
+                 packs: Sequence[dict] | None = None, opener: Callable | None = None) -> None:
         self.config = config
         self.datasets = {d.id: d for d in datasets}
         self.command = command or (lambda d: [sys.executable, str(ROOT / d.script)])
+        self.packs = list(packs) if packs is not None else datapack.load_packs()
+        self.opener = opener or datapack.urllib.request.urlopen
         self.state_dir = Path(config["CACHE_DIR"]) / "prepare"
         self._lock = threading.Lock()
         self._runs: dict[str, dict] = {}
@@ -176,8 +185,14 @@ class Preparer:
             return {**info, "state": "failed", "message": saved.get("message"), "elapsed_s": saved.get("elapsed_s")}
         return {**info, "state": "missing", "message": None, "elapsed_s": None}
 
+    @property
+    def mode(self) -> str:
+        mode = str(self.config.get("AUTO_PREPARE_MODE", "pack")).strip().lower()
+        return mode if mode in ("pack", "light", "full") else "pack"
+
     def status(self, auto_prepare: bool) -> dict:
-        return {"auto_prepare": auto_prepare, "datasets": [self.status_of(d) for d in self.datasets.values()]}
+        return {"auto_prepare": auto_prepare, "mode": self.mode,
+                "datasets": [self.status_of(d) for d in self.datasets.values()]}
 
     def hint(self, dataset_id: str) -> str:
         """Пояснення для відповіді 503: що відбувається з набором даних зараз."""
@@ -221,9 +236,45 @@ class Preparer:
             f.write(str(os.getpid()))
         return True
 
+    def _try_pack(self, d: Dataset, run: dict) -> str | None:
+        """Спроба взяти готовий пакет (режими pack/light). Повертає повідомлення про успіх; None — іти зі скрипта.
+
+        Причина відкату (немає опублікованого пакета, мережа, контрольна сума) лишається в `run["message"]`.
+        """
+        if self.mode == "full":
+            return None
+        variant = "light" if self.mode == "light" else "full"
+        pack = datapack.find(self.packs, d.id, variant)
+        if pack is None:
+            run["message"] = f"готовий пакет «{variant}» ще не опубліковано — збираю зі скрипта"
+            self._save(d, run)
+            return None
+
+        def progress(done: int, total: int | None) -> None:
+            mb = 1024 * 1024
+            run["message"] = (f"завантажую пакет {pack['id']}: {done // mb} МБ" +
+                              (f" з {total // mb} МБ" if total else ""))
+            self._save(d, run)
+
+        try:
+            datapack.install(pack, self.data_dir(d), self.state_dir / "packs", progress, self.opener)
+        except datapack.PackError as exc:
+            run["message"] = f"{exc}; збираю зі скрипта"
+            self._save(d, run)
+            return None
+        if not self.is_ready(d):
+            run["message"] = f"після розпакування пакета {pack['id']} файлів набору немає; збираю зі скрипта"
+            self._save(d, run)
+            return None
+        return f"встановлено з пакета {pack['id']} ({pack.get('version', '?')})"
+
     def _worker(self, d: Dataset, run: dict) -> None:
         last, code = "", None
         try:
+            from_pack = self._try_pack(d, run)
+            if from_pack:
+                last, code = from_pack, 0
+                return
             # Дочірній Python друкує в канал у кодуванні системи (на Windows — cp1251), а читаємо UTF-8:
             # просимо UTF-8 явно, інакше українські повідомлення скриптів стають «����».
             env = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1"}

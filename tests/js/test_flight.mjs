@@ -37,3 +37,30 @@ test("перезапит лише коли змінилось щось сутт�
   assert.equal(f.needsReload(a, { ...a, siteId: "baikonur" }), true);
   assert.equal(f.needsReload(a, { ...a, lat: -80 }), true);
 });
+
+test("оптимальні варіанти: значення списку → параметри запиту", () => {
+  assert.equal(f.AUTO_OPTIONS.length, 4);
+  assert.deepEqual(f.parseFlightValue("auto:speed:any"), { siteId: "auto", criterion: "speed", scope: "any" });
+  assert.deepEqual(f.parseFlightValue("kourou"), { siteId: "kourou", criterion: null, scope: null });
+  assert.equal(f.parseFlightValue(""), null);
+  const q = new URLSearchParams(f.flightUrl("auto:fuel:spaceports", ms, -85, 0).split("?")[1]);
+  assert.equal(q.get("launch_site"), "auto");
+  assert.equal(q.get("criterion"), "fuel");
+  assert.equal(q.get("launch_scope"), "spaceports");
+});
+
+test("підсумок вибору: найкращий і альтернативи", () => {
+  const opt = (id, name, wait, dv, extra = {}) => ({
+    site: { id, name, lat: 0, lon: 91.9 }, wait_h: wait, dv_total_m_s: dv, inclination_deg: 20.4,
+    dv_site_penalty_m_s: 29.3, arrival_utc: "2027-07-05T12:44:00Z", note: "примітка", ...extra,
+  });
+  const choice = { kind: "launch_choice", criterion: "fuel", scope: "spaceports",
+    best: opt("kourou", "Куру (ELA-4)", 0.75, 4002.8), alternatives: [opt("alcantara", "Алкантара", 1.3, 4002.7)] };
+  const text = f.choiceFact([choice]);
+  assert.match(text, /^Оптимально \(паливо, космодроми\) — Куру: очікування 0,8 год, Δv 4003 м\/с/);
+  assert.match(text, /Далі: Алкантара/);
+  assert.equal(f.choiceFact([]), "—");
+  const any = { ...choice, scope: "any", best: opt("any-point", "Довільна точка: вузол на екваторі", 0, 4002.8), alternatives: [] };
+  assert.match(f.choiceFact([any]), /старт одразу/);
+  assert.match(f.choiceFact([any]), /91,9°/);
+});

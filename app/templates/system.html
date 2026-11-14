@@ -21,7 +21,7 @@
       </select>
     </label>
     <label title="Справжній шлях тіла з DE440 за ±½ періоду (пунктир) поверх оскулюючого еліпса"><input type="checkbox" id="system-path"> Справжній шлях</label>
-    <label title="Найкращий прямий переліт зі старту (TLI) в момент сцени: траєкторія, Місяць у момент прибуття, ракета й модуль у вибраній точці">Політ із <select id="system-flight"><option value="">— вимкнено —</option></select></label>
+    <label title="Звідки летіти до вибраної точки Місяця: оптимально (паливо чи швидкість; космодроми чи будь-яка точка Землі) або з вибраного космодрому. Траєкторія, Місяць у момент прибуття, ракета, траса площини відльоту й модуль">Політ із <select id="system-flight"><option value="">— вимкнено —</option></select></label>
     <label title="Режим якості 3D; зберігається на цьому пристрої">Якість <select id="quality-select"></select></label>
     <span class="time-controls">
       <button type="button" id="system-play" aria-label="Відтворити">▶</button>
@@ -51,6 +51,7 @@
         <dt>Вибрана точка</dt><dd data-fact="point">—</dd>
         <dt>Станції DSN, що бачать Місяць</dt><dd data-fact="dsn">—</dd>
         <dt>Політ</dt><dd data-fact="flight">—</dd>
+        <dt>Звідки летіти</dt><dd data-fact="flight_choice">—</dd>
         <dt>Орбіта Місяця (оскулююча)</dt><dd data-fact="orbit_moon">—</dd>
         <dt>Орбіта Землі (оскулююча)</dt><dd data-fact="orbit_earth">—</dd>
       </dl>

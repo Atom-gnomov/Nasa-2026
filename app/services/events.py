@@ -12,8 +12,8 @@ import numpy as np
 
 from app.core import events
 from app.core.ephemeris import Ephemeris, get_ephemeris
-from app.core.horizon import SUN_ANGULAR_RADIUS_DEG, HorizonMask
-from app.services import dsn, horizon
+from app.core.horizon import HorizonMask
+from app.services import dsn, horizon, visibility
 
 MAX_PERIOD_DAYS = 120
 SUN_STEP_H = 1 / 3  # Сонце біля полюса рухається ~0,5°/год по азимуту
@@ -40,22 +40,11 @@ def point_events(lat: float, lon: float, start: datetime, end: datetime, height_
     jd0 = float(eph.time(start).tt)
     jd1 = jd0 + span_d
 
-    def sun_fn(jd):
-        tr = eph.sun_track(eph.ts.tt_jd(jd), lat, lon, height_m)
-        return tr.elevation_deg + SUN_ANGULAR_RADIUS_DEG - mask.at(tr.azimuth_deg)
-
-    def earth_fn(jd):
-        tr = eph.earth_track(eph.ts.tt_jd(jd), lat, lon, height_m)
-        return tr.elevation_deg - mask.at(tr.azimuth_deg)
+    sun_fn = visibility.sun_margin_fn(eph, mask, lat, lon, height_m)
+    earth_fn = visibility.earth_margin_fn(eph, mask, lat, lon, height_m)
 
     def station_fn(st):
-        def fn(jd):
-            t = eph.ts.tt_jd(jd)
-            from_moon = eph.station_track(t, lat, lon, st.lat, st.lon, st.elevation_m, height_m)
-            from_earth = eph.moon_from_station(t, st.lat, st.lon, st.elevation_m)
-            return np.minimum(from_moon.elevation_deg - mask.at(from_moon.azimuth_deg),
-                              from_earth.elevation_deg - st.min_elevation_deg)
-        return fn
+        return visibility.station_margin_fn(eph, mask, lat, lon, st, height_m)
 
     sources = [("sun", sun_fn, SUN_STEP_H), ("earth", earth_fn, EARTH_STEP_H)]
     sources += [(f"station:{st.id}", station_fn(st), STATION_STEP_H) for st in dsn.load_stations()]

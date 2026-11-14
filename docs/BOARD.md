@@ -104,8 +104,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Чорнобог
 
-- **Зараз:** виправлення Windows у `app/services/bootstrap.py` (I7): перевірка живого процесу (`os.kill(pid, 0)` → WinError 87) і кодування журналу; на рев'ю: B15 #53, B8 #54, F7 #57
-- **Гілка:** `chornobog/fix-bootstrap-windows`
+- **Зараз:** — (на рев'ю: B15 #53, B8 #54, F7 #57, виправлення bootstrap під Windows #58)
+- **Гілка:** —
 
 ---
 
@@ -160,3 +160,4 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 - B15 — `POST /api/launch-ranking`: контракт, сервіс, маршрут — гілка `chornobog/B15-launch-ranking`, PR #53
 - B8 — `GET /api/launch-window`: оцінка у % для кожної дати старту — гілка `chornobog/B8-launch-window`, PR #54
 - F7 — Вкладка «Вікно запуску»: шкала дат з оцінкою у %, найкраща дата, клік — у календар — гілка `chornobog/F7-launch-window-ui`, PR #57
+- I7 (виправлення) — запуск і автопідготовка даних під Windows: перевірка процесу через WinAPI, UTF-8 виводу скриптів (`app/services/bootstrap.py`) — гілка `chornobog/fix-bootstrap-windows`, PR #58

@@ -1613,6 +1613,13 @@ components:
       additionalProperties: false
       properties:
         crew: {type: integer, minimum: 0, maximum: 6, default: 0, description: "0 — безпілотна"}
+        mission_profile:
+          type: string
+          enum: [uncrewed, crewed]
+          description: |
+            Профіль місії (M17): перевіряє `crew` (безпілотна — 0, пілотована — від 1) і, якщо `crew` не задано,
+            підставляє значення за замовчуванням (безпілотна — 0, пілотована — мінімум ⚠️). Відповідь містить `profile`
+            зі списком `from_profile`. Без профілю поведінка не змінюється.
         days: {type: number, minimum: 0, maximum: 365, default: 0, description: Тривалість перебування на Місяці, діб}
         sizes:
           type: object
@@ -1710,6 +1717,11 @@ components:
         provisional: {type: boolean, description: "true — коефіцієнти моделі тимчасові (чекають D4)"}
         launch_lat: {type: number, description: Широта старту, з якою рахувалась вартість}
         launch_site_id: {type: [string, "null"]}
+        profile:
+          description: Профіль, застосований до запиту (лише якщо задано `mission_profile`)
+          oneOf:
+            - {$ref: "#/components/schemas/MissionProfile"}
+            - {type: "null"}
         launch_system:
           description: Система запуску, з якою рахувалось (лише якщо задано `launch_system_id`)
           oneOf:

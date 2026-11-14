@@ -212,6 +212,12 @@ function initMoon() {
     const surfaceTools = [...surface.querySelectorAll(":scope > .surface-toolbar")];
     const surfaceDock = createDock("Налаштування огляду", surfaceTools, surface);
     surfaceDock.dock.classList.add("ui-surface-dock");
+    // Keep all original handlers/IDs; group the 3 rows into 3 compact tabs.
+    tabifyDock(surfaceDock,[
+      {label:"Огляд",nodes:[...surfaceTools[0]?.children ?? []]},
+      {label:"Час",nodes:[...surfaceTools[1]?.children ?? []]},
+      {label:"Рельєф",nodes:[...surfaceTools[2]?.children ?? []]},
+    ],"surface");
     const back = element("button", "surface-back", "← Глобус");
     back.type = "button";
     back.title = "Повернутися до глобуса";

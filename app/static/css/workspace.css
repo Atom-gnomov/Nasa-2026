@@ -1349,3 +1349,27 @@ body[data-scene-compact="true"].page-system .system-info.ui-scene-widget:not(.is
   .ui-tabbed-dock .dock-page { justify-content:flex-start; }
   .ui-tabbed-dock .dock-header .dock-title { display:none; }
 }
+
+/* Surface dock uses identical tab navigation; no legacy three-row scroll. */
+body.page-moon #surface .ui-surface-dock .dock-content {
+  display: block;
+  padding: 5px 10px 8px;
+  overflow: visible;
+}
+body.page-moon #surface .ui-surface-dock .dock-page { min-height: 35px; }
+body.page-moon #surface .ui-surface-dock .dock-page > input[type="range"] {
+  flex: 1 1 180px;
+  min-width: 90px;
+}
+body.page-moon #surface .ui-surface-dock .dock-page .seg { flex: 0 1 auto; }
+body.page-moon #surface .ui-surface-dock .dock-tab { font-size: 11px; }
+body.page-moon #surface .ui-surface-dock .dock-header {
+  align-items: center;
+  flex-wrap: nowrap;
+  min-height: 34px;
+}
+@media (max-width:760px) {
+  body.page-moon #surface .ui-surface-dock {
+    max-height: calc(100dvh - var(--header-h) - 16px);
+  }
+}

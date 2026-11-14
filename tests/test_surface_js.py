@@ -26,7 +26,8 @@ def test_geometry_on_real_horizon_and_timeline(client, tmp_path):
         "const vis = tl.sun.visible_fraction.map((v) => v > 0);"
         "const series = { sun: tl.sun.elevation_deg, earth: tl.earth.elevation_deg };"
         "const back = tl.sun.azimuth_deg.map((az, i) => s.vectorToAzEl(s.skyVector(az, tl.sun.elevation_deg[i])));"
-        "console.log(JSON.stringify({ n: p.az.length, closed: p.el[0] === p.el.at(-1), range: s.panoramaRange(mask, series),"
+        "console.log(JSON.stringify({ n: p.az.length, closed: p.el[0] === p.el.at(-1),"
+        " range: s.panoramaRange(mask, series),"
         " events: vis.map((_, i) => s.eventText('Сонця', vis, i, tl.step_h)),"
         " maxErr: Math.max(...back.map((b, i) => Math.abs(((b.az - tl.sun.azimuth_deg[i] + 540) % 360) - 180))) }));"
     )

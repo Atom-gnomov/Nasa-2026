@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Місія — Lunar Site Explorer{% endblock %}
+{% block content %}
+<section class="mission-layout">
+  <div class="mission-form side-panel">
+    <h2>Конфігуратор місії</h2>
+    <p class="muted small">Оберіть склад місії — результат рахується одразу. Усі коефіцієнти моделі тимчасові: показано діапазони, а не прогноз.</p>
+
+    {# F11: повзунок «Безпілотна ↔ Пілотована» вмикає профіль місії (M17) #}
+    <fieldset class="mission-field">
+      <legend>Тип місії</legend>
+      <div class="profile-slider">
+        <span>Безпілотна</span>
+        <input type="range" id="m-crewed" min="0" max="1" step="1" value="0" aria-label="Безпілотна або пілотована">
+        <span>Пілотована</span>
+      </div>
+      <div class="mission-row" id="m-crew-row" hidden>
+        <label>Людей <input type="number" id="m-crew" min="1" max="6" step="1" inputmode="numeric"></label>
+        <span class="profile-mark small" id="m-crew-mark" hidden>задано профілем</span>
+      </div>
+      <div class="mission-row" id="m-days-row" hidden>
+        <label>Тривалість на Місяці, діб <input type="number" id="m-days" min="0" max="365" step="1" inputmode="numeric" value="14"></label>
+      </div>
+      <p class="muted small" id="m-profile-note"></p>
+    </fieldset>
+
+    <fieldset class="mission-field">
+      <legend>Розмір категорій навантаження</legend>
+      <label class="size-row">Обладнання
+        <input type="range" id="m-size-equipment" min="0" max="3" step="1" value="1">
+        <output id="m-size-equipment-out">Базовий</output>
+      </label>
+      <label class="size-row" id="m-row-life_support">Життєзабезпечення
+        <input type="range" id="m-size-life_support" min="0" max="3" step="1" value="1">
+        <output id="m-size-life_support-out">Базовий</output>
+      </label>
+      <label class="size-row" id="m-row-comfort">Умови й зручності
+        <input type="range" id="m-size-comfort" min="0" max="3" step="1" value="1">
+        <output id="m-size-comfort-out">Базовий</output>
+      </label>
+      <p class="muted small" id="m-size-note">Для безпілотної місії життєзабезпечення й зручності не потрібні.</p>
+    </fieldset>
+
+    <fieldset class="mission-field">
+      <legend>Політ</legend>
+      <label>Траєкторія
+        <select id="m-trajectory">
+          <option value="direct">пряма (3–5 діб)</option>
+          <option value="low_energy">найекономніша (місяці)</option>
+        </select>
+      </label>
+      <label>Система запуску
+        <select id="m-system"><option value="">типова ракета (орієнтовна)</option></select>
+      </label>
+      <label>Майданчик старту
+        <select id="m-site"><option value="">за системою запуску, інакше екватор</option></select>
+      </label>
+    </fieldset>
+  </div>
+
+  <div class="mission-result side-panel" aria-live="polite">
+    <h2>Результат</h2>
+    <p class="globe-warn" id="m-provisional" hidden></p>
+    <p class="globe-warn" id="m-status" hidden></p>
+    <dl class="mission-dl" id="m-result" hidden>
+      <dt>Маса на Місяці</dt><dd id="m-mass-moon">—</dd>
+      <dt>Маса на низькій орбіті</dt><dd id="m-mass-leo">—</dd>
+      <dt>Вартість польоту</dt><dd id="m-cost">—</dd>
+      <dt>Ризик невдачі</dt><dd id="m-risk">—</dd>
+      <dt id="m-crew-risk-label" hidden>Ризик втрати екіпажу</dt><dd id="m-crew-risk" hidden>—</dd>
+      <dt>Час польоту</dt><dd id="m-flight">—</dd>
+      <dt>Заповненість ракети</dt>
+      <dd>
+        <div class="fill-bar" role="img" aria-label="Заповненість ракети"><span id="m-fill-bar"></span></div>
+        <span id="m-fill">—</span>
+      </dd>
+    </dl>
+    <details id="m-limits-box" class="mission-limits" hidden>
+      <summary>Пороги профілю пілотованої місії (з джерел NASA)</summary>
+      <ul id="m-limits"></ul>
+    </details>
+    <details class="mission-parts">
+      <summary>З чого складається маса</summary>
+      <ul id="m-parts"></ul>
+    </details>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script type="module" src="{{ url_for('static', filename='js/mission.js') }}"></script>
+{% endblock %}

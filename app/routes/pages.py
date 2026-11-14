@@ -18,6 +18,12 @@ def moon():
     return render_template("moon.html", active_tab="moon")
 
 
+@bp.get("/mission")
+def mission():
+    """Вкладка «Місія»: склад місії (екіпаж, розмір категорій, траєкторія, ракета) → маса, вартість, ризик."""
+    return render_template("mission.html", active_tab="mission")
+
+
 @bp.get("/search")
 def search():
     """«Підбір» живе на сторінці «Місяць» під глобусом (результати позначаються на карті): стара адреса веде туди."""

@@ -84,8 +84,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Велес
 
-- **Зараз:** G7 — вид «з поверхні»: панорама горизонту, рух Сонця й Землі
-- **Гілка:** `veles/G7-surface-view`
+- **Зараз:** —
+- **Гілка:** —
 
 ### Ярило
 
@@ -136,6 +136,7 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 - D5 — Пороги профілів місії з першоджерел (`mission_thresholds.json`) — гілка `veles/D5-profile-sources`, PR #30
 - G6 — Режими якості 3D «низька / висока» і 2D-заглушка без WebGL — гілка `veles/G6-quality-2d`, PR #31
 - F5 — Графіки таймлайну: Сонце, Земля й зв'язок DSN за місячну добу — гілка `veles/F5-timeline-charts`, PR #32
+- G7 — Вид «з поверхні»: горизонт LOLA, Сонце й Земля за місячну добу (П-3) — гілка `veles/G7-surface-view`, PR #33
 
 ### Ярило
 

@@ -9,6 +9,7 @@ export const DEFAULT_FORM = {
   regionLatMin: -90, regionLatMax: -80, gridStep: 2, periodDays: 10,
   minSunHours: null, minCommHours: null, maxSlope: null, minEarth: null, minSun: null,
   vehicle: "any", trajectory: "any", plans: 5, departureDays: 7,
+  includeDesign: true, multiLaunch: false,
 };
 
 const REQUIREMENT_LABELS = {
@@ -44,6 +45,8 @@ export function buildPlanRequest(form, state) {
   for (const [key, value] of Object.entries(reqs)) if (num(value) !== null) body[key] = Number(value);
   if (form.vehicle && form.vehicle !== "any") body.vehicle = form.vehicle;
   if (form.trajectory && form.trajectory !== "any") body.trajectories = [form.trajectory];
+  if (form.includeDesign === false) body.include_design_targets = false;
+  if (form.multiLaunch === true) body.allow_multiple_launches = true;
   return body;
 }
 
@@ -111,6 +114,7 @@ function init() {
     minEarth: $("plan-min-earth").value, minSun: $("plan-min-sun").value,
     vehicle: $("plan-vehicle").value, trajectory: $("plan-trajectory").value, plans: 5,
     departureDays: $("plan-departure-days").value,
+    includeDesign: $("plan-design").checked, multiLaunch: $("plan-multi").checked,
   });
 
   const syncProfile = () => {

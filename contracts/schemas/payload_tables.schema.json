@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "payload_tables.schema.json",
+  "title": "Параметри корисного навантаження з першоджерел NASA (app/data/payload_tables.json)",
+  "description": "Задача D4: маси, потужність, енергетика й ціни для моделі місії (app/core/payload.py, cost.py) діапазонами з відкритих джерел NASA. Кожен факт має джерело зі сторінкою або таблицею й дослівну цитату. Чого в джерелах немає — status no_source, range null, факти порожні.",
+  "type": "object",
+  "required": ["version", "description", "parameters"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {"const": 1},
+    "description": {"type": "string"},
+    "parameters": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "category", "unit", "status", "range", "facts"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+          "category": {"enum": ["equipment", "life_support", "comfort", "power", "lander", "price"]},
+          "unit": {"type": "string"},
+          "status": {"enum": ["sourced", "derived", "no_source"], "description": "sourced — діапазон прямо з джерел; derived — обчислено з фактів (derivation); no_source — числа не знайдено"},
+          "range": {
+            "description": "[мін, макс] за джерелами в одиницях unit; null — джерела немає",
+            "oneOf": [
+              {"type": "null"},
+              {"type": "array", "prefixItems": [{"type": "number"}, {"type": "number"}], "items": false, "minItems": 2}
+            ]
+          },
+          "model_param": {"type": "string", "pattern": "^(PayloadParams|CostTable|Rocket|TransferParams)\\.[a-z0-9_]+$", "description": "Поле тимчасової моделі, якому відповідає параметр"},
+          "model_value": {"description": "Тимчасове значення в коді на момент збирання таблиці (для порівняння)", "type": ["number", "array"], "items": {"type": "number"}},
+          "derivation": {"type": "string", "description": "Як діапазон обчислено з фактів"},
+          "note": {"type": "string"},
+          "facts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["quantity", "value", "unit", "source", "quote"],
+              "additionalProperties": false,
+              "properties": {
+                "quantity": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+                "value": {"type": ["number", "string"]},
+                "unit": {"type": "string"},
+                "as_published": {"type": "string"},
+                "condition": {"type": "string"},
+                "source": {
+                  "type": "object",
+                  "required": ["title", "ref", "url", "kind"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "title": {"type": "string"},
+                    "ref": {"type": "string", "description": "Розділ, таблиця, сторінка (друкована й/або сторінка PDF)"},
+                    "url": {"type": "string", "pattern": "^https://"},
+                    "date": {"type": "string"},
+                    "kind": {"enum": ["primary", "secondary"]}
+                  }
+                },
+                "quote": {"type": "string", "minLength": 10, "description": "Дослівна цитата (рядок таблиці — як у тексті PDF)"},
+                "note": {"type": "string"}
+              }
+            }
+          }
+        },
+        "allOf": [
+          {"if": {"properties": {"status": {"const": "no_source"}}}, "then": {"properties": {"range": {"type": "null"}, "facts": {"maxItems": 0}}, "required": ["note"]}},
+          {"if": {"properties": {"status": {"const": "sourced"}}}, "then": {"properties": {"range": {"type": "array"}, "facts": {"minItems": 1}}}},
+          {"if": {"properties": {"status": {"const": "derived"}}}, "then": {"properties": {"range": {"type": "array"}}, "required": ["derivation"]}}
+        ],
+        "dependentRequired": {"model_param": ["model_value"]}
+      }
+    }
+  }
+}

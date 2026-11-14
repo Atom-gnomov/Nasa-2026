@@ -86,3 +86,61 @@ def test_non_object_body_is_rejected(client):
 
 def test_no_body_is_treated_as_defaults(client):
     assert client.post("/api/mission").status_code == 200
+
+
+# ---------- B16: система запуску ----------
+def test_launch_systems_list_matches_contract(client):
+    res = client.get("/api/launch-systems")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert isinstance(data, list) and len(data) >= 3
+    for item in data:
+        assert_valid(api_validator("LaunchSystem"), item)
+    kinds = {item["kind"] for item in data}
+    assert kinds == {"spaceport", "sea_platform", "air_launch"}
+    zenit = next(i for i in data if i["id"] == "zenit-3sl-sea-launch")
+    assert zenit["capacity_leo_kg"] is None  # у джерелах лише ГПО
+
+
+def test_mission_with_launch_system_uses_catalog_capacity_and_reports_provisional_fields(client):
+    data = post(client, {"crew": 2, "days": 10, "launch_system_id": "ariane-64"}).get_json()
+    assert_valid(api_validator("MissionResponse"), data)
+    ls = data["launch_system"]
+    assert ls["rocket"]["capacity_leo_kg"] == 21600.0
+    assert ls["provisional_fields"] == ["price_usd_per_kg", "failure_probability"]
+    assert ls["fit"]["utilization"] == pytest.approx(data["cost"]["mass_leo_kg"] / 21600.0)
+    assert data["launch_site_id"] == "kourou" and 5 < data["launch_lat"] < 6  # широта з місця системи
+
+
+def test_smaller_system_gives_higher_utilization_than_default_rocket(client):
+    base = post(client, {"crew": 2, "days": 10}).get_json()
+    small = post(client, {"crew": 2, "days": 10, "launch_system_id": "ariane-62"}).get_json()
+    assert small["cost"]["utilization"] > base["cost"]["utilization"]
+    assert small["launch_system"]["fit"]["launches"] >= 2
+
+
+def test_without_launch_system_nothing_changes(client):
+    assert post(client, {}).get_json()["launch_system"] is None
+
+
+def test_air_launch_system_cannot_carry_a_lunar_lander(client):
+    data = post(client, {"launch_system_id": "pegasus-xl"}).get_json()
+    fit = data["launch_system"]["fit"]
+    assert not fit["fits_single_launch"] and "літака-носія" in fit["note"]
+    assert data["launch_site_id"] is None and data["launch_lat"] == 0.0  # повітряний старт місця не має
+
+
+def test_explicit_site_overrides_system_site(client):
+    data = post(client, {"launch_system_id": "ariane-64", "launch_lat": 45}).get_json()
+    assert data["launch_lat"] == 45 and data["launch_site_id"] is None
+
+
+@pytest.mark.parametrize("body, status", [
+    ({"launch_system_id": "no-such"}, 404),
+    ({"launch_system_id": 7}, 400),
+    ({"launch_system_id": "zenit-3sl-sea-launch"}, 400),  # немає місткості на НОО
+])
+def test_invalid_launch_system(client, body, status):
+    res = post(client, body)
+    assert res.status_code == status, res.get_json()
+    assert_valid(api_validator("Error"), res.get_json())

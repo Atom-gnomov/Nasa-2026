@@ -13,8 +13,7 @@ import numpy as np
 
 from app.core import power, stats
 from app.core.ephemeris import get_ephemeris
-from app.core.horizon import EARTH_ANGULAR_RADIUS_DEG, SUN_ANGULAR_RADIUS_DEG, disk_fraction
-from app.services import dsn, horizon
+from app.services import dsn, horizon, visibility
 
 MAX_POINTS = 5000  # більше точок — сервер збільшує крок (див. контракт /timeline)
 MAX_PERIOD_DAYS = 400
@@ -33,10 +32,7 @@ def timeline(lat: float, lon: float, start: datetime, end: datetime, step_h: flo
     eph = get_ephemeris()
     t = eph.time_grid(start, hours)
     mask = horizon.load_mask(lat, lon, height_m)
-    sun = eph.sun_track(t, lat, lon, height_m)
-    earth = eph.earth_track(t, lat, lon, height_m)
-    sun_frac = disk_fraction(sun.elevation_deg, mask.at(sun.azimuth_deg), SUN_ANGULAR_RADIUS_DEG)
-    earth_frac = disk_fraction(earth.elevation_deg, mask.at(earth.azimuth_deg), EARTH_ANGULAR_RADIUS_DEG)
+    sun, earth, sun_frac, earth_frac = visibility.sun_earth_visibility(eph, t, mask, lat, lon, height_m)
     links = dsn.station_links(eph, t, lat, lon, mask, dsn.load_stations(), height_m)
     comm = np.any([lk.available for lk in links], axis=0)
     p = power.panel_power_w(sun.elevation_deg, sun_frac, sun.distance_km)

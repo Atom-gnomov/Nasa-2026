@@ -39,6 +39,52 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/Health"}
 
+  /data/status:
+    get:
+      tags: [service]
+      x-status: implemented
+      summary: Стан підготовки даних NASA (температура, 3D-ресурси, глобус)
+      description: |
+        Застосунок сам готує дані у фоні (PROPOSALS П-11): кожен набір має стан `ready` (файли є),
+        `running` (скрипт збирання виконується; `message` — останній рядок його виводу, відсотків не вигадуємо),
+        `failed` (`message` — причина) або `missing` (не запущено). Запит, якому бракує даних, повертає 503 з тим самим
+        поясненням. `auto_prepare` — чи ввімкнено автозапуск (`LSE_AUTO_PREPARE`).
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/DataStatus"}
+
+  /data/prepare:
+    post:
+      tags: [service]
+      x-status: implemented
+      summary: Запустити підготовку відсутніх наборів даних у фоні
+      description: |
+        Без `datasets` — набори з налаштування `LSE_AUTO_PREPARE_DATASETS`. Готові й ті, що вже готуються,
+        пропускаються. Відповідь повертається одразу (202): стан дивіться в `/data/status`. Якщо автопідготовку вимкнено
+        (`LSE_AUTO_PREPARE=0`) — 400.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                datasets:
+                  type: array
+                  uniqueItems: true
+                  items: {type: string, enum: [temperature, system, globe]}
+      responses:
+        "202":
+          description: Прийнято
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/DataPrepareResponse"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+
   /meta:
     get:
       tags: [service]
@@ -108,6 +154,25 @@ paths:
               schema:
                 type: array
                 items: {$ref: "#/components/schemas/LaunchSite"}
+
+  /launch-systems:
+    get:
+      tags: [planning]
+      x-status: implemented
+      summary: Системи запуску (ракета + спосіб старту) з першоджерел
+      description: |
+        Каталог D6 (`app/data/launch_systems.json`) у стислому вигляді: спосіб старту, місткість на НОО
+        (`null`, якщо в джерелах її немає — наприклад, лише ГПО), висота скидання для повітряного старту,
+        місця старту. Ціни й імовірності відмови в каталозі немає; для них `/mission` використовує тимчасові
+        значення і прямо перелічує їх у `provisional_fields`. Повні цитати й джерела — у файлі даних.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/LaunchSystem"}
 
   /metrics:
     get:
@@ -596,6 +661,37 @@ components:
         detail:
           type: string
           description: Пояснення українською — фронтенд показує його користувачу як є
+
+    DatasetStatus:
+      type: object
+      required: [id, label, approx_download, command, state, message, elapsed_s]
+      additionalProperties: false
+      properties:
+        id: {type: string, enum: [temperature, system, globe]}
+        label: {type: string}
+        approx_download: {type: string, description: "Скільки буде завантажено, для людини"}
+        command: {type: string, description: Команда для ручного запуску}
+        state: {type: string, enum: [ready, running, failed, missing]}
+        message: {type: [string, "null"], description: "Останній рядок виводу скрипта або причина помилки"}
+        elapsed_s: {type: [number, "null"]}
+
+    DataStatus:
+      type: object
+      required: [auto_prepare, datasets]
+      additionalProperties: false
+      properties:
+        auto_prepare: {type: boolean}
+        datasets:
+          type: array
+          items: {$ref: "#/components/schemas/DatasetStatus"}
+
+    DataPrepareResponse:
+      type: object
+      required: [started, status]
+      additionalProperties: false
+      properties:
+        started: {type: array, items: {type: string}, description: Набори, підготовку яких запущено цим запитом}
+        status: {$ref: "#/components/schemas/DataStatus"}
 
     Health:
       type: object
@@ -1278,6 +1374,18 @@ components:
           uniqueItems: true
           items: {$ref: "#/components/schemas/RankFactor"}
         mode: {type: string, enum: [weighted, maximin], default: weighted}
+        mission_profile:
+          type: string
+          enum: [uncrewed, crewed]
+          description: |
+            Профіль місії (M17): початкові значення пріоритетів і вимог. Явні `priorities` і окремі поля
+            `requirements` переважають профіль; без `mission_profile` поведінка не змінюється.
+            Пороги профілю — з опублікованих джерел (`app/data/mission_thresholds.json`).
+        crew:
+          type: integer
+          minimum: 0
+          maximum: 6
+          description: Кількість людей; лише разом із `mission_profile` (безпілотна — 0, пілотована — від 1).
         requirements:
           type: object
           additionalProperties: false
@@ -1399,6 +1507,45 @@ components:
           oneOf:
             - {$ref: "#/components/schemas/RankComparison"}
             - {type: "null"}
+        profile:
+          description: Профіль, застосований до запиту (лише якщо задано `mission_profile`)
+          oneOf:
+            - {$ref: "#/components/schemas/MissionProfile"}
+            - {type: "null"}
+
+    ProfileLimit:
+      type: object
+      required: [quantity, comparison, value, unit, kind, id]
+      additionalProperties: false
+      properties:
+        quantity: {type: string}
+        comparison: {type: [string, "null"], enum: ["<", "<=", ">", ">=", null]}
+        value: {type: [number, "null"]}
+        unit: {type: [string, "null"]}
+        kind: {type: string, enum: [requirement, screening]}
+        id: {type: string, description: "id порогу в mission_thresholds.json або override"}
+        scope: {type: string}
+
+    MissionProfile:
+      type: object
+      required: [profile, crew, priorities, limits, categories, from_profile]
+      additionalProperties: false
+      properties:
+        profile: {type: string, enum: [uncrewed, crewed]}
+        crew: {type: integer}
+        priorities: {type: array, items: {$ref: "#/components/schemas/RankFactor"}}
+        limits:
+          type: object
+          additionalProperties: {$ref: "#/components/schemas/ProfileLimit"}
+        categories:
+          type: object
+          properties:
+            life_support: {type: boolean}
+            comfort: {type: boolean}
+        from_profile:
+          type: array
+          items: {type: string}
+          description: Значення, які задав профіль, а не користувач (для підсвічування в інтерфейсі)
 
     Vec3Unit:
       type: array
@@ -1418,6 +1565,49 @@ components:
         - {type: string, enum: [min, basic, extended, max]}
         - {type: number, minimum: 0, maximum: 1}
 
+    LaunchSystem:
+      type: object
+      required: [id, name, kind, active, capacity_leo_kg, capacity_condition, drop_altitude_m, launch_site_ids]
+      additionalProperties: false
+      properties:
+        id: {type: string}
+        name: {type: string}
+        kind: {type: string, enum: [spaceport, sea_platform, air_launch]}
+        active: {type: [boolean, "null"], description: "null — стан не підтверджено джерелом"}
+        capacity_leo_kg: {type: [number, "null"]}
+        capacity_condition: {type: [string, "null"], description: Для якої орбіти й умови справедлива місткість}
+        drop_altitude_m: {type: [number, "null"]}
+        launch_site_ids: {type: array, items: {type: string}}
+
+    MissionLaunchSystem:
+      type: object
+      required: [system, provisional_fields, rocket, fit]
+      additionalProperties: false
+      properties:
+        system: {$ref: "#/components/schemas/LaunchSystem"}
+        provisional_fields:
+          type: array
+          items: {type: string, enum: [price_usd_per_kg, failure_probability]}
+          description: Поля ракети, яких немає в каталозі — використано тимчасові значення «типової ракети»
+        rocket:
+          type: object
+          required: [name, capacity_leo_kg, price_usd_per_kg, failure_probability]
+          additionalProperties: false
+          properties:
+            name: {type: string}
+            capacity_leo_kg: {type: number}
+            price_usd_per_kg: {$ref: "#/components/schemas/Range2"}
+            failure_probability: {type: number}
+        fit:
+          type: object
+          required: [utilization, launches, fits_single_launch, note]
+          additionalProperties: false
+          properties:
+            utilization: {type: number}
+            launches: {type: integer, minimum: 1}
+            fits_single_launch: {type: boolean}
+            note: {type: [string, "null"]}
+
     MissionRequest:
       type: object
       additionalProperties: false
@@ -1434,6 +1624,12 @@ components:
             comfort: {$ref: "#/components/schemas/PayloadSize"}
         trajectory: {type: string, enum: [direct, low_energy], default: direct}
         launch_site_id: {type: string, description: "id з /launch-sites; задає широту старту"}
+        launch_system_id:
+          type: string
+          description: |
+            id з /launch-systems: місткість ракети береться з каталогу замість «типової ракети». Без явних
+            `launch_site_id` / `launch_lat` широта береться з першого місця старту системи (повітряний старт
+            місця не має — тоді екватор). Система без місткості на НОО відхиляється (400).
         launch_lat: {type: number, minimum: -90, maximum: 90, description: Широта старту, градуси}
         longest_night_h: {type: number, minimum: 0, description: "Найдовша ніч точки, год (з /metrics); під неї підбираються акумулятори"}
 
@@ -1514,6 +1710,11 @@ components:
         provisional: {type: boolean, description: "true — коефіцієнти моделі тимчасові (чекають D4)"}
         launch_lat: {type: number, description: Широта старту, з якою рахувалась вартість}
         launch_site_id: {type: [string, "null"]}
+        launch_system:
+          description: Система запуску, з якою рахувалось (лише якщо задано `launch_system_id`)
+          oneOf:
+            - {$ref: "#/components/schemas/MissionLaunchSystem"}
+            - {type: "null"}
         payload: {$ref: "#/components/schemas/MissionPayload"}
         cost: {$ref: "#/components/schemas/MissionCost"}
         risk: {$ref: "#/components/schemas/MissionRisk"}

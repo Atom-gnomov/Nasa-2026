@@ -10,6 +10,8 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/orbital-glass.css') }}">
   {# Cosmos: космічна тема (індиго + ціан, зоряне тло) поверх Orbital Glass. #}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/cosmos.css') }}">
+  {# Cosmo Glass: плоске матове скло без градієнтів (референс COSMO) і зоряне тло — після cosmos.css. #}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/cosmo-glass.css') }}">
   {# М16: Three.js через importmap, версія закріплена #}
   <script type="importmap">
     {
@@ -138,6 +140,7 @@
   <script type="module" src="{{ url_for('static', filename='js/overlay.js') }}"></script>
   <script type="module" src="{{ url_for('static', filename='js/data_status.js') }}"></script>
   <script type="module" src="{{ url_for('static', filename='js/workspace_ui.js') }}"></script>
+  <script type="module" src="{{ url_for('static', filename='js/starfield.js') }}"></script>
   {% block scripts %}{% endblock %}
   <script type="module" src="{{ url_for('static', filename='js/i18n.js') }}"></script>
 </body>

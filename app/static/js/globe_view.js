@@ -10,6 +10,7 @@
 // Позиція вершини — зважена сума трьох видів (куля, карта, полюс), тому перемикання — плавна анімація.
 import * as THREE from "three";
 import { anisotropy, createScene, hasWebGL, NO_WEBGL_MESSAGE } from "./three/scene.js";
+import { ME_TO_GLOBE, bindSky, mul3 } from "./starfield.js";
 import { mountFallbackMap } from "./three/fallback2d.js";
 import { mountQualitySelect, qualitySettings } from "./three/quality.js";
 import { subscribeHighlights } from "./highlights.js";
@@ -655,6 +656,8 @@ async function main() {
   const ctx = createScene(host, { quality });
   if (!ctx) return;
   const { scene, camera, renderer, controls } = ctx;
+  // справжнє зоряне небо: ICRF → власна система Місяця (/api/system) → осі глобуса; обертається разом з камерою
+  bindSky(camera, host, (orientation) => (orientation ? mul3(ME_TO_GLOBE, orientation) : null));
   camera.near = 0.00005;
   camera.far = 100;
   camera.updateProjectionMatrix();
@@ -798,10 +801,11 @@ async function main() {
   }
 
   const globeCameraFor = (lat, lon, dist) => unitUp(lat, lon).multiplyScalar(dist);
+  const GLOBE_DISTANCE = 3.5; // планета цілком у кадрі, зі зірками навколо (як з орбіти)
 
   function setView(next) {
     if (next === view && !anim) return;
-    const camTo = next === "globe" ? globeCameraFor(-40, 0, 3.0) : new THREE.Vector3(...VIEWS[next].camera);
+    const camTo = next === "globe" ? globeCameraFor(-40, 0, GLOBE_DISTANCE) : new THREE.Vector3(...VIEWS[next].camera);
     anim = {
       from: [...w], to: VIEWS[next].w, camFrom: camera.position.clone(), camTo,
       tgtFrom: controls.target.clone(), t0: performance.now(), dur: 1100,
@@ -827,7 +831,7 @@ async function main() {
   });
   lightSel.addEventListener("change", () => { shared.uSunMode.value = lightSel.value === "sun" ? 1 : 0; });
 
-  camera.position.copy(globeCameraFor(-40, 0, 3.0));
+  camera.position.copy(globeCameraFor(-40, 0, GLOBE_DISTANCE));
   configureControls("globe");
 
   // Центрування на вибраній точці: з вкладки «Підбір», зі списку місць, за координатами.

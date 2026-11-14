@@ -57,6 +57,12 @@ def globe_asset(filename: str):
     return send_from_directory(current_app.config["CACHE_DIR"] / "globe", filename, max_age=86400)
 
 
+@bp.get("/assets/starmap/<path:filename>")
+def starmap_asset(filename: str):
+    """Справжнє зоряне небо з data_cache/starmap (готує tools/build_starmap.py, NASA SVS «Deep Star Maps 2020»)."""
+    return send_from_directory(current_app.config["CACHE_DIR"] / "starmap", filename, max_age=86400)
+
+
 @bp.get("/assets/system/<path:filename>")
 def system_asset(filename: str):
     """Моделі й текстури 3D-виду системи з data_cache/system (готує tools/build_system_assets.py)."""

@@ -1,0 +1,120 @@
+/*
+ Cosmo Glass — плоске «матове скло» за референсом COSMO: БЕЗ градієнтів.
+ Поверхня = прозорий білуватий фон (рівна заливка rgba) + розмиття того, що за нею + тонка світла рамка.
+ Лише презентація: геометрію веде workspace.css, розрахунки не чіпаємо. Підключений ПІСЛЯ cosmos.css і
+ перекриває його градієнтні заливки. Зоряне небо (starfield.js) — справжня карта NASA на тлі всієї сторінки.
+*/
+:root {
+  --cg-fill: rgba(255, 255, 255, .085);       /* легке забілення */
+  --cg-fill-strong: rgba(255, 255, 255, .14);
+  --cg-fill-faint: rgba(255, 255, 255, .045);
+  --cg-line: rgba(255, 255, 255, .26);        /* тонка світла рамка */
+  --cg-line-soft: rgba(255, 255, 255, .14);
+  --cg-blur: blur(22px) saturate(140%);
+  --cg-ink: #f6f8fb;
+  --cg-muted: rgba(246, 248, 251, .66);
+  --cg-sun: #ff9a4d;                          /* акценти шкал: Сонце — теплий, решта — холодний лід */
+  --cg-ice: #bfe6ff;
+  --cg-radius: 22px;
+  --cg-shadow: 0 10px 34px rgba(0, 0, 0, .28);
+
+  /* плоскі змінні для решти шарів (де вони використовуються як колір, а не як шар фону) */
+  --bg: #02030a;
+  --text: var(--cg-ink);
+  --muted: var(--cg-muted);
+  --border: var(--cg-line-soft);
+  --og-line: var(--cg-line-soft);
+  --og-ice: var(--cg-ice);
+  --og-shadow: var(--cg-shadow);
+  --cx-line: var(--cg-line-soft);
+  --cx-glow: none;
+}
+.topbar, #view, .ui-widget, .ui-dock, .overlay, .help-menu-content { --accent: var(--cg-ice); }
+
+/* ---------- Тло: справжнє зоряне небо; поки його немає — чорне, без туманності й градієнтів ---------- */
+html { background: #02030a; }
+body { background: transparent; } /* інакше фон body закриває canvas зоряного неба (z-index: −1) */
+body::before { background: #02030a; }
+body.has-starfield::before, body.has-starfield::after { display: none; }
+#starfield { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: -1; pointer-events: none; display: block; }
+
+/* ---------- Скляні поверхні ---------- */
+body.page-moon .ui-scene-widget, body.page-system .ui-scene-widget,
+body.page-moon #metrics-overlay.ui-scene-widget, body.page-system .system-info.ui-scene-widget,
+body.page-search #search .ui-widget, body.page-mission .mission-form.ui-widget,
+body.page-plan .lw-controls.ui-widget, body.page-launch .lw-controls.ui-widget,
+body.page-search #search .workspace-results, body.page-mission .workspace-results,
+body.page-plan .workspace-results, body.page-launch .workspace-results,
+body.page-moon .ui-dock, body.page-system .ui-dock, body.page-moon #surface .ui-surface-dock,
+.cg-panel {
+  background: var(--cg-fill);
+  border: 1px solid var(--cg-line);
+  box-shadow: var(--cg-shadow);
+  backdrop-filter: var(--cg-blur);
+  -webkit-backdrop-filter: var(--cg-blur);
+  border-radius: var(--cg-radius);
+  color: var(--cg-ink);
+}
+body.page-moon .ui-scene-widget.is-expanded, body.page-system .ui-scene-widget.is-expanded { border-radius: 0; }
+.ui-widget .widget-header, .ui-dock .dock-header, .workspace-results .results-heading {
+  background: transparent; border-bottom: 1px solid var(--cg-line-soft); box-shadow: none;
+}
+.ui-widget .widget-title, .ui-dock .dock-title, .workspace-results .results-heading h2 {
+  color: var(--cg-ink); font-weight: 600; letter-spacing: .02em; text-transform: none;
+}
+.ui-widget .widget-body details { border-color: var(--cg-line-soft); }
+
+/* ---------- Шапка ---------- */
+#site-header.topbar {
+  background: rgba(255, 255, 255, .06); border-bottom: 1px solid var(--cg-line-soft);
+  backdrop-filter: var(--cg-blur); -webkit-backdrop-filter: var(--cg-blur); box-shadow: none;
+}
+#site-header .brand-mark { background: var(--cg-fill); border-color: var(--cg-line); box-shadow: none; text-shadow: none; color: var(--cg-ink); }
+#site-header .header-middle .tabs a { color: var(--cg-muted); }
+#site-header .header-middle .tabs a:hover:not(.active) { background: var(--cg-fill-strong); color: #fff; }
+#site-header .header-middle .tabs a.active, #site-header .header-middle .tabs a[aria-current="page"] {
+  background: rgba(255, 255, 255, .92); color: #10131a; border-color: transparent; box-shadow: none;
+}
+#site-header .header-actions .lang-switch button.active { background: rgba(255, 255, 255, .92); color: #10131a; }
+.help-menu-content { background: rgba(14, 16, 24, .72); backdrop-filter: var(--cg-blur); -webkit-backdrop-filter: var(--cg-blur); border-color: var(--cg-line); }
+
+/* ---------- Кнопки, перемикачі, поля — теж плоске скло ---------- */
+.widget-action, .dock-toggle, #site-header .header-actions .lang-switch, #site-header .header-actions .header-icon,
+.ui-widget .seg, .ui-dock .seg, body:not(.page-moon):not(.page-system) #view .seg {
+  background: var(--cg-fill); border-color: var(--cg-line); box-shadow: none;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.ui-widget .seg button, .ui-widget .seg a, .ui-dock .seg button, .ui-dock .seg a,
+body:not(.page-moon):not(.page-system) #view .seg button { color: var(--cg-muted); }
+.ui-widget .seg button.active, .ui-widget .seg a.active, .ui-dock .seg button.active, .ui-dock .seg a.active,
+body:not(.page-moon):not(.page-system) #view .seg button.active {
+  background: rgba(255, 255, 255, .92); color: #10131a; box-shadow: none;
+}
+.ui-widget .seg button:hover:not(.active), .ui-dock .seg button:hover:not(.active) { background: var(--cg-fill-strong); color: #fff; }
+.widget-action:hover, .dock-toggle:hover { background: var(--cg-fill-strong); border-color: var(--cg-line); color: #fff; }
+.ui-widget.is-collapsed .widget-collapse { background: var(--cg-fill-strong); color: #fff; }
+#view select, #view textarea,
+#view input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]),
+.ui-widget .widget-body select,
+.ui-widget .widget-body input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]),
+.ui-dock select {
+  background: var(--cg-fill-faint); border-color: var(--cg-line-soft); color: var(--cg-ink);
+}
+#view input:focus-visible, #view select:focus-visible, .ui-dock select:focus-visible {
+  border-color: rgba(255, 255, 255, .7); outline-color: rgba(255, 255, 255, .7); box-shadow: 0 0 0 3px rgba(255, 255, 255, .14);
+}
+#view input[type="checkbox"], #view input[type="range"], .ui-dock input[type="range"] { accent-color: #fff; }
+#view button.primary, #view #plan-flight, .ui-widget .widget-body .coords button {
+  background: rgba(255, 255, 255, .92); color: #10131a; border-color: transparent; box-shadow: none;
+}
+#view button.primary:hover, #view #plan-flight:hover, .ui-widget .widget-body .coords button:hover { background: #fff; }
+#view fieldset, .ui-widget .widget-body fieldset { border-color: var(--cg-line-soft); background: var(--cg-fill-faint); }
+body.page-moon .scale-bar, body.page-moon .globe-status {
+  background: var(--cg-fill); border: 1px solid var(--cg-line-soft); box-shadow: none;
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+}
+body.page-moon .scale-bar i { border-color: #fff; }
+body.page-mission .fill-bar span, body.page-launch .lw-bar.best .lw-fill, .bar::after { background: #fff; box-shadow: none; }
+body.page-launch .lw-bar.best { color: #fff; }
+
+@media (prefers-reduced-motion: reduce) { #starfield { transition: none; } }

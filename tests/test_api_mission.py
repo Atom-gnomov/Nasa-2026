@@ -236,3 +236,29 @@ def test_design_target_rocket_is_marked_in_the_listing_and_still_calculable(clie
     assert lm10["status"] == "design_target" and lm10["verified_by_flight"] is False
     data = post(client, {"launch_system_id": "long-march-10"}).get_json()
     assert data["launch_system"]["system"]["verified_by_flight"] is False  # проєктну ціль не видаємо за підтверджену
+
+
+# ---------- M22: таблиці D4 у моделі маси ----------
+def test_sourced_basis_uses_nasa_ranges_and_reports_them(client):
+    base = {"crew": 2, "days": 10, "longest_night_h": 100}
+    model = client.post("/api/mission", json=base).get_json()
+    sourced = client.post("/api/mission", json={**base, "parameters_basis": "sourced"}).get_json()
+    assert model["parameters_basis"] == "model" and model["sourced_parameters"] == []
+    assert sourced["parameters_basis"] == "sourced"
+    ids = {p["id"] for p in sourced["sourced_parameters"]}
+    assert {"equipment_mass_kg", "consumables_kg_per_person_day", "battery_depth_of_discharge"} <= ids
+    assert "habitable_volume_m3_per_person" not in ids and "lunar_delivery_usd_per_kg" not in ids
+    assert sourced["payload"]["total_kg"] != model["payload"]["total_kg"]
+    assert_valid(api_validator("MissionResponse"), sourced)
+
+
+def test_sourced_equipment_mass_matches_source_range(client):
+    low = client.post("/api/mission", json={"sizes": {"equipment": 0}, "parameters_basis": "sourced"}).get_json()
+    high = client.post("/api/mission", json={"sizes": {"equipment": 1}, "parameters_basis": "sourced"}).get_json()
+    assert low["payload"]["masses_kg"]["equipment"] == pytest.approx(10.0)
+    assert high["payload"]["masses_kg"]["equipment"] == pytest.approx(475.0)
+
+
+def test_unknown_parameters_basis_is_rejected(client):
+    res = client.post("/api/mission", json={"parameters_basis": "magic"})
+    assert res.status_code == 400

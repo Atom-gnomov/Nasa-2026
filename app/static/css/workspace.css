@@ -542,3 +542,13 @@ body.page-moon #surface .surface-back {
   backdrop-filter: blur(15px);
 }
 body.page-moon #surface .surface-back:hover { background: rgba(43,61,84,.95); }
+
+/* Висока специфічність макетів не повинна заважати справжньому згортанню. */
+.ui-widget.is-collapsed > .widget-body { display: none !important; }
+@media (min-width: 1001px) {
+  body.page-search[data-left-state="collapsed"] #search.search-layout { grid-template-columns: 43px minmax(0,1fr) minmax(260px,320px); }
+  body.page-search[data-right-state="collapsed"] #search.search-layout { grid-template-columns: minmax(250px,320px) minmax(0,1fr) 43px; }
+  body.page-search[data-left-state="collapsed"][data-right-state="collapsed"] #search.search-layout { grid-template-columns: 43px minmax(0,1fr) 43px; }
+  body.page-search[data-expanded="left"] #search.search-layout { grid-template-columns: minmax(0,1fr) minmax(0,1fr) 43px; }
+  body.page-search[data-expanded="right"] #search.search-layout { grid-template-columns: 43px minmax(0,1fr) minmax(0,1fr); }
+}

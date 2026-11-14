@@ -18,6 +18,7 @@ function prepareWidget(target, side, name, { scene = false } = {}) {
   target.classList.add("ui-widget", "ui-widget-" + side);
   if (scene) target.classList.add("ui-scene-widget");
   const body = element("div", "widget-body");
+  body.id = "widget-content-" + page + "-" + side;
   while (target.firstChild) body.append(target.firstChild);
   const header = element("div", "widget-header");
   const title = element("strong", "widget-title", name);
@@ -27,11 +28,13 @@ function prepareWidget(target, side, name, { scene = false } = {}) {
   collapse.dataset.widgetAction = "collapse";
   collapse.title = "Згорнути панель";
   collapse.setAttribute("aria-label", "Згорнути панель");
+  collapse.setAttribute("aria-controls", body.id);
   const expand = element("button", "widget-action widget-expand", "⤢");
   expand.type = "button";
   expand.dataset.widgetAction = "expand";
   expand.title = "Розгорнути панель на пів екрана";
   expand.setAttribute("aria-label", "Розгорнути панель на пів екрана");
+  expand.setAttribute("aria-controls", body.id);
   actions.append(collapse, expand);
   header.append(title, actions);
   target.append(header, body);
@@ -217,7 +220,10 @@ function initHeaderHeight() {
 
 initHeaderHeight();
 initFullscreen();
-if (page === "moon") initMoon();
+if (page === "moon" && window.location.hash === "#search") {
+  // Сумісність зі старими посиланнями, коли «Підбір» був під глобусом.
+  window.location.replace("/search" + window.location.search);
+} else if (page === "moon") initMoon();
 if (page === "system") initSystem();
 if (page === "search") initSearch();
 if (["mission", "launch", "plan"].includes(page)) initAnalytics();

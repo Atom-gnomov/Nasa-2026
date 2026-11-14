@@ -542,8 +542,15 @@ paths:
   /launch-window:
     get:
       tags: [planning]
-      x-status: planned
+      x-status: implemented
       summary: Вікно запуску — оцінка у % для кожної дати
+      description: |
+        Для кожної дати періоду (старт TLI о 00:00 UTC, не більше 60 діб) з майданчика `launch_site` до точки
+        Місяця (`lat`, `lon`): найкращий прямий перехід за 3–5 діб і дата прибуття (docs/MATH.md, §21.5), вікна
+        запуску на добу й добавка Δv майданчика (§21.2–21.4), частки часу, коли в точці посадки видно Сонце й
+        Землю протягом 7 діб після прибуття (маска рельєфу LOLA, без DEM — гладка сфера). Фактори `light`,
+        `fuel` (мін-макс серед дат), `comms`, `windows` (W/2); оцінка дати — ваги ROC за порядком `priorities`.
+        Економна траєкторія — оцінка: прибуття через середню тривалість, Δv = найкращий прямий − економія.
       parameters:
         - {name: launch_site, in: query, required: true, schema: {type: string}, description: id з /launch-sites}
         - $ref: "#/components/parameters/lat"
@@ -553,6 +560,10 @@ paths:
         - name: trajectory
           in: query
           schema: {$ref: "#/components/schemas/Trajectory"}
+        - name: priorities
+          in: query
+          description: "Фактори через кому за важливістю (перший — найважливіший); за замовчуванням light,fuel,comms,windows"
+          schema: {type: string, examples: ["light,fuel,comms,windows"]}
       responses:
         "200":
           description: OK
@@ -560,7 +571,8 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/LaunchWindow"}
         "400": {$ref: "#/components/responses/BadRequest"}
-        "501": {$ref: "#/components/responses/NotImplemented"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "503": {$ref: "#/components/responses/Unavailable"}
 
 components:
   parameters:
@@ -1242,6 +1254,11 @@ components:
       properties:
         launch_site_id: {type: string}
         trajectory: {$ref: "#/components/schemas/Trajectory"}
+        moon_point: {$ref: "#/components/schemas/LatLon"}
+        priorities: {type: array, items: {type: string, enum: [light, fuel, comms, windows]}}
+        method: {type: string, enum: [patched_conic, estimate]}
+        horizon_source: {type: string, description: "Звідки маска горизонту точки посадки (як у /horizon)"}
+        landed_days: {type: number, description: "Скільки діб після прибуття оцінюються світло й зв'язок"}
         days:
           type: array
           items:
@@ -1251,6 +1268,14 @@ components:
               date: {type: string, format: date}
               score_pct: {type: number, minimum: 0, maximum: 100}
               arrival: {type: string, format: date-time}
+              flight_days: {type: number}
+              dv_total_m_s: {type: number, description: "Перехід (TLI + LOI) + добавка майданчика"}
+              windows_per_day: {type: integer, minimum: 0, maximum: 2}
+              inclination_deg: {type: number}
+              sun_fraction: {type: number, minimum: 0, maximum: 1, description: "Частка часу з Сонцем над маскою після прибуття"}
+              earth_fraction: {type: number, minimum: 0, maximum: 1, description: "Частка часу з Землею над маскою після прибуття"}
+              sunlit_at_arrival: {type: boolean}
+              factors: {type: object, additionalProperties: {type: number, minimum: 0, maximum: 1}}
         best:
           type: object
           required: [date, score_pct]

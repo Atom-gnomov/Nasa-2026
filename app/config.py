@@ -36,6 +36,11 @@ class Config:
     # Температура LRO Diviner (GCP, PRP); готує tools/build_temperature_data.py
     TEMP_DIR = Path(os.environ.get("LSE_TEMP_DIR", CACHE_DIR / "temperature"))
     JSON_SORT_KEYS = False
+    # Автоматична підготовка даних NASA у фоні (app/services/bootstrap.py, PROPOSALS П-11);
+    # LSE_AUTO_PREPARE=0 вимикає, LSE_AUTO_PREPARE_DATASETS — які набори готувати самі (temperature, system, globe)
+    AUTO_PREPARE = os.environ.get("LSE_AUTO_PREPARE", "1").strip().lower() not in ("0", "false", "no", "")
+    AUTO_PREPARE_DATASETS = tuple(
+        i.strip() for i in os.environ.get("LSE_AUTO_PREPARE_DATASETS", "temperature,system").split(",") if i.strip())
     # Поради ШІ (POST /api/advice): будь-який сервіс з OpenAI-сумісним API. Задаються лише змінними
     # середовища або файлом .env (див. .env.example); без LSE_LLM_BASE_URL поради вимкнені.
     LLM_BASE_URL = os.environ.get("LSE_LLM_BASE_URL") or None
@@ -46,6 +51,7 @@ class Config:
 
 class TestConfig(Config):
     TESTING = True
+    AUTO_PREPARE = False  # тести ніколи не завантажують дані з мережі
     # Модульні тести не залежать від завантажених DEM (гладка сфера); рельєф перевіряє
     # tests/test_dem_validation.py, вмикаючи справжній DEM_DIR явно.
     # Кеш даних теж порожній: тести не бачать локально зібраних 3D-ресурсів і текстур глобуса

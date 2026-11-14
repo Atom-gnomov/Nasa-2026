@@ -23,6 +23,7 @@ from flask import current_app
 
 from app.core import frames
 from app.core.ephemeris import get_ephemeris
+from app.services import bootstrap
 
 # Кодування для текстури: код 0 — немає даних; значення = OFFSET + (код − 1) · SCALE
 T_OFFSET_K, T_SCALE_K = 20.0, 1.5  # 20…401 K, крок 1,5 K
@@ -86,7 +87,7 @@ def data() -> TempData:
     d = Path(current_app.config["TEMP_DIR"])
     files = ["temperature.json", "gcp_tbol.npy", "gcp_tbol_filled.npy", "gcp_stats.npz", "prp_south.npz"]
     if not all((d / f).exists() for f in files[:4]):
-        raise RuntimeError("Немає даних Diviner: запустіть python tools/build_temperature_data.py")
+        raise RuntimeError(bootstrap.preparer(current_app).hint("temperature"))
     signature = tuple((f, (d / f).stat().st_mtime) for f in files if (d / f).exists())
     return _load(str(d), signature)
 

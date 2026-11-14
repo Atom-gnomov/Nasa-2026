@@ -6,13 +6,14 @@
 
 from __future__ import annotations
 
+from dataclasses import fields, replace
 from datetime import datetime
 
 import numpy as np
 
 from app.core import mission_profile, site_score
 from app.core.site_score import Requirements, ScoreParams
-from app.services import catalogs, sites, temperature, timeline
+from app.services import catalogs, elevation, sites, temperature, timeline
 
 MAX_POINTS = 30
 SUPPORTED = site_score.FACTORS
@@ -56,14 +57,45 @@ def thermal_fraction(lat: float, lon: float, when: datetime, params: ScoreParams
     return float(np.mean((values >= params.temp_min_k) & (values <= params.temp_max_k)))
 
 
+REQUIREMENT_BOUNDS = {"min_sun_hours": (0, 1e6), "min_comm_hours": (0, 1e6), "max_slope_deg": (0, 90),
+                      "min_earth_fraction": (0, 1), "min_sun_fraction": (0, 1)}
+
+
+def check_requirements(explicit: dict) -> None:
+    """Вимоги запиту: відомі поля, числа в межах (RankError → 400)."""
+    unknown = sorted(set(explicit) - set(REQUIREMENT_BOUNDS))
+    if unknown:
+        raise RankError(f"Невідома вимога: {', '.join(unknown)}")
+    for key, value in explicit.items():
+        lo, hi = REQUIREMENT_BOUNDS[key]
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not lo <= value <= hi:
+            raise RankError(f"{key} має бути числом у межах {lo}…{hi}")
+
+
+def _profile_fill(from_profile: Requirements, explicit: dict) -> dict:
+    """Поля вимог, які задає профіль, коли користувач їх явно не вказав."""
+    return {f.name: getattr(from_profile, f.name) for f in fields(Requirements)
+            if f.name not in explicit and getattr(from_profile, f.name) is not None}
+
+
+def slope_deg(lat: float, lon: float) -> float | None:
+    """Нахил поверхні в точці з найдетальнішого DEM LOLA; без DEM — None («невідомий», а не 0°)."""
+    try:
+        return float(elevation.elevation(lat, lon)["slope_deg"])
+    except RuntimeError:
+        return None
+
+
 def evaluate_point(p: dict, start: datetime, end: datetime, step_h: float, height_m: float,
-                   need_thermal: bool, params: ScoreParams) -> tuple[dict, str, dict[str, float]]:
+                   need_thermal: bool, params: ScoreParams,
+                   need_slope: bool = False) -> tuple[dict, str, dict[str, float]]:
     """Підсумки точки за період (як /timeline) + частка відкритого неба (+ температура), джерело горизонту
     й години доступності кожної станції DSN: {station_id: години}."""
     tl = timeline.timeline(p["lat"], p["lon"], start, end, step_h, height_m)
     summary = dict(tl["summary"])
     summary["sky_view_fraction"] = timeline.horizon_mask(p["lat"], p["lon"], height_m)["sky_view_fraction"]
     summary["thermal_fraction"] = thermal_fraction(p["lat"], p["lon"], start, params) if need_thermal else None
+    summary["slope_deg"] = slope_deg(p["lat"], p["lon"]) if need_slope else None
     station_hours = {st["station_id"]: round(sum(st["available"]) * tl["step_h"], 2) for st in tl["stations"]}
     return summary, tl["horizon_source"], station_hours
 
@@ -95,24 +127,20 @@ def rank(request: dict, start: datetime, end: datetime) -> dict:
     except TypeError as exc:
         raise RankError(f"Невідомий параметр шкали: {exc}") from exc
     explicit = request.get("requirements") or {}
-    try:
-        req = Requirements(**explicit)
-    except TypeError as exc:
-        raise RankError(f"Невідома вимога: {exc}") from exc
+    check_requirements(explicit)
+    req = Requirements(**explicit)
     if profile is not None:
-        period_h = (end - start).total_seconds() / 3600.0
-        from_profile = profile.requirements(period_h)
-        # Явні значення запиту переважають профіль поле за полем
-        req = Requirements(
-            min_sun_hours=req.min_sun_hours if "min_sun_hours" in explicit else from_profile.min_sun_hours,
-            min_comm_hours=req.min_comm_hours if "min_comm_hours" in explicit else from_profile.min_comm_hours)
+        # Явні значення запиту переважають профіль поле за полем (M23: нахил, видимість Землі й Сонця — з профілю)
+        from_profile = profile.requirements()
+        req = replace(req, **_profile_fill(from_profile, explicit))
     step_h = float(request.get("step_h", 1.0))
     height_m = float(request.get("height_m", 0.0))
     points = _resolve_points(request["points"])
 
     summaries, sources = [], []
     for p in points:
-        summary, source, _ = evaluate_point(p, start, end, step_h, height_m, "temperature" in priorities, params)
+        summary, source, _ = evaluate_point(p, start, end, step_h, height_m, "temperature" in priorities, params,
+                                            need_slope=req.max_slope_deg is not None)
         summaries.append(summary)
         sources.append(source)
 
@@ -132,12 +160,15 @@ def rank(request: dict, start: datetime, end: datetime) -> dict:
                       "lon": (p["lon"] + 180.0) % 360.0 - 180.0},
             "feasible": sp.feasible,
             "violations": sp.violations,
+            "warnings": sp.warnings,
+            "unchecked": sp.unchecked,
             "score_pct": sp.score_pct,
             "pareto": sp.pareto,
             "factors": {f: round(v, 4) for f, v in sp.factors.items()},
             "summary": {k: s[k] for k in ("sun_hours", "comm_hours", "sun_fraction", "comm_fraction",
                                           "longest_night_h", "longest_comm_gap_h", "energy_wh_per_m2",
-                                          "sky_view_fraction", "thermal_fraction") if s.get(k) is not None},
+                                          "sky_view_fraction", "thermal_fraction", "slope_deg")
+                                  if s.get(k) is not None},
             "horizon_source": sources[sp.index],
         })
     return {

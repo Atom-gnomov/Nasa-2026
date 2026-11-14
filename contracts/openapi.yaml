@@ -1206,6 +1206,14 @@ components:
         height_m: {type: number, minimum: 0, maximum: 1000, default: 0}
         min_sun_hours: {type: number, minimum: 0, description: Повзунок «години Сонця»}
         min_comm_hours: {type: number, minimum: 0, description: Повзунок «години зв'язку»}
+        max_slope_deg: {type: number, minimum: 0, maximum: 90, description: Жорстка вимога — макс. нахил майданчика (з DEM; без DEM — «не перевірено»)}
+        min_earth_fraction: {type: number, minimum: 0, maximum: 1, description: М'яка вимога — мін. частка періоду, коли видно Землю}
+        min_sun_fraction: {type: number, minimum: 0, maximum: 1, description: М'яка вимога — мін. частка періоду, коли видно Сонце}
+        mission_profile:
+          type: string
+          enum: [uncrewed, crewed]
+          description: "Профіль місії (M17) — початкові пріоритети й вимоги до місця (нахил посадки < 10°, Земля ≥ 25 %, Сонце ≥ 5 % для пілотованої); явні значення переважають"
+        crew: {type: integer, minimum: 0, maximum: 6, description: Лише разом із mission_profile}
         earth_target: {oneOf: [{$ref: "#/components/schemas/LatLon"}, {type: "null"}], description: Точка на Землі, куди потрібен зв'язок; поки лише повертається в ланцюжку}
         launch_site_ids: {type: array, items: {type: string}, description: Ще не підтримується (модель запусків) — 400}
         trajectory: {oneOf: [{$ref: "#/components/schemas/Trajectory"}, {type: "null"}], description: Ще не підтримується (модель запусків) — 400}
@@ -1244,6 +1252,14 @@ components:
         violations:
           type: array
           items: {$ref: "#/components/schemas/RankViolation"}
+        warnings:
+          type: array
+          description: Не виконані м'які вимоги (фільтри відбору); точка лишається допустимою, бал знижено
+          items: {$ref: "#/components/schemas/RankWarning"}
+        unchecked:
+          type: array
+          description: Задані вимоги, яких не вдалося перевірити (немає даних, напр. нахил без DEM) — не «виконано» і не «порушено»
+          items: {type: string, enum: [max_slope_deg]}
         score_pct: {type: number, minimum: 0, maximum: 100}
         pareto: {type: boolean, description: Недомінований серед допустимих кандидатів}
         factors:
@@ -1425,9 +1441,16 @@ components:
         requirements:
           type: object
           additionalProperties: false
+          description: |
+            Вимоги до місця посадки. Жорсткі (не виконано — точка недопустима): `min_sun_hours`, `min_comm_hours`,
+            `max_slope_deg` (нахил з DEM; без DEM — «не перевірено», див. `unchecked`). М'які (лише попередження
+            й зниження бала): `min_earth_fraction`, `min_sun_fraction` — частки періоду 0…1.
           properties:
             min_sun_hours: {type: number, minimum: 0}
             min_comm_hours: {type: number, minimum: 0}
+            max_slope_deg: {type: number, minimum: 0, maximum: 90, description: Жорстка вимога — макс. нахил майданчика, градуси}
+            min_earth_fraction: {type: number, minimum: 0, maximum: 1, description: М'яка вимога — мін. частка періоду, коли видно Землю}
+            min_sun_fraction: {type: number, minimum: 0, maximum: 1, description: М'яка вимога — мін. частка періоду, коли видно Сонце}
         params:
           type: object
           additionalProperties: false
@@ -1445,9 +1468,21 @@ components:
       type: object
       required: [requirement, value, required]
       properties:
-        requirement: {type: string, enum: [min_sun_hours, min_comm_hours]}
+        requirement: {type: string, enum: [min_sun_hours, min_comm_hours, max_slope_deg]}
         value: {type: number}
         required: {type: number}
+
+    RankWarning:
+      type: object
+      description: |
+        М'яка вимога (фільтр відбору), яка не виконана: точка лишається допустимою, але бал знижено
+        (множник max(0,5; значення / потрібне)).
+      required: [requirement, value, required, kind]
+      properties:
+        requirement: {type: string, enum: [min_earth_fraction, min_sun_fraction]}
+        value: {type: number, minimum: 0, maximum: 1}
+        required: {type: number, minimum: 0, maximum: 1}
+        kind: {type: string, enum: [screening]}
 
     RankSummary:
       type: object
@@ -1462,6 +1497,7 @@ components:
         longest_comm_gap_h: {type: number}
         energy_wh_per_m2: {type: number}
         sky_view_fraction: {type: number, description: Частка відкритого неба (доза ГКП ∝ ця частка)}
+        slope_deg: {type: number, description: Нахил поверхні з DEM LOLA, градуси; лише якщо запитано max_slope_deg і DEM є}
         thermal_fraction: {type: [number, "null"], description: Частка місячної доби з температурою поверхні в діапазоні; лише якщо запитано temperature}
 
     RankedPoint:
@@ -1481,6 +1517,14 @@ components:
         violations:
           type: array
           items: {$ref: "#/components/schemas/RankViolation"}
+        warnings:
+          type: array
+          description: Не виконані м'які вимоги (фільтри відбору); точка лишається допустимою, бал знижено
+          items: {$ref: "#/components/schemas/RankWarning"}
+        unchecked:
+          type: array
+          description: Задані вимоги, яких не вдалося перевірити (немає даних, напр. нахил без DEM) — не «виконано» і не «порушено»
+          items: {type: string, enum: [max_slope_deg]}
         score_pct: {type: number, minimum: 0, maximum: 100}
         pareto: {type: boolean, description: Недомінований серед допустимих точок}
         factors:

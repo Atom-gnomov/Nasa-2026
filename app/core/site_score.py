@@ -44,8 +44,25 @@ class ScoreParams:
 
 @dataclass(frozen=True)
 class Requirements:
+    """Вимоги до місця посадки.
+
+    **Жорсткі** (не виконано — точка недопустима): `min_sun_hours`, `min_comm_hours`, `max_slope_deg`.
+    **М'які** (фільтри відбору; не виконано — лише попередження й зниження бала): `min_earth_fraction`,
+    `min_sun_fraction` — частки періоду, 0…1.
+    Нахил береться з DEM; без DEM він невідомий, і вимога позначається «не перевірено» (див. `unchecked`),
+    а не «виконано» й не «порушено».
+    """
+
     min_sun_hours: float | None = None
     min_comm_hours: float | None = None
+    max_slope_deg: float | None = None
+    min_earth_fraction: float | None = None
+    min_sun_fraction: float | None = None
+
+
+# ⚠️ Продуктове значення: м'яка вимога, виконана на частку r < 1, множить бал на max(SOFT_PENALTY_FLOOR, r);
+# отже навіть нульова видимість знижує бал не більш ніж удвічі (м'яка вимога не робить точку недопустимою).
+SOFT_PENALTY_FLOOR = 0.5
 
 
 @dataclass
@@ -58,6 +75,8 @@ class ScoredPoint:
     pareto: bool = False
     rank: int = 0
     summary: Mapping[str, float] = field(default_factory=dict)
+    warnings: list[dict] = field(default_factory=list)  # м'які вимоги, що не виконані (знижують бал)
+    unchecked: list[str] = field(default_factory=list)  # вимоги, яких не вдалося перевірити (немає даних)
 
 
 DEFAULT_PARAMS = ScoreParams()
@@ -124,6 +143,10 @@ def factor_scores(summary: Mapping[str, float | None], factors: Sequence[str],
 # --- допустимість, ранжування, порівняння ------------------------------------------------------
 
 def violations(summary: Mapping[str, float | None], req: Requirements) -> list[dict]:
+    """Порушені **жорсткі** вимоги: години Сонця й зв'язку (менше за потрібне), нахил (більше за допустимий).
+
+    Невідомий нахил (немає DEM) порушенням не вважається — він іде в `unchecked_requirements`.
+    """
     out = []
     for key, value_key, required in (("min_sun_hours", "sun_hours", req.min_sun_hours),
                                      ("min_comm_hours", "comm_hours", req.min_comm_hours)):
@@ -132,7 +155,36 @@ def violations(summary: Mapping[str, float | None], req: Requirements) -> list[d
         value = summary.get(value_key)
         if value is None or value < required:
             out.append({"requirement": key, "value": float(value or 0.0), "required": float(required)})
+    slope = summary.get("slope_deg")
+    if req.max_slope_deg is not None and slope is not None and slope > req.max_slope_deg:
+        out.append({"requirement": "max_slope_deg", "value": float(slope), "required": float(req.max_slope_deg)})
     return out
+
+
+def unchecked_requirements(summary: Mapping[str, float | None], req: Requirements) -> list[str]:
+    """Задані вимоги, яких не можна перевірити, бо немає даних (зараз — нахил без DEM)."""
+    return ["max_slope_deg"] if req.max_slope_deg is not None and summary.get("slope_deg") is None else []
+
+
+def soft_warnings(summary: Mapping[str, float | None], req: Requirements) -> list[dict]:
+    """Не виконані м'які вимоги (частка періоду з видимістю Землі чи Сонця менша за потрібну)."""
+    out = []
+    for key, value_key, required in (("min_earth_fraction", "earth_fraction", req.min_earth_fraction),
+                                     ("min_sun_fraction", "sun_fraction", req.min_sun_fraction)):
+        if required is None:
+            continue
+        value = float(summary.get(value_key) or 0.0)
+        if value < required:
+            out.append({"requirement": key, "value": value, "required": float(required), "kind": "screening"})
+    return out
+
+
+def soft_penalty(warnings: Sequence[Mapping[str, float]]) -> float:
+    """Множник бала за м'якими вимогами: добуток max(SOFT_PENALTY_FLOOR, значення / потрібне)."""
+    factor = 1.0
+    for w in warnings:
+        factor *= max(SOFT_PENALTY_FLOOR, w["value"] / w["required"] if w["required"] > 0 else 1.0)
+    return factor
 
 
 def priority_weights(priorities: Sequence[str]) -> dict[str, float]:
@@ -163,7 +215,10 @@ def score_points(summaries: Sequence[Mapping[str, float | None]], priorities: Se
         vec = np.array([fs[f] for f in priorities])
         score = 100.0 * (float(vec @ w) if mode == "weighted" else float(vec.min()))
         viol = violations(summary, requirements)
-        points.append(ScoredPoint(i, fs, round(score, 2), not viol, viol, summary=summary))
+        warn = soft_warnings(summary, requirements)
+        score *= soft_penalty(warn)  # м'які вимоги впливають лише на бал
+        points.append(ScoredPoint(i, fs, round(score, 2), not viol, viol, summary=summary, warnings=warn,
+                                  unchecked=unchecked_requirements(summary, requirements)))
 
     feasible = [p for p in points if p.feasible]
     if feasible:

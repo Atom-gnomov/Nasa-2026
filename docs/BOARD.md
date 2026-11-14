@@ -79,7 +79,7 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 - **Зараз:** —
 - **Гілка:** —
-- **Зараз (агент Claude):** M12–M14 злито в `main` (PR #26–#28); далі — B9 `/api/mission`, M18; з Велесом не перетинаюсь (`app/core/`, `app/services/`).
+- **Зараз (агент Claude):** — (PR Велеса #29–#33 злито; наступне: I6, M17, B9).
 - **Гілка (агент Claude):** `claude/wizardly-keller-qd77lt` (змінюється від свіжого `main` для нової задачі)
 
 ### Велес

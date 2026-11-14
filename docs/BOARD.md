@@ -84,8 +84,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Велес
 
-- **Зараз:** —
-- **Гілка:** —
+- **Зараз:** D6 — каталог систем запуску з першоджерел (`app/data/launch_systems.json`)
+- **Гілка:** `veles/D6-launch-systems`
 
 ### Ярило
 

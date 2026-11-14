@@ -79,13 +79,13 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 - **Зараз:** —
 - **Гілка:** —
-- **Зараз (агент Claude):** — (PR #23 і #24 злито; чекаємо вашого вибору наступних задач)
+- **Зараз (агент Claude):** — (PR Велеса #29–#33 злито; наступне: I6, M17, B9).
 - **Гілка (агент Claude):** `claude/wizardly-keller-qd77lt` (змінюється від свіжого `main` для нової задачі)
 
 ### Велес
 
-- **Зараз:** D2 — звірка DSN і космодромів, мінімальні кути антен; D5 — джерела порогів профілів місії
-- **Гілка:** `veles/D2-dsn-launch-sites`, `veles/D5-profile-sources`
+- **Зараз:** —
+- **Гілка:** —
 
 ### Ярило
 
@@ -132,6 +132,12 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 - F13 — `datetime` з URL нормалізується до UTC — гілка `veles/F13-datetime-utc`, PR #17
 - F3 — Кроки календаря ±1 год / ±1 доба / ±29,53 доби — гілка `veles/F3-calendar-steps`, PR #18
 - F4 — Порівняння двох місць (`compare.js`) — гілка `veles/F4-compare`, PR #19
+- D2 — Станції DSN за 810-005 модуль 301 Rev. P, примітки до місць старту — гілка `veles/D2-dsn-launch-sites`, PR #29
+- D5 — Пороги профілів місії з першоджерел (`mission_thresholds.json`) — гілка `veles/D5-profile-sources`, PR #30
+- G6 — Режими якості 3D «низька / висока» і 2D-заглушка без WebGL — гілка `veles/G6-quality-2d`, PR #31
+- F5 — Графіки таймлайну: Сонце, Земля й зв'язок DSN за місячну добу — гілка `veles/F5-timeline-charts`, PR #32
+- G7 — Вид «з поверхні»: горизонт LOLA, Сонце й Земля за місячну добу (П-3) — гілка `veles/G7-surface-view`, PR #33
+- G7 (доопрацювання за зауваженням користувача) — `GET /api/terrain` і вид «з поверхні» v2: поверхня з DEM, освітлення й тіні, панорама, фаза Землі — гілка `veles/G7-surface-v2`, PR #35
 
 ### Ярило
 

@@ -74,7 +74,7 @@
 
 | Джерело | Що дає | Посилання |
 |---|---|---|
-| **DSN 810-005, модуль 301 (Coverage and Geometry)** | Точні координати антен DSN і маски горизонту станцій | https://deepspace.jpl.nasa.gov/dsndocs/810-005/ |
+| **DSN 810-005, модуль 301 (Coverage and Geometry), Rev. P** | Точні координати антен DSN (табл. 5, WGS 84, ±3 см), нижня межа передавання 10,1° (§2.2.4), механічна межа ≈ 6° (§2.2.2), маски горизонту за азимутом (рис. 10–25). Використано в `app/data/dsn_stations.json` (D2, PR #29) | https://deepspace.jpl.nasa.gov/dsndocs/810-005/301/301P.pdf |
 | **NAIF earthstns kernel** | Координати станцій DSN у форматі SPICE | https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/stations/ |
 | **DSN Now** | Жива картина: які антени з якими апаратами працюють (для натхнення UI) | https://eyes.nasa.gov/apps/dsn-now/ |
 
@@ -85,6 +85,9 @@
 | **NASA — Artemis III candidate regions** | Спочатку 13 районів (2022), потім 9 районів біля південного полюса | https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/ ⚠️ |
 | **NASA — Artemis overview для Space Apps 2025** | Обмеження південного полюса: Сонце й Земля на висоті ~2–7°, двотижневий цикл видимості Землі, нахили < 10° | https://ntrs.nasa.gov/citations/20250009323 |
 | **NASA CLPS** | Список місій і місць посадки CLPS | https://www.nasa.gov/commercial-lunar-payload-services/ |
+| **NASA-STD-3001, Vol. 1, Rev. C (2023)** | Радіаційні ліміти екіпажу: кар'єрна ефективна доза < 600 мЗв [V1 4030], сонячна протонна подія < 250 мЗв [V1 4031], ліміти органів за 30 діб / рік (табл. 4.8-1). Використано в `app/data/mission_thresholds.json` (D5, PR #30) | https://standards.nasa.gov/sites/default/files/standards/NASA/C/nasa-std-3001-vol-1-rev-c-signature.pdf |
+| **Artemis Human Landing System Update (NASA, 2024)** | «Key Artemis III Landing Requirements» (с. 19): нахил посадки (100 м) < 10°, EVA (2 км) < 20°, зв'язок напряму із Землею; фільтри аналізу: видимість Землі ≥ 25 %, Сонця ≥ 5 % (с. 23–24). D5 | https://ntrs.nasa.gov/citations/20240009596 |
+| **NASA OIG IG-26-004 (2026)** | Нахил посадкового модуля після посадки ≤ 8° для дій екіпажу (с. 30). D5 | https://oig.nasa.gov/wp-content/uploads/2026/03/final-report-ig-26-004-nasas-management-of-the-human-landing-system-contracts.pdf |
 
 ## 7. Запуски: вартість, надійність, космодроми
 
@@ -92,6 +95,7 @@
 |---|---|---|
 | **CSIS — Space Launch to LEO: How Much Does It Cost?** | Вартість виведення 1 кг на НОО за ракетами (дані до 2019) | https://aerospace.csis.org/data/space-launch-to-low-earth-orbit-how-much-does-it-cost/ |
 | **Our World in Data** | Той самий датасет у доларах 2021 року | https://ourworldindata.org/grapher/cost-space-launches-low-earth-orbit |
+| **Ariane 6 User's Manual, Issue 2 Rev. 0 (2021)** | Координати стартового комплексу Ariane 6 у Куру, §6.2.3.2: записано як «5°26’46’’ N, 52°79’22’’ W (TBC)» — це десяткові градуси 5,2646° / −52,7922° (D2) | https://ariane.group/app/uploads/sites/4/2024/10/Mua-6_Issue-2_Revision-0_March-2021.pdf |
 | **Jonathan McDowell — GCAT / Launch Log** | Повний журнал запусків: успішні й аварійні запуски за ракетами та космодромами (для розрахунку ймовірності аварії) | https://planet4589.org/space/gcat/ |
 
 ## 8. Готові інструменти (для порівняння та натхнення UI)

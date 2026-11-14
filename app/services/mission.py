@@ -95,8 +95,9 @@ def compute(body: Mapping) -> dict:
     choice = launch_system.to_rocket(system) if system else None
     rocket_kwargs = {"rocket": choice.rocket} if choice else {}
     estimate = cost.mission_cost(budget.masses_kg, trajectory=trajectory, latitude_deg=lat, **rocket_kwargs)
+    risk_kwargs = {"params": choice.risk_params()} if choice else {}  # база відмови — цієї ракети (M21)
     assessment = risk.assess(estimate.utilization, estimate.mass_moon_kg, budget.sizes, crew=crew,
-                             trajectory=trajectory)
+                             trajectory=trajectory, **risk_kwargs)
     return {
         "provisional": True,
         "launch_lat": lat,

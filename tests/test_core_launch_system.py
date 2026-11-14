@@ -91,3 +91,81 @@ def test_catalog_loader_gives_the_same_rows(app):
     with app.app_context():
         rows = catalogs.load_launch_systems()
     assert [r["id"] for r in rows] == [r["id"] for r in CATALOG]
+
+
+# ---------- M21: економіка з каталогу (D8) на синтетичних фактах ----------
+def _fact_row(**facts):
+    """Рядок каталогу з місткістю 20 000 кг і заданими фактами (синтетичний, не дані про реальну ракету)."""
+    base = {"id": "synthetic", "name": "Синтетична ракета", "kind": "spaceport", "active": True,
+            "launch_site_ids": ["kourou"], "facts": []}
+    src = {"title": "t", "ref": "r", "url": "https://example.org", "kind": "primary"}
+    for quantity, value in {"capacity_leo_kg": 20000, **facts}.items():
+        base["facts"].append({"quantity": quantity, "value": value, "source": src, "quote": "синтетична цитата тесту"})
+    return base
+
+
+def test_failure_from_flights_uses_laplace_rule_with_wilson_range():
+    p, (lo, hi) = ls.failure_from_flights(100, 2)
+    assert p == pytest.approx(3 / 102)
+    assert 0 <= lo < p < hi <= 1
+    p0, (lo0, hi0) = ls.failure_from_flights(10, 0)
+    assert p0 == pytest.approx(1 / 12) and lo0 == 0 and hi0 > p0  # навіть без невдач — не нуль
+    few = ls.failure_from_flights(3, 0)[1]
+    many = ls.failure_from_flights(300, 0)[1]
+    assert (few[1] - few[0]) > (many[1] - many[0])  # мало польотів — широкий діапазон
+    with pytest.raises(ValueError):
+        ls.failure_from_flights(0, 0)
+    with pytest.raises(ValueError):
+        ls.failure_from_flights(5, 6)
+
+
+def test_catalog_price_and_flight_stats_replace_provisional_values():
+    system = ls.from_catalog(_fact_row(price_usd_per_kg_leo_min=1500, price_usd_per_kg_leo_max=2500,
+                                       flights_total=200, flights_failed=3))
+    assert system.price_usd_per_kg == (1500.0, 2500.0) and (system.flights_total, system.flights_failed) == (200, 3)
+    choice = ls.to_rocket(system)
+    assert choice.provisional_fields == ()  # усе з каталогу
+    assert choice.rocket.price_usd_per_kg == (1500.0, 2500.0)
+    assert choice.rocket.failure_probability == pytest.approx(4 / 202)
+    assert choice.failure_range is not None and choice.failure_range[0] < choice.rocket.failure_probability
+    assert choice.risk_params().p_launch_base == pytest.approx(4 / 202)
+    assert system.to_dict()["failure_probability"] == pytest.approx(4 / 202)
+
+
+def test_partial_data_keeps_only_the_missing_field_provisional():
+    only_price = ls.to_rocket(ls.from_catalog(_fact_row(price_usd_per_kg_leo_min=1000, price_usd_per_kg_leo_max=2000)))
+    assert only_price.provisional_fields == ("failure_probability",)
+    only_stats = ls.to_rocket(ls.from_catalog(_fact_row(flights_total=50, flights_failed=1)))
+    assert only_stats.provisional_fields == ("price_usd_per_kg",)
+    half_price = ls.from_catalog(_fact_row(price_usd_per_kg_leo_min=1000))  # лише мінімум — ціни немає
+    assert half_price.price_usd_per_kg is None
+    zero_flights = ls.to_rocket(ls.from_catalog(_fact_row(flights_total=0, flights_failed=0)))
+    assert "failure_probability" in zero_flights.provisional_fields  # статистики немає
+
+
+def test_explicit_values_win_over_catalog():
+    system = ls.from_catalog(_fact_row(price_usd_per_kg_leo_min=1500, price_usd_per_kg_leo_max=2500,
+                                       flights_total=200, flights_failed=3))
+    choice = ls.to_rocket(system, price_usd_per_kg=(10.0, 20.0), failure_probability=0.5)
+    assert choice.rocket.price_usd_per_kg == (10.0, 20.0) and choice.rocket.failure_probability == 0.5
+    assert choice.failure_range is None
+
+
+@pytest.mark.parametrize("facts", [
+    {"price_usd_per_kg_leo_min": 3000, "price_usd_per_kg_leo_max": 2000},
+    {"price_usd_per_kg_leo_min": 0, "price_usd_per_kg_leo_max": 2000},
+    {"flights_total": 5.5, "flights_failed": 0},
+    {"flights_total": -1, "flights_failed": 0},
+])
+def test_invalid_catalog_economics_is_rejected(facts):
+    with pytest.raises(ValueError):
+        ls.from_catalog(_fact_row(**facts))
+
+
+def test_more_failures_raise_launch_risk_in_the_model():
+    reliable = ls.to_rocket(ls.from_catalog(_fact_row(flights_total=300, flights_failed=1)))
+    shaky = ls.to_rocket(ls.from_catalog(_fact_row(flights_total=30, flights_failed=6)))
+    sizes = {"equipment": 0.5, "life_support": 0.0, "comfort": 0.0}
+    a = risk.assess(0.5, 1000.0, sizes, params=reliable.risk_params())
+    b = risk.assess(0.5, 1000.0, sizes, params=shaky.risk_params())
+    assert b.p_launch > a.p_launch and b.p_total > a.p_total

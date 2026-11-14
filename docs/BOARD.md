@@ -104,8 +104,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Чорнобог
 
-- **Зараз:** M19 → D7 → M20 → B15 — ланцюжок «звідки летіти» (П-12): Δv з майданчика, каталог ракет, ранжування стартів, `POST /api/launch-ranking`; M10 — на рев'ю (PR #44)
-- **Гілка:** `chornobog/M19-launch-dv`, далі `chornobog/D7-rockets`, `chornobog/M20-launch-rank`, `chornobog/B15-launch-ranking`
+- **Зараз:** — (ланцюжок M10 → M19 → D7 → M20 → B15 на рев'ю: PR #44, #45, #49, #51, #53; зливати в цьому порядку)
+- **Гілка:** —
 
 ---
 
@@ -157,3 +157,4 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 - M19 — Δv з майданчика (`app/core/launch.py`): азимут, нахил, вікна на добу, доворот площини — гілка `chornobog/M19-launch-dv`, PR #45
 - D7 — Каталог сучасних ракет з першоджерел (`app/data/rockets.json` + схема) — гілка `chornobog/D7-rockets`, PR #49
 - M20 — Ранжування майданчиків і ракет (`app/core/launch_rank.py`) — гілка `chornobog/M20-launch-rank`, PR #51
+- B15 — `POST /api/launch-ranking`: контракт, сервіс, маршрут — гілка `chornobog/B15-launch-ranking`, PR #53

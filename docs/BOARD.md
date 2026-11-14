@@ -79,8 +79,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 - **Зараз:** —
 - **Гілка:** —
-- **Зараз (агент Claude):** F9 + F11 — панель «Місія» з повзунком «Безпілотна ↔ Пілотована» (без ескізу; `/api/mission`, `/api/launch-systems`; нова вкладка `mission.html` і `mission.js`; не перетинаюсь з Чорнобогом (`system_view.js`, `launch_*`) і Велесом (D4))
-- **Гілка (агент Claude):** `perun/F9-mission-panel`
+- **Зараз (агент Claude):** M22 — підключення таблиць D4 (`payload_tables.json`) до `payload.py` і `cost.py` (F9, F11 злито: PR #70)
+- **Гілка (агент Claude):** `perun/M22-payload-tables`
 
 ### Велес
 

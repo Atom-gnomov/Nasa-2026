@@ -70,13 +70,13 @@ export function eventText(name, visible, i, stepH) {
   return `${up ? "над" : "під"} горизонтом, ${what} ${h >= 48 ? `${(h / 24).toFixed(1)} доби` : `${h.toFixed(1)} год`}`;
 }
 
-// Межі осі кутів місця для розгортки: від −5° (або нижче рельєфу) до найвищої точки з запасом, ≤ 90°.
+// Межі осі кутів місця для розгортки: від −10° (під горизонтом видно лише поріг) до найвищої точки з запасом.
+// Сонце чи Земля глибоко під горизонтом шкалу не розтягують: їх там не видно за самим рельєфом.
 export function panoramaRange(mask, series) {
-  const vals = [...mask.elevations_deg, ...series.sun, ...series.earth];
-  const lo = Math.min(-5, ...vals.filter((v) => v > -30));
+  const vals = [...mask.elevations_deg, ...series.sun, ...series.earth].filter((v) => v >= -10);
   const hi = Math.max(10, ...vals);
-  const step = hi - lo > 60 ? 30 : hi - lo > 20 ? 10 : 5;
-  return { min: Math.floor(lo / step) * step, max: Math.min(90, Math.ceil(hi / step) * step), step };
+  const step = hi + 10 > 60 ? 30 : hi + 10 > 20 ? 10 : 5;
+  return { min: -10, max: Math.min(90, Math.ceil(hi / step) * step), step };
 }
 
 // Підписи сторін світу на горизонті; на самому полюсі — від меридіана 0°.

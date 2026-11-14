@@ -11,6 +11,7 @@ export const QUALITY = {
     antialias: false,
     anisotropyMax: 4,
     polarTiles: false, // детальний рельєф полюса LOLA 80 і 20 м (≈ 60 МБ) не вантажимо
+    terrainN: 121, // вузлів на сторону сітки поверхні виду «з поверхні» (/api/terrain?n=…)
   },
   high: {
     label: "висока",
@@ -18,6 +19,7 @@ export const QUALITY = {
     antialias: true,
     anisotropyMax: 16,
     polarTiles: true,
+    terrainN: null, // за замовчуванням API: крок сітки ≈ роздільності DEM, до 301 вузла
   },
 };
 export const DEFAULT_QUALITY = "low";

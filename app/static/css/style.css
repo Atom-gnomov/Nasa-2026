@@ -17,6 +17,10 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.4 syst
 #view { padding: 16px; padding-right: 300px; }
 .moon-layout { display: grid; grid-template-columns: 1fr 280px; gap: 16px; }
 .canvas-host { min-height: 60vh; background: #000; border: 1px solid var(--border); border-radius: 8px; display: grid; place-items: center; }
+.fallback-2d { display: block; padding: 8px; min-height: 0; }
+.fallback-map { position: relative; cursor: crosshair; line-height: 0; }
+.fallback-map img { width: 100%; height: auto; display: block; border-radius: 4px; }
+.fallback-marker { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: var(--accent); border: 2px solid #000; pointer-events: none; }
 .side-panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
 .placeholder { color: var(--muted); }
 .mode-switch { margin-bottom: 12px; display: flex; gap: 8px; }

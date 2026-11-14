@@ -8,7 +8,8 @@
 // Одиниця сцени — 1000 км.
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { createScene } from "./three/scene.js";
+import { anisotropy, createScene, hasWebGL, NO_WEBGL_MESSAGE } from "./three/scene.js";
+import { mountQualitySelect, qualitySettings } from "./three/quality.js";
 import { getState, setState, subscribe } from "./state.js";
 
 const DEG = Math.PI / 180;
@@ -182,15 +183,75 @@ function phaseName(fraction, waxing) {
   return waxing ? "зростаючий місяць" : "спадаючий місяць";
 }
 
+// ---------- Факти про систему: лише з відповідей API, без 3D-сцени (працюють і без WebGL) ----------
+const setFact = (k, v) => { const el = document.querySelector(`[data-fact="${k}"]`); if (el) el.textContent = v; };
+
+function systemFacts(st) {
+  const f = {};
+  const dKm = Math.hypot(...st.moon_km);
+  f.datetime = st.datetime.replace("T", " ");
+  f.distance = `${fmtKm(dKm)} (світло ${(dKm / C_KM_S).toFixed(3)} с)`;
+  const ill = st.moon_illumination;
+  if (ill) {
+    // Зростаючий: екліптична довгота Місяця − Сонця в (0°, 180°)
+    const m = toScene(st.moon_km), s = toScene(st.sun_km);
+    const elong = ((Math.atan2(-m.z, m.x) - Math.atan2(-s.z, s.x)) / DEG + 360) % 360;
+    f.phase = `${phaseName(ill.fraction, elong < 180)}, освітлено ${(ill.fraction * 100).toFixed(1)}%`;
+  }
+  if (st.earth_sub_solar_point) f.earth_sun = `${fmtLat(st.earth_sub_solar_point.lat)}, ${fmtLon(st.earth_sub_solar_point.lon)}`;
+  if (st.earth_sub_lunar_point) f.earth_moon = `${fmtLat(st.earth_sub_lunar_point.lat)}, ${fmtLon(st.earth_sub_lunar_point.lon)}`;
+  f.moon_sun = `${fmtLat(st.sub_solar_point.lat)}, ${fmtLon(st.sub_solar_point.lon)}`;
+  return f;
+}
+
+function orbitFacts(od) {
+  const m = od.moon.elements, e = od.earth.elements;
+  return {
+    orbit_moon: `a = ${fmtKm(m.a_km)}, e = ${m.e.toFixed(4)}, нахил ${m.inclination_deg.toFixed(2)}°, ` +
+      `перигей ${fmtKm(m.periapsis_km)}, апогей ${fmtKm(m.apoapsis_km)}; справжній шлях відходить до ${fmtKm(od.moon.max_deviation_km)}`,
+    orbit_earth: `a = ${(e.a_km / 149597870.7).toFixed(6)} а.о., e = ${e.e.toFixed(5)}, період ${e.period_days.toFixed(2)} д; ` +
+      `відхилення за рік до ${fmtKm(od.earth.max_deviation_km)}`,
+  };
+}
+
+// ---------- Без WebGL (М16): повідомлення замість сцени, факти — на дату календаря ----------
+function mainWithoutWebGL() {
+  // display, а не hidden: .seg має display: flex
+  for (const el of document.querySelectorAll(".system-toolbar > :not(.mode-switch)")) el.style.display = "none";
+  host.innerHTML = `<p class="placeholder">${NO_WEBGL_MESSAGE} Факти про систему на дату календаря — у панелі праворуч.</p>`;
+  for (const k of ["point", "dsn"]) setFact(k, "потрібне 3D (WebGL)");
+  let abort = null;
+  subscribe(async ({ datetime }) => {
+    abort?.abort();
+    abort = new AbortController();
+    const q = new URLSearchParams({ datetime });
+    try {
+      const [sys, orb] = await Promise.all([`/api/system?${q}`, `/api/orbits?${q}`].map(async (url) => {
+        const res = await fetch(url, { signal: abort.signal });
+        const body = await res.json();
+        if (!res.ok) throw new Error(body.detail || res.statusText);
+        return body;
+      }));
+      for (const [k, v] of Object.entries({ ...systemFacts(sys), ...orbitFacts(orb) })) setFact(k, v);
+      $("system-note").textContent = "";
+    } catch (err) {
+      if (err.name !== "AbortError") $("system-note").textContent = `Немає даних ефемерид: ${err.message}`;
+    }
+  });
+}
+
 // ---------- Основна функція ----------
 async function main() {
+  const quality = qualitySettings();
+  mountQualitySelect($("quality-select"));
+  if (!hasWebGL()) { mainWithoutWebGL(); return; }
   let assets = null;
   try {
     const res = await fetch("/assets/system/system.json", { cache: "no-cache" });
     if (res.ok) assets = await res.json();
   } catch { /* немає даних — тіла будуть однотонними */ }
 
-  const ctx = createScene(host, { logarithmicDepthBuffer: true });
+  const ctx = createScene(host, { logarithmicDepthBuffer: true, quality });
   if (!ctx) return;
   const { scene, camera, renderer, controls } = ctx;
   camera.near = 0.001;
@@ -204,7 +265,7 @@ async function main() {
     try {
       const t = await loader.loadAsync(url);
       t.colorSpace = THREE.SRGBColorSpace;
-      t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      t.anisotropy = anisotropy(renderer, quality);
       return t;
     } catch { return null; }
   };
@@ -630,29 +691,11 @@ async function main() {
   }
 
   function updateFacts(facts) {
-    const set = (k, v) => { const el = document.querySelector(`[data-fact="${k}"]`); if (el) el.textContent = v; };
-    const dKm = Math.hypot(...state.moon_km);
-    set("datetime", playing ? isoUtc(simMs).replace("T", " ") : state.datetime.replace("T", " "));
-    set("distance", `${fmtKm(dKm)} (світло ${(dKm / C_KM_S).toFixed(3)} с)`);
-    const ill = state.moon_illumination;
-    if (ill) {
-      // Зростаючий: екліптична довгота Місяця − Сонця в (0°, 180°)
-      const m = toScene(state.moon_km), s = toScene(state.sun_km);
-      const elong = ((Math.atan2(-m.z, m.x) - Math.atan2(-s.z, s.x)) / DEG + 360) % 360;
-      set("phase", `${phaseName(ill.fraction, elong < 180)}, освітлено ${(ill.fraction * 100).toFixed(1)}%`);
-    }
-    if (state.earth_sub_solar_point) set("earth_sun", `${fmtLat(state.earth_sub_solar_point.lat)}, ${fmtLon(state.earth_sub_solar_point.lon)}`);
-    if (state.earth_sub_lunar_point) set("earth_moon", `${fmtLat(state.earth_sub_lunar_point.lat)}, ${fmtLon(state.earth_sub_lunar_point.lon)}`);
-    set("moon_sun", `${fmtLat(state.sub_solar_point.lat)}, ${fmtLon(state.sub_solar_point.lon)}`);
-    set("point", facts.point ?? "не вибрано (клік по Місяцю)");
-    set("dsn", facts.dsn);
-    if (orbitData) {
-      const m = orbitData.moon.elements, e = orbitData.earth.elements;
-      set("orbit_moon", `a = ${fmtKm(m.a_km)}, e = ${m.e.toFixed(4)}, нахил ${m.inclination_deg.toFixed(2)}°, ` +
-        `перигей ${fmtKm(m.periapsis_km)}, апогей ${fmtKm(m.apoapsis_km)}; справжній шлях відходить до ${fmtKm(orbitData.moon.max_deviation_km)}`);
-      set("orbit_earth", `a = ${(e.a_km / 149597870.7).toFixed(6)} а.о., e = ${e.e.toFixed(5)}, період ${e.period_days.toFixed(2)} д; ` +
-        `відхилення за рік до ${fmtKm(orbitData.earth.max_deviation_km)}`);
-    }
+    const f = { ...systemFacts(state), ...(orbitData ? orbitFacts(orbitData) : {}) };
+    if (playing) f.datetime = isoUtc(simMs).replace("T", " ");
+    f.point = facts.point ?? "не вибрано (клік по Місяцю)";
+    f.dsn = facts.dsn;
+    for (const [k, v] of Object.entries(f)) setFact(k, v);
   }
 
   // Перше завантаження: погляд під кутом ~25° до площини екліптики

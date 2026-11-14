@@ -79,8 +79,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 - **Зараз:** —
 - **Гілка:** —
-- **Зараз (агент Claude):** B19 (єдиний каталог засобів запуску в «Місії»), далі M22 (таблиці D4 у модель) і M23 (вимоги до місця посадки); B18/F16 — після них
-- **Гілка (агент Claude):** `perun/B19-unified-vehicles`, далі `perun/M22-payload-tables`, `perun/M23-landing-requirements`
+- **Зараз (агент Claude):** M23 — вимоги до місця посадки (нахил, видимість Землі й Сонця, доза; з профілю місії) у `/search` і `/rank`; далі M22 (таблиці D4 у модель) і B18 (`/api/plan`). Злито: B19 (PR #73), D8 (Велес, PR #72); M21b — PR #74
+- **Гілка (агент Claude):** `perun/M23-landing-requirements`, далі `perun/M22-payload-tables`, `perun/B18-plan`
 
 ### Велес
 

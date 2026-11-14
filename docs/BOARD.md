@@ -79,13 +79,13 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 - **Зараз:** —
 - **Гілка:** —
-- **Зараз (агент Claude):** — (B13, B16, I7, B1 злито в `main`: PR #46–#48, #50); далі B8 після злиття M10 (PR #44)
-- **Гілка (агент Claude):** `perun/B13-profile-rank`, далі `perun/B16-mission-launch-system`, `perun/I7-auto-prepare-data`, `perun/B1-shared-visibility`
+- **Зараз (агент Claude):** — (B15, B17, I8, виправлення I7 злито в `main`: PR #53, #55, #56, #58); вільний для нових задач
+- **Гілка (агент Claude):** `perun/B17-mission-profile`, далі `perun/I8-docs-env`
 
 ### Велес
 
-- **Зараз:** D6 — каталог систем запуску з першоджерел (`app/data/launch_systems.json`)
-- **Гілка:** `veles/D6-launch-systems`
+- **Зараз:** —
+- **Гілка:** —
 
 ### Ярило
 
@@ -104,8 +104,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Чорнобог
 
-- **Зараз:** B8 → F7 — вікно запуску: `GET /api/launch-window` і екран зі шкалою дат у %
-- **Гілка:** `chornobog/B8-launch-window`, далі `chornobog/F7-launch-window-ui`
+- **Зараз:** G9 → M7 — 3D: траєкторія старт → Місяць, ракета й модуль (П-5); орієнтація Місяця з PCK DE440 (опція); на рев'ю: B8 #54, F7 #57
+- **Гілка:** `chornobog/G9-trajectory-3d`, далі `chornobog/M7-pck-orientation`
 
 ---
 
@@ -138,6 +138,9 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 - F5 — Графіки таймлайну: Сонце, Земля й зв'язок DSN за місячну добу — гілка `veles/F5-timeline-charts`, PR #32
 - G7 — Вид «з поверхні»: горизонт LOLA, Сонце й Земля за місячну добу (П-3) — гілка `veles/G7-surface-view`, PR #33
 - G7 (доопрацювання за зауваженням користувача) — `GET /api/terrain` і вид «з поверхні» v2: поверхня з DEM, освітлення й тіні, панорама, фаза Землі — гілка `veles/G7-surface-v2`, PR #35
+- D6 — Каталог систем запуску з першоджерел (Pegasus XL, LauncherOne, Sea Launch, Ariane 6) — гілка `veles/D6-launch-systems`, PR #36
+- F8 — Перемикач мови інтерфейсу UA / EN (`i18n.js`, словник `en.json`, 228 з 228 текстів шаблонів) — гілка `veles/F8-i18n`, PR #59
+- D6 (доопрацювання за рев'ю #36) — дослівні цитати першоджерел до статусів Pegasus XL і Ariane 64 — гілка `veles/D6-source-quotes`, PR #60
 
 ### Ярило
 
@@ -158,3 +161,6 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 - D7 — Каталог сучасних ракет з першоджерел (`app/data/rockets.json` + схема) — гілка `chornobog/D7-rockets`, PR #49
 - M20 — Ранжування майданчиків і ракет (`app/core/launch_rank.py`) — гілка `chornobog/M20-launch-rank`, PR #51
 - B15 — `POST /api/launch-ranking`: контракт, сервіс, маршрут — гілка `chornobog/B15-launch-ranking`, PR #53
+- B8 — `GET /api/launch-window`: оцінка у % для кожної дати старту — гілка `chornobog/B8-launch-window`, PR #54
+- F7 — Вкладка «Вікно запуску»: шкала дат з оцінкою у %, найкраща дата, клік — у календар — гілка `chornobog/F7-launch-window-ui`, PR #57
+- I7 (виправлення) — запуск і автопідготовка даних під Windows: перевірка процесу через WinAPI, UTF-8 виводу скриптів (`app/services/bootstrap.py`) — гілка `chornobog/fix-bootstrap-windows`, PR #58

@@ -159,7 +159,7 @@ paths:
     get:
       tags: [planning]
       x-status: implemented
-      summary: Системи запуску (ракета + спосіб старту) з першоджерел
+      summary: Засоби запуску з першоджерел — системи (D6) і сучасні ракети (D7)
       description: |
         Каталог D6 (`app/data/launch_systems.json`) у стислому вигляді: спосіб старту, місткість на НОО
         (`null`, якщо в джерелах її немає — наприклад, лише ГПО), висота скидання для повітряного старту,
@@ -1604,9 +1604,26 @@ components:
     LaunchSystem:
       type: object
       required: [id, name, kind, active, capacity_leo_kg, capacity_condition, drop_altitude_m, launch_site_ids,
-                 price_usd_per_kg_leo, flights_total, flights_failed, failure_probability]
+                 price_usd_per_kg_leo, flights_total, flights_failed, failure_probability,
+                 catalog, status, verified_by_flight, capacity_tli_kg, capacity_basis]
       additionalProperties: false
       properties:
+        catalog:
+          type: string
+          enum: [launch_systems, rockets]
+          description: Звідки запис — launch_systems (системи запуску D6, зокрема повітряний старт і морська платформа) або rockets (сучасні ракети D7)
+        status:
+          type: [string, "null"]
+          enum: [active, in_testing, design_target, retired, null]
+          description: Лише для ракет D7, для систем D6 — null (там є поле active)
+        verified_by_flight:
+          type: [boolean, "null"]
+          description: Чи підтверджено польотом (проєктні цілі — false); для систем D6 null
+        capacity_tli_kg: {type: [number, "null"], description: Місткість на траєкторію до Місяця, якщо є в каталозі}
+        capacity_basis:
+          type: [string, "null"]
+          enum: [leo, tli, null]
+          description: Яка місткість іде в розрахунок «Місії» — tli, якщо відома (як у ранжуванні старту), інакше leo; null — жодної
         price_usd_per_kg_leo:
           oneOf:
             - {$ref: "#/components/schemas/Range2"}
@@ -1640,11 +1657,14 @@ components:
           description: Поля ракети, яких немає в каталозі — використано тимчасові значення «типової ракети»
         rocket:
           type: object
-          required: [name, capacity_leo_kg, price_usd_per_kg, failure_probability]
+          required: [name, capacity_leo_kg, capacity_basis, price_usd_per_kg, failure_probability]
           additionalProperties: false
           properties:
             name: {type: string}
-            capacity_leo_kg: {type: number}
+            capacity_leo_kg:
+              type: number
+              description: Еквівалентна місткість на НОО; якщо в основі місткість на TLI, її переведено множником розгінного блока
+            capacity_basis: {type: string, enum: [leo, tli], description: Основа місткості — leo чи tli}
             price_usd_per_kg: {$ref: "#/components/schemas/Range2"}
             failure_probability: {type: number}
         fit:

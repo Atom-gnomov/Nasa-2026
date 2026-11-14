@@ -1,5 +1,6 @@
 """Система запуску замість «типової ракети» (app/core/launch_system.py, M18)."""
 
+import dataclasses
 import json
 from pathlib import Path
 
@@ -30,7 +31,9 @@ def test_to_rocket_uses_catalog_capacity_and_lists_provisional_fields():
     choice = ls.to_rocket(_system("ariane-64"))
     assert choice.rocket.capacity_leo_kg == 21600.0 and choice.rocket.name.startswith("Ariane 64")
     assert choice.rocket.price_usd_per_kg == cost.DEFAULT_ROCKET.price_usd_per_kg
-    assert choice.provisional_fields == ("price_usd_per_kg", "failure_probability")
+    # D8: у каталозі є статистика польотів Ariane 64 (3 з 3 вдалі за GCAT) — база відмови вже не тимчасова
+    assert choice.provisional_fields == ("price_usd_per_kg",)
+    assert choice.rocket.failure_probability == pytest.approx(ls.failure_from_flights(3, 0)[0])
 
 
 def test_explicit_price_and_failure_are_not_provisional():
@@ -38,7 +41,9 @@ def test_explicit_price_and_failure_are_not_provisional():
     assert choice.rocket.price_usd_per_kg == (3000.0, 4000.0) and choice.rocket.failure_probability == 0.05
     assert choice.provisional_fields == ()
     only_price = ls.to_rocket(_system("ariane-64"), price_usd_per_kg=(3000.0, 4000.0))
-    assert only_price.provisional_fields == ("failure_probability",)
+    assert only_price.provisional_fields == ()  # відмова — зі статистики польотів каталогу (D8)
+    no_stats = dataclasses.replace(_system("ariane-64"), flights_total=None, flights_failed=None)
+    assert ls.to_rocket(no_stats, price_usd_per_kg=(3000.0, 4000.0)).provisional_fields == ("failure_probability",)
 
 
 def test_system_without_leo_capacity_is_rejected():
@@ -169,3 +174,46 @@ def test_more_failures_raise_launch_risk_in_the_model():
     a = risk.assess(0.5, 1000.0, sizes, params=reliable.risk_params())
     b = risk.assess(0.5, 1000.0, sizes, params=shaky.risk_params())
     assert b.p_launch > a.p_launch and b.p_total > a.p_total
+
+
+# ---------- B19: ракети D7 і основа місткості ----------
+def _rocket(rid):
+    path = Path(__file__).resolve().parents[1] / "app" / "data" / "rockets.json"
+    rows = json.loads(path.read_text(encoding="utf-8"))
+    return ls.from_catalog(next(r for r in rows if r["id"] == rid), "rockets")
+
+
+def test_rocket_rows_get_status_and_flight_proof_and_site_kind():
+    f9, starship, lm10, vc6 = _rocket("falcon-9"), _rocket("starship"), _rocket("long-march-10"), _rocket("vulcan-vc6")
+    assert (f9.catalog, f9.kind, f9.active, f9.verified_by_flight) == ("rockets", "spaceport", True, True)
+    assert (starship.active, starship.status, starship.verified_by_flight) == (None, "in_testing", False)
+    assert (lm10.active, lm10.status) == (None, "design_target")
+    assert vc6.active is True and vc6.verified_by_flight is False  # діюча сім'я, але саме ця конфігурація не літала
+
+
+def test_capacity_basis_prefers_tli_like_the_ranking():
+    assert _rocket("falcon-9").capacity_basis == "leo"
+    assert _rocket("sls-block-1").capacity_basis == "tli"
+    assert _rocket("vulcan-vc2").capacity_basis == "tli"  # є і НОО, і TLI — береться TLI, як у launch_rank
+
+
+def test_tli_capacity_is_converted_with_the_burn_mass_ratio():
+    from dataclasses import replace
+    from app.core import cost
+
+    sls = _rocket("sls-block-1")
+    choice = ls.to_rocket(sls, trajectory="direct")
+    ratio = cost.mass_ratio("direct") / cost.mass_ratio("direct", replace(cost.DEFAULT_TRANSFER, dv_tli_m_s=0.0))
+    assert ratio > 1
+    assert choice.rocket.capacity_leo_kg == pytest.approx(27000 * ratio)
+    assert choice.capacity_basis == "tli"
+    # заповненість єдина: u = маса на НОО / еквівалентна місткість = маса після TLI / місткість TLI
+    mass_moon = 3000.0
+    u_leo = cost.mass_leo(mass_moon, "direct") / choice.rocket.capacity_leo_kg
+    u_tli = cost.mass_leo(mass_moon, "direct", replace(cost.DEFAULT_TRANSFER, dv_tli_m_s=0.0)) / 27000
+    assert u_leo == pytest.approx(u_tli)
+
+
+def test_unknown_catalog_is_rejected():
+    with pytest.raises(ValueError):
+        ls.from_catalog({"id": "x", "name": "x", "facts": []}, "mystery")

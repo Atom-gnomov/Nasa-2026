@@ -15,12 +15,11 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
-from dataclasses import replace
-
+from app.core import cost as _cost
 from app.core import risk
-from app.core.cost import DEFAULT_ROCKET, Range, Rocket
+from app.core.cost import DEFAULT_ROCKET, DEFAULT_TRANSFER, Range, Rocket, TransferParams
 
 KINDS = ("spaceport", "sea_platform", "air_launch")
 
@@ -38,6 +37,17 @@ class LaunchSystem:
     price_usd_per_kg: Range | None = None  # D8: ціна за кг на НОО, діапазон; None — немає в каталозі
     flights_total: int | None = None  # D8: усього польотів
     flights_failed: int | None = None  # D8: з них невдалих
+    catalog: str = "launch_systems"  # "launch_systems" (D6) | "rockets" (D7)
+    status: str | None = None  # D7: active · in_testing · design_target · retired
+    verified_by_flight: bool | None = None  # D7: чи підтверджено польотом (проєктні цілі — ні)
+    capacity_tli_kg: float | None = None  # місткість на траєкторію до Місяця (якщо є в каталозі)
+
+    @property
+    def capacity_basis(self) -> str | None:
+        """Яка місткість береться в розрахунок: `tli` (якщо відома — так само, як у ранжуванні), інакше `leo`."""
+        if self.capacity_tli_kg:
+            return "tli"
+        return "leo" if self.capacity_leo_kg else None
 
     def to_dict(self) -> dict:
         return {
@@ -47,6 +57,8 @@ class LaunchSystem:
             "price_usd_per_kg_leo": None if self.price_usd_per_kg is None else list(self.price_usd_per_kg),
             "flights_total": self.flights_total, "flights_failed": self.flights_failed,
             "failure_probability": None if self.failure_estimate() is None else self.failure_estimate()[0],
+            "catalog": self.catalog, "status": self.status, "verified_by_flight": self.verified_by_flight,
+            "capacity_tli_kg": self.capacity_tli_kg, "capacity_basis": self.capacity_basis,
         }
 
     def failure_estimate(self) -> tuple[float, Range] | None:
@@ -89,20 +101,37 @@ def failure_from_flights(flights_total: int, flights_failed: int, z: float = 1.6
     return p, (max(0.0, centre - half), min(1.0, centre + half))
 
 
-def from_catalog(row: Mapping) -> LaunchSystem:
-    """Рядок `launch_systems.json` → система запуску. Відсутні в джерелах величини лишаються `None`."""
-    if row.get("kind") not in KINDS:
+def from_catalog(row: Mapping, catalog: str = "launch_systems") -> LaunchSystem:
+    """Рядок каталогу → засіб запуску. `launch_systems.json` (D6) має `kind` і `active`; `rockets.json` (D7) —
+    `status` і `verified_by_flight` (спосіб старту — наземний космодром).
+
+    Відсутні в джерелах величини лишаються `None`.
+    """
+    if catalog not in ("launch_systems", "rockets"):
+        raise ValueError(f"Невідомий каталог {catalog!r}")
+    status = row.get("status") if catalog == "rockets" else None
+    kind = row.get("kind") or ("spaceport" if catalog == "rockets" else None)
+    if kind not in KINDS:
         raise ValueError(f"{row.get('id')}: невідомий спосіб старту {row.get('kind')!r}")
+    if catalog == "rockets":
+        # D7: діюча лише за статусом active, знята — retired; для випробувань і проєктних цілей не вигадуємо
+        active = True if status == "active" else (False if status == "retired" else None)
+    else:
+        active = row.get("active")
     capacity = _fact(row, "capacity_leo_kg")
+    tli = _fact(row, "capacity_tli_kg")
     drop = _fact(row, "drop_altitude_m")
     return LaunchSystem(
-        id=row["id"], name=row["name"], kind=row["kind"], active=row.get("active"),
+        id=row["id"], name=row["name"], kind=kind, active=active,
         capacity_leo_kg=float(capacity["value"]) if capacity else None,
         capacity_condition=capacity.get("condition") if capacity else None,
         drop_altitude_m=float(drop["value"]) if drop else None,
         launch_site_ids=tuple(row.get("launch_site_ids", ())),
         price_usd_per_kg=_price(row),
         flights_total=_int_fact(row, "flights_total"), flights_failed=_int_fact(row, "flights_failed"),
+        catalog=catalog, status=status,
+        verified_by_flight=row.get("verified_by_flight") if catalog == "rockets" else None,
+        capacity_tli_kg=float(tli["value"]) if tli else None,
     )
 
 
@@ -124,6 +153,7 @@ class RocketChoice:
     system: LaunchSystem
     provisional_fields: tuple[str, ...]
     failure_range: Range | None = None  # діапазон відмови зі статистики польотів; None — тимчасове значення
+    capacity_basis: str = "leo"  # основа `rocket.capacity_leo_kg`: leo або tli (переведена на НОО)
 
     def risk_params(self, base: risk.RiskParams = risk.DEFAULT_PARAMS) -> risk.RiskParams:
         """Параметри ризику з базою відмови цієї ракети замість загальної (`p_launch_base`)."""
@@ -132,20 +162,32 @@ class RocketChoice:
     def to_dict(self) -> dict:
         return {"system": self.system.to_dict(), "provisional_fields": list(self.provisional_fields),
                 "rocket": {"name": self.rocket.name, "capacity_leo_kg": self.rocket.capacity_leo_kg,
+                           "capacity_basis": self.capacity_basis,
                            "price_usd_per_kg": list(self.rocket.price_usd_per_kg),
                            "failure_probability": self.rocket.failure_probability}}
 
 
 def to_rocket(system: LaunchSystem, price_usd_per_kg: Range | None = None,
-              failure_probability: float | None = None, fallback: Rocket = DEFAULT_ROCKET) -> RocketChoice:
-    """Система запуску → `Rocket`: місткість з каталогу; ціна й відмова — явні, з каталогу (D8) або тимчасові.
+              failure_probability: float | None = None, fallback: Rocket = DEFAULT_ROCKET,
+              trajectory: str = "direct", transfer: TransferParams = DEFAULT_TRANSFER) -> RocketChoice:
+    """Засіб запуску → `Rocket`: місткість з каталогу; ціна й відмова — явні, з каталогу (D8) або тимчасові.
 
     Пріоритет: явне значення аргумента → факти каталогу → `fallback` (тимчасове, потрапляє в `provisional_fields`).
-    Без місткості на НОО в каталозі система непридатна (ValueError): вигадувати її не можна.
+    **База місткості:** якщо в каталозі є місткість на траєкторію до Місяця (TLI), вона важливіша — так само, як у
+    ранжуванні старту (`launch_rank`); її переводять у еквівалентну місткість на НОО множником розгінного блока
+    (`exp(Δv_TLI / (g0·Isp))`), щоб заповненість `u` лишалась єдиною для `cost` і `risk`. Без місткості на НОО і TLI
+    система непридатна (ValueError): вигадувати її не можна.
     """
-    if system.capacity_leo_kg is None:
-        raise ValueError(f"{system.name}: у каталозі немає місткості на НОО (є лише для інших орбіт)")
-    if system.capacity_leo_kg <= 0:
+    basis = system.capacity_basis
+    if basis is None:
+        raise ValueError(f"{system.name}: у каталозі немає місткості на НОО чи TLI (є лише для інших орбіт)")
+    if basis == "tli":
+        # маса на НОО / маса після TLI — те саме відношення Ціолковського, що рахує cost.mass_ratio
+        ratio = _cost.mass_ratio(trajectory, transfer) / _cost.mass_ratio(trajectory, replace(transfer, dv_tli_m_s=0.0))
+        capacity_leo = float(system.capacity_tli_kg) * ratio
+    else:
+        capacity_leo = float(system.capacity_leo_kg)
+    if capacity_leo <= 0:
         raise ValueError(f"{system.name}: місткість має бути додатною")
     provisional = []
     if price_usd_per_kg is None:
@@ -162,22 +204,23 @@ def to_rocket(system: LaunchSystem, price_usd_per_kg: Range | None = None,
         else:
             failure_probability = fallback.failure_probability
             provisional.append("failure_probability")
-    rocket = Rocket(name=system.name, capacity_leo_kg=system.capacity_leo_kg,
+    rocket = Rocket(name=system.name, capacity_leo_kg=capacity_leo,
                     price_usd_per_kg=price_usd_per_kg, failure_probability=failure_probability)
     return RocketChoice(rocket=rocket, system=system, provisional_fields=tuple(provisional),
-                        failure_range=failure_range)
+                        failure_range=failure_range, capacity_basis=basis)
 
 
-def fit(mass_leo_kg: float, system: LaunchSystem) -> dict:
+def fit(mass_leo_kg: float, system: LaunchSystem, capacity_leo_kg: float | None = None) -> dict:
     """Чи вміщується маса на НОО в систему: заповненість, кількість пусків і пояснення.
 
     Повітряний старт лише з заповненістю > 1 не збере місячний апарат докінця: стикування на орбіті для
     таких малих ракет нереалістичне, тому це окремо позначено в `note`.
     """
-    if system.capacity_leo_kg is None:
+    capacity = capacity_leo_kg if capacity_leo_kg is not None else system.capacity_leo_kg
+    if capacity is None:
         raise ValueError(f"{system.name}: у каталозі немає місткості на НОО")
-    u = mass_leo_kg / system.capacity_leo_kg
-    n = max(1, math.ceil(mass_leo_kg / system.capacity_leo_kg))
+    u = mass_leo_kg / capacity
+    n = max(1, math.ceil(mass_leo_kg / capacity))
     note = None
     if u > 1.0 and system.kind == "air_launch":
         note = "маса не вміщується в ракету з літака-носія; потрібна більша ракета, а не кілька малих"

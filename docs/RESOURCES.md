@@ -121,6 +121,8 @@
 | **Aerospace Corp. (CSPS), Jones, 2026-06 — Super Heavy Lift** | Порівняння надважких: SLS Block 1 ≈ 70 т на НОО; Falcon Heavy ≈ 64 т (інші таблиці — 57 т) | https://csps.aerospace.org/sites/default/files/2026-06/Jones_SuperHeavyLift_FINAL20260614.pdf |
 | **Wikipedia — Starship HLS** | Для посадки потрібне дозаправлення на орбіті: оцінки — від 4 до ≈ 19 танкерних запусків; графік Artemis III змінювався (2026–2028) | https://en.wikipedia.org/wiki/Starship_HLS |
 
+**Каталог ракет D7 (`app/data/rockets.json`, PR #49, перевірено 2026-11-14) — першоджерела:** сторінки виробників SpaceX (Falcon 9, Falcon Heavy, Starship: https://www.spacex.com/vehicles/), Blue Origin (New Glenn і 9x4: https://www.blueorigin.com/new-glenn), ULA (таблиця Vulcan Centaur з TLI при C3 = −2 км²/с²: https://www.ulalaunch.com/rockets/vulcan-centaur), NASA (SLS Block 1 — понад 27 т до Місяця: https://www.nasa.gov/reference/space-launch-system/). Long March 10 — лише вторинне (Wikipedia). Сторінки SpaceX і Blue Origin рендеряться скриптом — звичайне завантаження HTML їх не бачить, читати в браузері. Після D7 лишаються прогалини: TLI для Falcon Heavy і Ariane 6; ціни запуску на НОО з першоджерел (D4); Ванденберг і Starbase відсутні в `launch_sites.json`.
+
 **Прогалини, які ще треба закрити за першоджерелом (D7):** TLI-місткість Falcon Heavy, Ariane 6 і Vulcan; офіційні посібники користувача (Falcon, Ariane 6, Vulcan, New Glenn); маса, що сідає на поверхню, для Starship HLS і Blue Moon MK1; обмеження азимутів безпеки запуску (для Вандерберга джерела розходяться: 140–201° проти 170–240°).
 
 ## 8. Готові інструменти (для порівняння та натхнення UI)

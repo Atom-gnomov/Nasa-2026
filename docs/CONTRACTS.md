@@ -152,6 +152,7 @@
 | `app/data/sites.json` | `sites.schema.json` | місця посадки; `verified: true` — лише після звірки з першоджерелом |
 | `app/data/dsn_stations.json` | `dsn_stations.schema.json` | станції DSN; `min_elevation_deg` за замовчуванням 10 |
 | `app/data/launch_sites.json` | `launch_sites.schema.json` | космодроми й нестандартні місця старту |
+| `app/data/rockets.json` | `rockets.schema.json` | сучасні ракети (D7): місткість на НОО / TLI / GTO, статус, багаторазовість, `verified_by_flight`, джерело й цитата для кожного числа |
 
 Правила:
 - `id` — стабільний (на нього посилаються URL, порівняння, ланцюжки); змінювати не можна, лише додавати нові.

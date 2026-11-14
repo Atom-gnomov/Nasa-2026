@@ -35,13 +35,11 @@ function prepareWidget(target, side, name, { scene = false } = {}) {
   expand.title = "Розгорнути панель на пів екрана";
   expand.setAttribute("aria-label", "Розгорнути панель на пів екрана");
   expand.setAttribute("aria-controls", body.id);
-  actions.append(collapse, expand);
+  actions.append(collapse); // розширення панелей прибрано: лише згортання
   header.append(title, actions);
   target.append(header, body);
   widgets[side] = { target, collapse, expand };
-  for (const button of [collapse, expand]) {
-    button.addEventListener("click", () => updateState(side, button.dataset.widgetAction));
-  }
+  collapse.addEventListener("click", () => updateState(side, "collapse"));
   return body;
 }
 
@@ -303,6 +301,8 @@ function readState() {
     const side = sessionStorage.getItem("lse-ui-preferred:" + page);
     if (side === "left" || side === "right") preferredSide = side;
   } catch { /* приватний режим */ }
+  // Режиму «розгорнуто» більше немає: старі збережені стани скидаємо до звичайного.
+  for (const k of Object.keys(saved)) if (saved[k] === "expanded") saved[k] = "normal";
   return normalizeWidgetStates(saved, present);
 }
 
@@ -404,24 +404,23 @@ function initHeaderNavigation() {
   else if (activeBox.left < stripBox.left) strip.scrollLeft -= stripBox.left - activeBox.left + 10;
 }
 
+// Кнопка ⛶: «режим фокусу» — ховає всі віджети й доки, лишається лише сцена (глобус / система).
 function initFullscreen() {
   const button = document.getElementById("fullscreen-toggle");
   if (!button) return;
-  const sync = () => {
-    const active = Boolean(document.fullscreenElement);
-    button.setAttribute("aria-pressed", String(active));
-    button.title = active ? "Вийти з повноекранного режиму" : "Повноекранний режим";
+  if (page !== "moon" && page !== "system") { button.hidden = true; return; } // на аналітичних сторінках сцени немає
+  const sync = (on) => {
+    root.classList.toggle("ui-focus", on);
+    button.setAttribute("aria-pressed", String(on));
+    button.title = on ? "Показати віджети" : "Сховати всі віджети";
     button.setAttribute("aria-label", button.title);
+    requestAnimationFrame(() => { refreshSceneBounds(); window.dispatchEvent(new Event("resize")); });
   };
-  button.addEventListener("click", async () => {
-    try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      else if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
-    } catch { /* браузер може заборонити fullscreen */ }
-    sync();
+  button.addEventListener("click", () => sync(!root.classList.contains("ui-focus")));
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape" && root.classList.contains("ui-focus")) sync(false);
   });
-  document.addEventListener("fullscreenchange", sync);
-  sync();
+  sync(false);
 }
 
 function initHeaderHeight() {

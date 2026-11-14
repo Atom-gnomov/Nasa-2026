@@ -629,6 +629,12 @@ async function main() {
       if (!orbitLoading && !(Math.abs(simMs - orbitMs) < 12 * 3600000)) loadOrbits(simMs, 0);
       loadFlight(simMs); // сам вирішує, чи час відійшов достатньо (needsReload)
     }
+    if (sim.on && flightReq) {
+      // Симуляція польоту: час сцени йде разом з ракетою, тож Місяць, Земля й Сонце теж рухаються.
+      simMs = flightReq.ms + sim.elapsed * 1000;
+      if (!fetching && now - lastFetch > 70) loadState(simMs);
+      if (!orbitLoading && !(Math.abs(simMs - orbitMs) < 12 * 3600000)) loadOrbits(simMs, 0);
+    }
     if (!state) { renderer.render(scene, camera); return; }
 
     // Розкладка з плавним переходом між режимами/масштабами

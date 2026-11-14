@@ -54,16 +54,16 @@
         <button type="button" data-lang="uk" title="Ukrainian">UA</button>
         <button type="button" data-lang="en" title="English">EN</button>
       </div>
-      <button type="button" id="fullscreen-toggle" class="header-icon" title="Повноекранний режим" aria-label="Повноекранний режим" aria-pressed="false">⛶</button>
+      <button type="button" id="fullscreen-toggle" class="header-icon" title="Сховати всі віджети" aria-label="Сховати всі віджети" aria-pressed="false">⛶</button>
       <details class="help-menu">
         <summary class="header-icon" title="Підказки" aria-label="Підказки">?</summary>
         <div class="help-menu-content">
           <strong>Підказки</strong>
           {% if active_tab in ['moon', 'system'] %}
-          <p>На карті обирайте місце ліворуч, переглядайте метрики праворуч. Панелі можна згортати та розгортати до половини екрана.</p>
+          <p>На карті обирайте місце ліворуч, переглядайте метрики праворуч. Панелі можна згортати; кнопка ⛶ ховає всі віджети, лишаючи тільки модель.</p>
           <p>Керування картою розташоване знизу. Зміна дати у хедері впливає на всі вкладки.</p>
           {% else %}
-          <p>Задавайте параметри у лівій панелі та переглядайте результати в центрі. Панелі можна згортати та розгортати.</p>
+          <p>Задавайте параметри у лівій панелі та переглядайте результати в центрі. Панелі можна згортати.</p>
           {% if active_tab == 'search' %}<p>ШІ-поради розміщено праворуч від результатів підбору.</p>{% endif %}
           {% endif %}
         </div>

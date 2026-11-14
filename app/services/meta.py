@@ -6,6 +6,7 @@ from pathlib import Path
 
 from flask import current_app
 
+from app.core import moon_orientation
 from app.services import advice, elevation, events, metrics, ranking, timeline
 
 
@@ -16,6 +17,16 @@ def _temperature_source() -> dict | None:
     return {"id": "diviner", "kind": "temperature",
             "description": "LRO Diviner: GCP (0,5°, місцевий час) і полярний PRP (0,5 км)",
             "url": "https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/"}
+
+
+def _moon_orientation() -> str:
+    """Яка орієнтація Місяця справді діє (IAU 2015 чи ядра NAIF DE440, задача M7)."""
+    try:
+        from app.core.ephemeris import get_ephemeris
+
+        return get_ephemeris().moon_orientation_source
+    except RuntimeError:  # немає ефемерид — орієнтація не використовується
+        return moon_orientation.IAU_LABEL
 
 
 def meta(api_version: str) -> dict:
@@ -45,7 +56,7 @@ def meta(api_version: str) -> dict:
     return {
         "api_version": api_version,
         "ephemeris": "JPL DE440",
-        "moon_orientation": "IAU 2015 (Archinal et al., 2018)",
+        "moon_orientation": _moon_orientation(),
         "moon_radius_km": 1737.4,
         "data_sources": sources,
         "limits": {

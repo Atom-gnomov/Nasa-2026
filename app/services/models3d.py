@@ -9,17 +9,17 @@ tools/build_globe_textures.py у data_cache/), звідки вони, під я�
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
 from flask import current_app
 from skyfield.api import wgs84
 
-from app.core import frames
+from app.core import frames, launch, transfer
 from app.core.constants import R_EARTH_KM, R_MOON_KM, R_SUN_KM
 from app.core.ephemeris import get_ephemeris
-from app.services import dsn, sites, system
+from app.services import catalogs, dsn, sites, system
 
 NASA_MEDIA = "NASA-матеріали: вільне використання з посиланням на джерело (NASA Media Usage Guidelines)"
 # Земля — WGS84 (стиснення 1/298,257223563); Сонце й Місяць — кулі
@@ -125,7 +125,47 @@ def _selected(lat: float, lon: float, when: datetime) -> dict:
     return out
 
 
-def scene(when: datetime, lat: float | None = None, lon: float | None = None, markers: bool = True) -> dict:
+class LaunchSiteNotFound(LookupError):
+    """Невідомий launch_site (404)."""
+
+
+FLIGHT_TOF_DAYS = np.arange(3.0, 5.0 + 1e-9, 0.5)  # прямий переліт (launch.TRAJECTORIES["direct"])
+
+
+def _flight_extras(when: datetime, launch_site_id: str, lat: float | None, lon: float | None) -> list[dict]:
+    """Ракета на майданчику, траєкторія найкращого прямого перельоту зі старту (TLI) в момент `when` і модуль у
+    вибраній точці (пропозиція П-5, задача G9). Траєкторія — дуга задачі двох тіл (docs/MATH.md, §21.5)."""
+    site = next((s for s in catalogs.load_launch_sites() if s["id"] == launch_site_id), None)
+    if site is None:
+        raise LaunchSiteNotFound(f"Місце старту {launch_site_id} не знайдено")
+    eph = get_ephemeris()
+    when_utc = when.astimezone(timezone.utc) if when.tzinfo else when.replace(tzinfo=timezone.utc)
+    best = min(transfer.dv_curve(eph, when_utc, FLIGHT_TOF_DAYS), key=lambda p: p.dv_total_m_s)
+    r_m, v_m = transfer.moon_state_icrf(eph, best.arrival_utc)
+    _, points = transfer.transfer_arc(r_m, v_m, best.tof_days, n=96)
+    dep = launch.site_departure(site["lat"], launch.best_inclination_deg(site["lat"], best.min_parking_inclination_deg))
+    iso = lambda dt: dt.strftime("%Y-%m-%dT%H:%M:%SZ")  # noqa: E731
+    extras = [
+        {"kind": "rocket", "id": f"rocket-{site['id']}", "site_id": site["id"], "name": site["name"],
+         "lat": site["lat"], "lon": site["lon"], "unit_itrs": _earth_unit(site["lat"], site["lon"])},
+        {"kind": "trajectory", "id": "transfer-direct", "frame": "icrf_geocentric_km",
+         "points_km": [[round(float(c), 1) for c in p] for p in points],
+         "departure_utc": iso(best.departure_utc), "arrival_utc": iso(best.arrival_utc),
+         "tof_days": best.tof_days, "dv_tli_m_s": round(best.dv_tli_m_s, 1), "dv_loi_m_s": round(best.dv_loi_m_s, 1),
+         "c3_km2_s2": round(best.c3_km2_s2, 3), "moon_at_arrival_km": [round(float(c), 1) for c in r_m],
+         "launch_site_id": site["id"], "inclination_deg": round(dep.target_inclination_deg, 3),
+         "windows_per_day": dep.windows_per_day,
+         "note": "Найкращий прямий переліт (3–5 діб) зі старту TLI в момент сцени; дуга — задача двох тіл від "
+                 "паркувальної орбіти 185 км до центру Місяця; ділянку виведення не показано"},
+    ]
+    if lat is not None and lon is not None:
+        extras.append({"kind": "lander", "id": "lander", "lat": lat, "lon": (lon + 180.0) % 360.0 - 180.0,
+                       "unit_me": _unit(frames.latlon_to_vector(lat, lon))})
+    return extras
+
+
+def scene(when: datetime, lat: float | None = None, lon: float | None = None, markers: bool = True,
+          launch_site: str | None = None) -> dict:
     state = system.system_state(when)
     manifest = {b["id"]: b for b in models_manifest()["bodies"]}
     sun = np.asarray(state["sun_km"])
@@ -153,6 +193,7 @@ def scene(when: datetime, lat: float | None = None, lon: float | None = None, ma
         "moon_illumination": state["moon_illumination"],
         "markers": _markers() if markers else {"earth": [], "moon": []},
         "selected": _selected(lat, lon, when) if lat is not None and lon is not None else None,
-        "extras": [],  # місце для ракети, модуля й траєкторії (пропозиція П-5) — без змін контракту
+        # ракета, траєкторія й модуль (пропозиція П-5, G9) — лише коли задано launch_site
+        "extras": _flight_extras(when, launch_site, lat, lon) if launch_site else [],
     }
     return result

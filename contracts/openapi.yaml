@@ -332,12 +332,14 @@ paths:
         Усе, що потрібно 3D-виду, одним запитом: геоцентричні положення Сонця й Місяця (ICRF, км), матриці
         орієнтації Землі й Місяця (ICRF → ITRS / MOON_ME), напрямок світла, маркери станцій DSN на Землі й місць
         каталогу на Місяці (одиничні вектори в системі тіла, без математики широти/довготи на клієнті), вибрана точка
-        з напрямками на Сонце й Землю. `extras` зарезервовано під ракету, модуль і траєкторію (пропозиція П-5).
+        з напрямками на Сонце й Землю. З параметром `launch_site` у `extras` — ракета на майданчику, траєкторія
+        найкращого прямого перельоту зі старту (TLI) в момент сцени й модуль у вибраній точці (П-5, задача G9).
       parameters:
         - $ref: "#/components/parameters/datetime"
         - {name: lat, in: query, description: Широта вибраної точки на Місяці (разом із lon), schema: {type: number, minimum: -90, maximum: 90}}
         - {name: lon, in: query, description: Довгота вибраної точки на Місяці (разом із lat), schema: {type: number, minimum: -180, maximum: 360}}
         - {name: markers, in: query, description: "0 — без маркерів (легша відповідь)", schema: {type: string, enum: ["0", "1", "false", "true"], default: "1"}}
+        - {name: launch_site, in: query, description: "id з /launch-sites: додає в extras ракету, траєкторію й модуль", schema: {type: string}}
       responses:
         "200":
           description: OK
@@ -345,6 +347,7 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/Scene"}
         "400": {$ref: "#/components/responses/BadRequest"}
+        "404": {$ref: "#/components/responses/NotFound"}
         "503": {$ref: "#/components/responses/Unavailable"}
 
   /system:
@@ -1869,8 +1872,62 @@ components:
             - {type: "null"}
         extras:
           type: array
-          description: Зарезервовано під ракету, модуль і траєкторію (пропозиція П-5); поки порожній
-          items: {type: object}
+          description: "Ракета, траєкторія й модуль (П-5) — лише з параметром launch_site; інакше порожній"
+          items: {$ref: "#/components/schemas/SceneExtra"}
+
+    SceneExtra:
+      description: Додатковий об'єкт сцени; тип — у полі kind
+      oneOf:
+        - {$ref: "#/components/schemas/SceneRocket"}
+        - {$ref: "#/components/schemas/SceneTrajectory"}
+        - {$ref: "#/components/schemas/SceneLander"}
+
+    SceneRocket:
+      type: object
+      required: [kind, id, site_id, name, lat, lon, unit_itrs]
+      properties:
+        kind: {const: rocket}
+        id: {type: string}
+        site_id: {type: string}
+        name: {type: string}
+        lat: {type: number}
+        lon: {type: number}
+        unit_itrs: {$ref: "#/components/schemas/Vec3Unit"}
+
+    SceneTrajectory:
+      type: object
+      required: [kind, id, frame, points_km, departure_utc, arrival_utc, tof_days, dv_tli_m_s, dv_loi_m_s, c3_km2_s2,
+                 moon_at_arrival_km, launch_site_id, inclination_deg, windows_per_day, note]
+      properties:
+        kind: {const: trajectory}
+        id: {type: string}
+        frame: {const: icrf_geocentric_km}
+        points_km:
+          type: array
+          minItems: 2
+          items: {type: array, minItems: 3, maxItems: 3, items: {type: number}}
+          description: "Дуга від паркувальної орбіти до центру Місяця в момент прибуття (задача двох тіл)"
+        departure_utc: {type: string, format: date-time}
+        arrival_utc: {type: string, format: date-time}
+        tof_days: {type: number}
+        dv_tli_m_s: {type: number}
+        dv_loi_m_s: {type: number}
+        c3_km2_s2: {type: number}
+        moon_at_arrival_km: {type: array, minItems: 3, maxItems: 3, items: {type: number}}
+        launch_site_id: {type: string}
+        inclination_deg: {type: number, description: "Нахил площини відльоту max(|φ|, |δ_Місяця|)"}
+        windows_per_day: {type: integer, minimum: 0, maximum: 2}
+        note: {type: string}
+
+    SceneLander:
+      type: object
+      required: [kind, id, lat, lon, unit_me]
+      properties:
+        kind: {const: lander}
+        id: {type: string}
+        lat: {type: number}
+        lon: {type: number}
+        unit_me: {$ref: "#/components/schemas/Vec3Unit"}
 
     LaunchFactor:
       type: string

@@ -27,4 +27,9 @@ def create_app(config_object: type[Config] = Config) -> Flask:
             return jsonify(error=code, detail=err.description), err.code
         return err
 
+    # Автопідготовка даних NASA у фоні (вимикається LSE_AUTO_PREPARE=0; у тестах вимкнена)
+    from app.services import bootstrap
+
+    bootstrap.autostart(app)
+
     return app

@@ -40,6 +40,11 @@
     </div>
   </header>
 
+  {# Банер автопідготовки даних NASA (static/js/data_status.js, /api/data/status) #}
+  <div id="data-banner" class="data-banner" role="status" hidden>
+    <span class="data-banner-text"></span> <button type="button" hidden>Спробувати знову</button>
+  </div>
+
   <main id="view">{% block content %}{% endblock %}</main>
 
   {# Оверлей метрик — поверх усього сайту (модуль static/js/overlay.js) #}
@@ -100,6 +105,7 @@
 
   <script type="module" src="{{ url_for('static', filename='js/calendar.js') }}"></script>
   <script type="module" src="{{ url_for('static', filename='js/overlay.js') }}"></script>
+  <script type="module" src="{{ url_for('static', filename='js/data_status.js') }}"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

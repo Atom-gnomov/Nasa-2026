@@ -2307,17 +2307,27 @@ components:
         launch_mode: {type: string, enum: [weighted, maximin]}
         include_design_targets: {type: boolean, default: true}
         allow_multiple_launches: {type: boolean, default: false}
+        surface_after_arrival: {type: boolean, default: true, description: "true — місце оцінюється за період після прибуття (`departure` + типовий переліт обраної траєкторії); false — за період від `start`, як у /search (B20b)"}
         departure_days: {type: integer, minimum: 1, maximum: 60, default: 1, description: "Скільки діб від `departure` перебирати для найкращої дати старту (B20, на основі /launch-window); 1 — лише `departure`"}
         landing_candidates: {type: integer, minimum: 1, maximum: 10, default: 3, description: Скільки найкращих місць комбінувати із запусками}
         limit: {type: integer, minimum: 1, maximum: 20, default: 5, description: Скільки планів повернути}
 
     PlanResponse:
       type: object
-      required: [provisional, period, departure_utc, grid, landing_evaluated, hard_requirements_met, auto_selected,
+      required: [provisional, period, surface_period, departure_utc, grid, landing_evaluated, hard_requirements_met, auto_selected,
                  plans, explanation, notes]
       properties:
         provisional: {const: true}
         period: {type: object}
+        surface_period:
+          type: object
+          description: Період, за який оцінено місця посадки (світло, зв'язок), і припущений переліт
+          required: [start, end, assumed_flight_days, after_arrival]
+          properties:
+            start: {type: string, format: date-time}
+            end: {type: string, format: date-time}
+            assumed_flight_days: {type: number}
+            after_arrival: {type: boolean}
         departure_utc: {type: string, format: date-time}
         grid: {type: object}
         landing_evaluated: {type: integer, minimum: 0}

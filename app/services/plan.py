@@ -13,6 +13,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 
+from app.core.launch import TRAJECTORIES
 from app.services import launch_ranking, launch_window, mission, search
 
 SEARCH_KEYS = {"region", "include_catalog", "grid_step_deg", "max_candidates", "step_h", "height_m", "priorities",
@@ -20,7 +21,7 @@ SEARCH_KEYS = {"region", "include_catalog", "grid_step_deg", "max_candidates", "
                "min_sun_fraction", "mission_profile", "crew", "earth_target"}
 PLAN_KEYS = {"start", "end", "departure", "days", "sizes", "vehicle", "trajectories", "launch_priorities",
              "launch_mode", "include_design_targets", "allow_multiple_launches", "landing_candidates", "limit",
-             "departure_days"}
+             "departure_days", "surface_after_arrival"}
 ALLOWED = SEARCH_KEYS | PLAN_KEYS
 MAX_LANDING_CANDIDATES = 10
 SEARCH_LIMIT = 100  # скільки місць повертає /search; з них вибираємо найкращі за вимогами
@@ -73,6 +74,15 @@ def _best_departure(option: dict, chain: dict, departure: datetime, days: int) -
     best = datetime.fromisoformat(win["best"]["date"]).replace(tzinfo=timezone.utc)
     scale = [{"date": d["date"], "score_pct": d["score_pct"], "arrival": d.get("arrival")} for d in win["days"]]
     return best, {"days": scale, "best": win["best"], "method": win["method"]}
+
+
+def _assumed_flight_days(body: Mapping) -> float:
+    """Типовий переліт, діб, для оцінки дати посадки до вибору ракети: перша з запитаних траєкторій (інакше пряма)."""
+    names = body.get("trajectories") or ["direct"]
+    if not isinstance(names, list) or not names or names[0] not in TRAJECTORIES:
+        raise PlanError(f"trajectories: допустимо {', '.join(TRAJECTORIES)}")
+    lo, hi = TRAJECTORIES[names[0]]["duration_days"]
+    return (lo + hi) / 2.0
 
 
 def _mission_body(body: Mapping, night_h: float | None) -> dict:
@@ -140,9 +150,16 @@ def compute(body: Mapping, start: datetime, end: datetime) -> dict:
         if departure.tzinfo is None:
             departure = departure.replace(tzinfo=timezone.utc)
 
+    # B20b: період, у який оцінюємо місце, — після прибуття (старт + типовий переліт), а не від дати старту
+    after_arrival = body.get("surface_after_arrival", True)
+    if not isinstance(after_arrival, bool):
+        raise PlanError("surface_after_arrival має бути true або false")
+    flight_days = _assumed_flight_days(body) if after_arrival else 0.0
+    surface_start = departure + timedelta(days=flight_days) if after_arrival else start
+    surface_end = surface_start + (end - start)
     # crew без профілю стосується лише маси корисного навантаження; /search приймає його тільки з профілем
     search_body = {k: body[k] for k in SEARCH_KEYS if k in body and (k != "crew" or "mission_profile" in body)}
-    found = search.search({**search_body, "limit": SEARCH_LIMIT}, start, end)
+    found = search.search({**search_body, "limit": SEARCH_LIMIT}, surface_start, surface_end)
     chains = sorted(found["chains"], key=_landing_order)
     hard_ok = bool(chains) and chains[0]["feasible"]
     selected = chains[:n_landing]
@@ -185,6 +202,14 @@ def compute(body: Mapping, start: datetime, end: datetime) -> dict:
         p["rank"] = i
 
     notes = []
+    if after_arrival:
+        for p in plans:
+            if p["route"]:
+                actual = datetime.fromisoformat(p["route"]["arrival_utc"][0].replace("Z", "+00:00"))
+                if abs((actual - surface_start).total_seconds()) > 86400.0 * 1.5:
+                    notes.append(f"План {p['rank']}: прибуття {p['route']['arrival_utc'][0][:10]} відрізняється від "
+                                 f"припущеного ({surface_start.date()}) більш ніж на 1,5 доби — світло й зв'язок "
+                                 "оцінено для припущеної дати.")
     if plans and plans[0]["launch"]:
         lead = plans[0]
         try:
@@ -197,6 +222,8 @@ def compute(body: Mapping, start: datetime, end: datetime) -> dict:
     return {
         "provisional": True,
         "period": found["period"],
+        "surface_period": {"start": _iso(surface_start), "end": _iso(surface_end), "assumed_flight_days": flight_days,
+                           "after_arrival": after_arrival},
         "departure_utc": _iso(departure),
         "grid": found["grid"],
         "landing_evaluated": len(found["chains"]),

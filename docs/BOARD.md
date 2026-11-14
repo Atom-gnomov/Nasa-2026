@@ -154,3 +154,4 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 ### Чорнобог
 
 - M10 — Перехід Земля → Місяць за зшитими конічними перерізами (`app/core/transfer.py`): Ламберт, крива «паливо ↔ час», LOI, C3 — гілка `chornobog/M10-transfer`, PR #44
+- M19 — Δv з майданчика (`app/core/launch.py`): азимут, нахил, вікна на добу, доворот площини — гілка `chornobog/M19-launch-dv`, PR #45

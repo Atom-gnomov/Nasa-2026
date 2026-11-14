@@ -104,8 +104,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Чорнобог
 
-- **Зараз:** — (на рев'ю: B15 #53, B8 #54, F7 #57, виправлення bootstrap під Windows #58)
-- **Гілка:** —
+- **Зараз:** G9 → M7 — 3D: траєкторія старт → Місяць, ракета й модуль (П-5); орієнтація Місяця з PCK DE440 (опція); на рев'ю: B8 #54, F7 #57
+- **Гілка:** `chornobog/G9-trajectory-3d`, далі `chornobog/M7-pck-orientation`
 
 ---
 

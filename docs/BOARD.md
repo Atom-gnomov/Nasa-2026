@@ -79,7 +79,7 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 - **Зараз:** —
 - **Гілка:** —
-- **Зараз (агент Claude):** — (I6, M17, B9, M18 на рев'ю: PR #39–#42)
+- **Зараз (агент Claude):** — (I6, M17, B9, M18 злито в `main`: PR #39–#42; далі B13, M19, I7)
 - **Гілка (агент Claude):** `perun/I6-tests-config` (далі `perun/M17-…`, `perun/B9-…`, `perun/M18-…`)
 
 ### Велес

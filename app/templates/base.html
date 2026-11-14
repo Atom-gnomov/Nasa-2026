@@ -17,7 +17,7 @@
   </script>
 </head>
 <body class="page-{{ active_tab }}">
-  <header class="topbar">
+  <header class="topbar" id="site-header">
     <a class="brand" href="{{ url_for('pages.moon') }}" aria-label="Lunar Site Explorer"><span class="brand-mark" aria-hidden="true">☾</span><span class="logo">Lunar Site Explorer</span></a>
     <nav class="tabs" aria-label="Навігація вкладок">
       <a href="{{ url_for('pages.moon') }}" class="{{ 'active' if active_tab == 'moon' }}">Місяць</a>
@@ -64,7 +64,7 @@
     <span class="data-banner-text"></span> <button type="button" hidden>Спробувати знову</button>
   </div>
 
-  <main id="view">{% block content %}{% endblock %}</main>
+  <main id="view" tabindex="-1">{% block content %}{% endblock %}</main>
 
   {# Оверлей метрик — поверх усього сайту (модуль static/js/overlay.js) #}
   <aside id="metrics-overlay" class="overlay">

@@ -558,3 +558,61 @@ body.page-system .system-graph { border-top: 1px solid var(--glass-stroke); padd
 body.page-system .system-graph h3 { margin: 0 0 8px; font-size: 13px; }
 body.page-system .system-graph .timeline-chart { width: 100%; height: 175px; }
 body.page-system .system-graph p { margin: 6px 0 0; font-size: 11px; }
+
+/* Динамічна висота хедера: для 2- або 3-рядкової навігації вимірюється JS. */
+:root { --work-h: calc(100dvh - var(--header-h)); }
+#site-header { width: 100%; overflow: visible; }
+#site-header .tabs { scrollbar-width: thin; }
+body.page-moon #view, body.page-system #view { height: var(--work-h); }
+body.page-moon #moon-globe, body.page-system #system-view, body.page-moon #surface { contain: layout; }
+body.page-moon #surface .ui-surface-dock {
+  display: flex;
+  position: absolute;
+  z-index: 8;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  top: auto;
+  width: calc(100% - 24px);
+  max-height: min(46vh, 330px);
+  margin: 0 auto;
+}
+body.page-moon.surface-active #surface .ui-surface-dock { display: flex; }
+body.page-moon #surface .ui-surface-dock .surface-toolbar {
+  position: static;
+  inset: auto;
+  bottom: auto;
+  left: auto;
+  right: auto;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 12px;
+  overflow: visible;
+  width: 100%;
+  background: none;
+  padding: 5px 3px;
+  border: 0;
+  border-radius: 0;
+  backdrop-filter: none;
+}
+body.page-moon #surface .ui-surface-dock .dock-content { display: grid; gap: 3px; overflow: auto; }
+body.page-moon #surface .ui-surface-dock.is-collapsed .dock-content { display: none; }
+body.page-moon #surface .ui-surface-dock .surface-back {
+  position: static;
+  z-index: auto;
+  transform: none;
+  inset: auto;
+  padding: 5px 11px;
+  font-size: 12px;
+}
+body.page-moon #surface .ui-surface-dock .dock-title { margin-left: auto; }
+body.page-moon #surface #surface-status { max-height: 4.8em; overflow: hidden; }
+
+/* Однакова мова заголовків і порожніх станів результатів на всіх сторінках. */
+.results-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 5px 20px; border-bottom: 1px solid var(--glass-stroke); padding-bottom: 13px; margin-bottom: 4px; min-width: 0; }
+.results-heading h2 { margin: 0; font-size: clamp(19px, 1.35vw, 23px); line-height: 1.25; letter-spacing: -.02em; }
+.results-heading p { margin: 0; max-width: 56ch; }
+body.page-search #search .results-heading { margin: 0 0 8px; }
+body.page-search #search .results-heading h2 { margin: 0; }
+body.page-mission .mission-result .results-heading h2 { margin: 0; }

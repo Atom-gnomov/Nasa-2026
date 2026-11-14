@@ -9,6 +9,7 @@ def test_moon_page(client):
     assert res.status_code == 200
     assert "calendar-input" in res.get_data(as_text=True)
     assert "metrics-overlay" in res.get_data(as_text=True)
+    assert 'id="site-header"' in res.get_data(as_text=True)
 
 
 def test_moon_page_has_globe_controls(client):

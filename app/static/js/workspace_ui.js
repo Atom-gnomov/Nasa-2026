@@ -56,14 +56,24 @@ function createDock(name, items, owner = root) {
   toggle.setAttribute("aria-label", "Згорнути налаштування");
   toggle.setAttribute("aria-expanded", "true");
   const content = element("div", "dock-content");
+  content.id = "dock-content-" + page + "-" + document.querySelectorAll(".ui-dock").length;
+  toggle.setAttribute("aria-controls", content.id);
   for (const item of items) if (item) content.append(item);
-  toggle.addEventListener("click", () => {
-    dock.classList.toggle("is-collapsed");
-    const open = !dock.classList.contains("is-collapsed");
+  const storageKey = "lse-ui-dock:" + page + ":" + name;
+  const applyDockState = (collapsed) => {
+    dock.classList.toggle("is-collapsed", collapsed);
+    const open = !collapsed;
     toggle.textContent = open ? "⌄" : "⌃";
     toggle.title = open ? "Згорнути налаштування" : "Розгорнути налаштування";
     toggle.setAttribute("aria-label", toggle.title);
     toggle.setAttribute("aria-expanded", String(open));
+  };
+  try { applyDockState(sessionStorage.getItem(storageKey) === "collapsed"); }
+  catch { applyDockState(false); }
+  toggle.addEventListener("click", () => {
+    const collapsed = !dock.classList.contains("is-collapsed");
+    applyDockState(collapsed);
+    try { sessionStorage.setItem(storageKey, collapsed ? "collapsed" : "open"); } catch { /* приватний режим */ }
   });
   heading.append(title, toggle);
   dock.append(heading, content);
@@ -102,11 +112,15 @@ function initMoon() {
   // кнопка повернення, інакше користувач залишиться в цьому режимі.
   const surface = document.getElementById("surface");
   if (surface) {
+    const surfaceTools = [...surface.querySelectorAll(":scope > .surface-toolbar")];
+    const surfaceDock = createDock("Налаштування огляду", surfaceTools, surface);
+    surfaceDock.dock.classList.add("ui-surface-dock");
     const back = element("button", "surface-back", "← Глобус");
     back.type = "button";
     back.title = "Повернутися до глобуса";
+    back.setAttribute("aria-label", "Повернутися до глобуса");
     back.addEventListener("click", () => modes.querySelector('[data-scene-mode="globe"]').click());
-    surface.prepend(back);
+    surfaceDock.heading.prepend(back);
   }
 }
 
@@ -226,8 +240,13 @@ function initFullscreen() {
 function initHeaderHeight() {
   const header = document.getElementById("site-header");
   if (!header) return;
-  const resize = () => document.documentElement.style.setProperty("--header-h", header.getBoundingClientRect().height + "px");
-  new ResizeObserver(resize).observe(header);
+  const resize = () => {
+    const height = Math.ceil(header.getBoundingClientRect().height);
+    document.documentElement.style.setProperty("--header-h", height + "px");
+    document.documentElement.style.setProperty("--work-h", Math.max(0, window.innerHeight - height) + "px");
+  };
+  if (typeof ResizeObserver !== "undefined") new ResizeObserver(resize).observe(header);
+  window.addEventListener("resize", resize, { passive: true });
   resize();
 }
 

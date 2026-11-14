@@ -1,5 +1,10 @@
 {
  "strings": {
+  "Навігація вкладок": "Tab navigation",
+  "Повноекранний режим": "Fullscreen",
+  "Підказки": "Tips",
+  "На карті обирайте місце ліворуч, переглядайте метрики праворуч. Панелі можна згортати та розгортати до половини екрана.": "Select a place on the left, view metrics on the right. Panels can collapse or expand to half the screen.",
+  "Керування картою розташоване знизу. Зміна дати у хедері впливає на всі вкладки.": "Map controls are at the bottom. The header date applies to all tabs.",
   "Місяць": "Moon",
   "Система": "System",
   "Підбір": "Selection",

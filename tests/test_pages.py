@@ -54,15 +54,15 @@ def test_system_assets_served_from_cache_dir(app, tmp_path):
     assert client.get("/assets/system/missing.glb").status_code == 404
 
 
-def test_search_redirect_keeps_query_parameters(client):
-    """Стара адреса /search веде на «Місяць» і зберігає дату, місце й мову (раніше ?lang=en губився)."""
+def test_search_is_a_separate_analytics_page(client):
+    """Підбір має власний URL і не містить 3D-карти."""
     res = client.get("/search?lang=en&datetime=2027-07-01T00:00Z&lat=-85&lon=0")
-    assert res.status_code == 302
-    location = res.headers["Location"]
-    assert location.startswith("/moon?") and location.endswith("#search")
-    for part in ("lang=en", "datetime=2027-07-01T00:00Z", "lat=-85", "lon=0"):
-        assert part in location
-    assert client.get("/search").headers["Location"] == "/moon#search"
+    assert res.status_code == 200
+    html = res.get_data(as_text=True)
+    for marker in ('id="search"', 'id="s-run"', 'id="s-advice"', 'href="/search"', 'workspace_ui.js'):
+        assert marker in html
+    assert 'id="moon-globe"' not in html
+    assert 'class="page-search"' in html
 
 
 def test_mission_page_renders_with_tab_and_scripts(client):

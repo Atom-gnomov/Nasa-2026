@@ -95,6 +95,7 @@ flask --app app run --debug
 | `LSE_MOON_ORIENTATION` | `iau` | Орієнтація Місяця: `iau` (модель IAU 2015) або `pck` (ядра NAIF DE440; `python tools/download_kernels.py`) |
 | `LSE_KERNEL_DIR` | `data_cache/kernels` | Каталог ядер NAIF для `LSE_MOON_ORIENTATION=pck` |
 | `LSE_AUTO_PREPARE` | `1` | `0` вимикає автоматичну підготовку даних у фоні (CI, автономна робота) |
+| `LSE_AUTO_PREPARE_MODE` | `pack` | Як готувати дані: `pack` — готовий пакет із GitHub Release (запасний шлях — збірка зі скриптів), `light` — легкий пакет, `full` — лише збірка з PDS |
 | `LSE_AUTO_PREPARE_DATASETS` | `temperature,system` | Які набори готувати самі: `temperature`, `system`, `globe` |
 | `LSE_LLM_BASE_URL` | — | Адреса OpenAI-сумісного API порад ШІ; без неї поради вимкнені |
 | `LSE_LLM_MODEL` | — | Назва моделі в цьому сервісі |

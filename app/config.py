@@ -39,6 +39,9 @@ class Config:
     # Автоматична підготовка даних NASA у фоні (app/services/bootstrap.py, PROPOSALS П-11);
     # LSE_AUTO_PREPARE=0 вимикає, LSE_AUTO_PREPARE_DATASETS — які набори готувати самі (temperature, system, globe)
     AUTO_PREPARE = os.environ.get("LSE_AUTO_PREPARE", "1").strip().lower() not in ("0", "false", "no", "")
+    # Режим підготовки (I9): pack — готовий пакет із GitHub Release (запасний шлях — збірка зі скриптів), light — легкий
+    # пакет, full — лише збірка з PDS
+    AUTO_PREPARE_MODE = os.environ.get("LSE_AUTO_PREPARE_MODE", "pack").strip().lower()
     AUTO_PREPARE_DATASETS = tuple(
         i.strip() for i in os.environ.get("LSE_AUTO_PREPARE_DATASETS", "temperature,system").split(",") if i.strip())
     # Поради ШІ (POST /api/advice): будь-який сервіс з OpenAI-сумісним API. Задаються лише змінними

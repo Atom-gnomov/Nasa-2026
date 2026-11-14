@@ -1,0 +1,68 @@
+[
+ {
+  "id": "temperature-full",
+  "dataset": "temperature",
+  "variant": "full",
+  "version": "data-v1",
+  "description": "Температура поверхні (LRO Diviner): повний оброблений пакет",
+  "url": null,
+  "size_bytes": null,
+  "sha256": null,
+  "published": false
+ },
+ {
+  "id": "temperature-light",
+  "dataset": "temperature",
+  "variant": "light",
+  "version": "data-v1",
+  "description": "Температура поверхні (LRO Diviner): легкий оброблений пакет",
+  "url": null,
+  "size_bytes": null,
+  "sha256": null,
+  "published": false
+ },
+ {
+  "id": "system-full",
+  "dataset": "system",
+  "variant": "full",
+  "version": "data-v1",
+  "description": "3D-ресурси системи Сонце–Земля–Місяць: повний оброблений пакет",
+  "url": null,
+  "size_bytes": null,
+  "sha256": null,
+  "published": false
+ },
+ {
+  "id": "system-light",
+  "dataset": "system",
+  "variant": "light",
+  "version": "data-v1",
+  "description": "3D-ресурси системи Сонце–Земля–Місяць: легкий оброблений пакет",
+  "url": null,
+  "size_bytes": null,
+  "sha256": null,
+  "published": false
+ },
+ {
+  "id": "globe-full",
+  "dataset": "globe",
+  "variant": "full",
+  "version": "data-v1",
+  "description": "Текстури й рельєф глобуса Місяця: повний оброблений пакет",
+  "url": null,
+  "size_bytes": null,
+  "sha256": null,
+  "published": false
+ },
+ {
+  "id": "globe-light",
+  "dataset": "globe",
+  "variant": "light",
+  "version": "data-v1",
+  "description": "Текстури й рельєф глобуса Місяця: легкий оброблений пакет",
+  "url": null,
+  "size_bytes": null,
+  "sha256": null,
+  "published": false
+ }
+]

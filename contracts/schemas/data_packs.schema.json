@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data_packs.schema.json",
+  "title": "Готові пакети оброблених даних із GitHub Release (app/data/data_packs.json)",
+  "description": "Споживач — app/services/datapack.py (задача I9), виробник — tools/build_data_pack.py (I10). Пакет без `url` і `sha256` вважається неопублікованим: застосунок збирає дані зі скриптів. Архів — zip із файлами відносно каталогу набору даних.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "id",
+      "dataset",
+      "variant",
+      "version",
+      "url",
+      "size_bytes",
+      "sha256",
+      "published"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "type": "string",
+        "pattern": "^[a-z0-9-]+$"
+      },
+      "dataset": {
+        "enum": [
+          "temperature",
+          "system",
+          "globe"
+        ]
+      },
+      "variant": {
+        "enum": [
+          "full",
+          "light"
+        ],
+        "description": "full — повний; light — легкий (менша роздільність; дані, що залежать від дати, лише на найближчі дати)"
+      },
+      "version": {
+        "type": "string",
+        "description": "Тег релізу, напр. data-v1"
+      },
+      "description": {
+        "type": "string"
+      },
+      "url": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "pattern": "^https://|^http://(localhost|127\\.0\\.0\\.1)"
+      },
+      "size_bytes": {
+        "type": [
+          "integer",
+          "null"
+        ],
+        "minimum": 1
+      },
+      "sha256": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "pattern": "^[0-9a-f]{64}$"
+      },
+      "published": {
+        "type": "boolean",
+        "description": "true лише коли є і url, і sha256"
+      },
+      "light_dates": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "format": "date"
+        },
+        "description": "Для light: дати, на які в пакеті є дані, що залежать від дати"
+      }
+    },
+    "allOf": [
+      {
+        "if": {
+          "properties": {
+            "published": {
+              "const": true
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "url": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string"
+            },
+            "size_bytes": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

@@ -339,7 +339,9 @@ paths:
         - {name: lat, in: query, description: Широта вибраної точки на Місяці (разом із lon), schema: {type: number, minimum: -90, maximum: 90}}
         - {name: lon, in: query, description: Довгота вибраної точки на Місяці (разом із lat), schema: {type: number, minimum: -180, maximum: 360}}
         - {name: markers, in: query, description: "0 — без маркерів (легша відповідь)", schema: {type: string, enum: ["0", "1", "false", "true"], default: "1"}}
-        - {name: launch_site, in: query, description: "id з /launch-sites: додає в extras ракету, траєкторію й модуль", schema: {type: string}}
+        - {name: launch_site, in: query, description: "id з /launch-sites або auto (оптимальна точка старту): додає в extras ракету, траєкторію й модуль; для auto — також трасу площини відльоту й зведення вибору", schema: {type: string}}
+        - {name: criterion, in: query, description: "Для launch_site=auto: fuel — економія пального (чекати вікна з найменшим нахилом), speed — швидкість (старт одразу, переліт 3 доби)", schema: {type: string, enum: [fuel, speed], default: fuel}}
+        - {name: launch_scope, in: query, description: "Для launch_site=auto: spaceports — космодроми каталогу, any — довільна точка Землі", schema: {type: string, enum: [spaceports, any], default: spaceports}}
       responses:
         "200":
           description: OK
@@ -1881,6 +1883,8 @@ components:
         - {$ref: "#/components/schemas/SceneRocket"}
         - {$ref: "#/components/schemas/SceneTrajectory"}
         - {$ref: "#/components/schemas/SceneLander"}
+        - {$ref: "#/components/schemas/SceneGroundTrack"}
+        - {$ref: "#/components/schemas/SceneLaunchChoice"}
 
     SceneRocket:
       type: object
@@ -1928,6 +1932,60 @@ components:
         lat: {type: number}
         lon: {type: number}
         unit_me: {$ref: "#/components/schemas/Vec3Unit"}
+
+    SceneGroundTrack:
+      type: object
+      required: [kind, id, departure_utc, inclination_deg, points_latlon, note]
+      properties:
+        kind: {const: ground_track}
+        id: {type: string}
+        departure_utc: {type: string, format: date-time}
+        inclination_deg: {type: number}
+        points_latlon:
+          type: array
+          minItems: 2
+          items: {type: array, minItems: 2, maxItems: 2, items: {type: number}}
+          description: "[широта, довгота] траси площини відльоту на Землі в момент старту"
+        note: {type: string}
+
+    LaunchOption:
+      type: object
+      required: [site, criterion, departure_utc, arrival_utc, wait_h, tof_days, total_h, inclination_deg,
+                 dv_transfer_m_s, dv_site_penalty_m_s, dv_total_m_s, normal_icrf, note]
+      properties:
+        site:
+          type: object
+          required: [id, name, kind, lat, lon]
+          properties:
+            id: {type: string, description: "id з /launch-sites або any-point"}
+            name: {type: string}
+            kind: {type: string, enum: [spaceport, sea_platform, air_launch, custom]}
+            lat: {type: number}
+            lon: {type: number}
+        criterion: {type: string, enum: [fuel, speed]}
+        departure_utc: {type: string, format: date-time}
+        arrival_utc: {type: string, format: date-time}
+        wait_h: {type: number, minimum: 0, description: Очікування вікна від моменту сцени, год}
+        tof_days: {type: number}
+        total_h: {type: number, description: "Від моменту сцени до прибуття, год"}
+        inclination_deg: {type: number, description: Нахил площини відльоту до екватора}
+        dv_transfer_m_s: {type: number, description: "Перехід: TLI + гальмування біля Місяця"}
+        dv_site_penalty_m_s: {type: number, description: "Недобір прибавки від обертання Землі: 465,1·(1 − cos i)"}
+        dv_total_m_s: {type: number}
+        normal_icrf: {$ref: "#/components/schemas/Vec3Unit"}
+        note: {type: string}
+
+    SceneLaunchChoice:
+      type: object
+      required: [kind, id, criterion, scope, start_utc, best, alternatives]
+      properties:
+        kind: {const: launch_choice}
+        id: {type: string}
+        criterion: {type: string, enum: [fuel, speed]}
+        scope: {type: string, enum: [spaceports, any]}
+        start_utc: {type: string, format: date-time}
+        best: {$ref: "#/components/schemas/LaunchOption"}
+        alternatives: {type: array, items: {$ref: "#/components/schemas/LaunchOption"}}
 
     LaunchFactor:
       type: string

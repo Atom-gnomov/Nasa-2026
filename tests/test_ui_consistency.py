@@ -19,7 +19,7 @@ def _token(name: str) -> str:
 
 
 def test_size_and_spacing_tokens_are_defined_once():
-    assert _token("ctl-h") == "32px" and _token("ctl-r") == "10px" and _token("ctl-fs") == "12px"
+    assert _token("ctl-h") == "32px" and _token("ctl-r") == "0" and _token("ctl-fs") == "12px"
     assert _token("gap") == "12px" and _token("gap-s") == "8px"
     assert _token("ctl-icon") == "28px"
     for name in ("ctl-h", "ctl-r", "ctl-fs", "gap", "gap-s"):
@@ -81,3 +81,107 @@ def test_select_dropdown_menus_are_dark_with_light_text():
     assert re.search(r"select option,\s*select optgroup\s*\{[^}]*background-color:\s*#[0-9a-f]{6}\s*!important", CSS)
     assert re.search(r"select option,\s*select optgroup\s*\{[^}]*color:\s*#f6f8fb\s*!important", CSS)
     assert re.search(r":root\s*\{\s*color-scheme:\s*dark", CSS)
+
+
+def test_flat_corners_and_no_glow_but_glass_stays():
+    """Прямі кути й жодного світіння; ефект скла (розмиття, прозора заливка, тонка рамка) лишається."""
+    assert re.search(r"\*,\s*\*::before,\s*\*::after\s*\{[^}]*border-radius:\s*0\s*!important", CSS)
+    universal = r"\*,\s*\*::before,\s*\*::after\s*\{[^}]*"
+    assert re.search(universal + r"box-shadow:\s*none\s*!important[^}]*text-shadow:\s*none\s*!important", CSS)
+    assert re.search(r"\.widget-title::before[^{]*\{[^}]*content:\s*none", CSS), "точки біля заголовків прибрано"
+    assert "backdrop-filter" in CSS and "--cg-fill" in CSS and "--cg-line" in CSS, "ефект скла лишається"
+
+
+def test_header_corner_is_only_the_logo_and_intro_assets_exist():
+    base = TEMPLATES["base.html"]
+    brand = re.search(r'<a class="brand".*?</a>', base, re.S).group(0)
+    assert "brand-logo" in brand and "img/logo.png" in brand
+    assert re.sub(r"<[^>]+>", "", brand).strip() == "Lunar Mission Builder", "біля лого — назва сайту"
+    assert "Lunar Site Explorer" not in base and 'class="intro-title">Lunar Mission Builder' in base
+    static = ROOT / "app" / "static"
+    assert (static / "img" / "logo.png").stat().st_size > 0
+    assert (static / "media" / "logo_intro.webm").stat().st_size < 1_000_000, "заставка легка"
+    assert 'id="intro"' in base and "media/logo_intro.webm" in base and "js/intro.js" in base
+    assert "intro-pending" in base and "lse-intro" in base and "prefers-reduced-motion" in base
+    js = (static / "js" / "intro.js").read_text(encoding="utf-8")
+    assert "ended" in js and "Escape" in js and "sessionStorage" in js
+
+
+def test_scenes_are_full_bleed_so_widgets_float_on_one_space():
+    block = CSS[CSS.index("Єдиний простір"):]
+    hosts = r"#moon-globe, body\.page-system #system-view, body\.page-moon #surface\s*\{"
+    assert re.search(hosts + r"[^}]*top:\s*0\s*!important[^}]*left:\s*0\s*!important", block)
+    scene_js = (ROOT / "app" / "static" / "js" / "three" / "scene.js").read_text(encoding="utf-8")
+    assert "setViewOffset" in scene_js and "--scene-left" in scene_js, "центр кадру зсунуто у вільну ділянку"
+
+
+def test_one_monospace_font_for_all_text_including_canvas_labels():
+    """Єдиний шрифт — той самий, що й у значеннях «Метрик»; тексти на canvas теж ним."""
+    cosmos = (ROOT / "app/static/css/cosmos.css").read_text(encoding="utf-8")
+    stack = re.search(r"--cx-font-num:\s*([^;]+);", cosmos).group(1)
+    assert _token("font") == stack.strip()
+    assert re.search(r"\*,\s*\*::before,\s*\*::after\s*\{\s*font-family:\s*var\(--font\)\s*!important", CSS)
+    for name in ("charts.js", "globe_view.js", "surface_view.js"):
+        js = (ROOT / "app/static/js" / name).read_text(encoding="utf-8")
+        assert "system-ui" not in js, name
+
+
+def test_intro_waits_for_a_stable_sky_and_dims_it_to_75_percent():
+    """Заставка стартує, коли небо намальоване й не змінюється, тож тло не блимає; під відео воно затемнене на 75 %."""
+    star = (ROOT / "app/static/js/starfield.js").read_text(encoding="utf-8")
+    assert "sky-ready" in star and "__skyReady" in star and "markSkyReady()" in star
+    intro = (ROOT / "app/static/js/intro.js").read_text(encoding="utf-8")
+    assert "sky-ready" in intro and "SKY_WAIT_MS" in intro, "є запасний таймер, якщо небо не готове"
+    assert re.search(r"html\.intro-playing #intro\s*\{\s*background:\s*rgba\(0,\s*0,\s*0,\s*\.75\)", CSS)
+
+
+def test_static_urls_carry_a_content_hash_and_intro_warms_the_cache():
+    from app import create_app
+
+    html = create_app().test_client().get("/moon").get_data(as_text=True)
+    assert re.search(r"/static/css/cosmo-glass\.css\?v=[0-9a-f]{10}", html)
+    assert '/static/js/starfield.js"' in html, "модулі без ?v=: імпорти інших модулів дали б другий екземпляр"
+    intro = (ROOT / "app/static/js/intro.js").read_text(encoding="utf-8")
+    assert "warmCache" in intro and "globe.json" in intro and "system.json" in intro
+    assert 'id="intro-anim"' in html and 'width="720"' in html
+
+
+def test_intro_flashes_after_the_glint_then_logo_fades_and_ui_lights_up():
+    base = TEMPLATES["base.html"]
+    assert 'class="intro-flash"' in base
+    assert "@keyframes intro-flash" in CSS and re.search(r"#intro\.is-leaving video\s*\{[^}]*opacity:\s*0", CSS)
+    assert re.search(r"#intro\.is-leaving\s*\{[^}]*background-color:\s*rgba\(0,\s*0,\s*0,\s*0\)", CSS)
+    js = (ROOT / "app/static/js/intro.js").read_text(encoding="utf-8")
+    assert 'addEventListener("ended", finish)' in js
+
+
+def test_first_paint_is_gated_so_pages_do_not_flash_between_languages_or_layouts():
+    base = TEMPLATES["base.html"]
+    assert "ui-pending" in base and "window.__gate" in base and "navigator.languages" in base
+    static = ROOT / "app" / "static" / "js"
+    assert 'window.__gate?.("i18n")' in (static / "i18n.js").read_text(encoding="utf-8")
+    assert 'window.__gate?.("ui")' in (static / "workspace_ui.js").read_text(encoding="utf-8")
+    assert "html.ui-pending body" in CSS and "@view-transition" in CSS
+    assert "opacity .7s" in (static / "three" / "scene.js").read_text(encoding="utf-8"), "планета проявляється плавно"
+
+
+def test_mode_switches_are_smooth_and_cheap():
+    """Режими: без перевиділення буфера, прихована сцена не малюється, 3D прогріте, плавне гасіння/проявлення."""
+    js = ROOT / "app" / "static" / "js"
+    scene = (js / "three" / "scene.js").read_text(encoding="utf-8")
+    assert "lastKey" in scene and "checkVisibility" in scene
+    sv = (js / "surface_view.js").read_text(encoding="utf-8")
+    assert "warmed" in sv and "showPane" in sv and "surface-active" in sv
+    gv = (js / "globe_view.js").read_text(encoding="utf-8")
+    assert '"scene-mode"' in gv and "globeAsleep" in gv
+    assert '"scene-mode"' in (js / "workspace_ui.js").read_text(encoding="utf-8")
+    assert re.search(r"body\.page-moon #surface\s*\{[^}]*display:\s*block\s*!important[^}]*opacity:\s*0", CSS)
+    assert "speculationrules" in TEMPLATES["base.html"]
+
+
+def test_system_page_does_not_jump_on_entry():
+    """Вхід у «Систему»: камера одразу на місці, полотно проявляється, коли є тіла (без підльоту)."""
+    js = ROOT / "app" / "static" / "js"
+    sv = (js / "system_view.js").read_text(encoding="utf-8")
+    assert "camAnim.t0 = -1e9" in sv and "fade: false" in sv and "ctx.reveal()" in sv
+    assert "fade = true" in (js / "three" / "scene.js").read_text(encoding="utf-8")

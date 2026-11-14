@@ -108,6 +108,15 @@ export function bindSky(camera, host, frame, { controls = null, parallax = true 
 /** Останній кадр неба (для діагностики й тестів у браузері): матриця камера→ICRF, tan(fov/2), центр кадру в RA/Dec. */
 export const lastFrame = { m: null, tan: null, center: null, bound: 0 };
 
+let skyReady = false;
+/** Небо намальоване й стабільне: заставка стартує лише тоді, щоб тло під нею збігалося з тим, що буде після. */
+function markSkyReady() {
+  if (skyReady) return;
+  skyReady = true;
+  window.__skyReady = true;
+  window.dispatchEvent(new Event("sky-ready"));
+}
+
 let timeAbort = null;
 let timeTimer = null;
 const orientationCache = new Map();
@@ -198,10 +207,10 @@ async function start() {
   canvas.id = "starfield";
   canvas.setAttribute("aria-hidden", "true");
   const gl = canvas.getContext("webgl2", { antialias: false, alpha: false, powerPreference: "low-power" });
-  if (!gl) return; // лишається CSS-тло
+  if (!gl) { markSkyReady(); return; } // лишається CSS-тло
   const sky = await pickSky();
-  if (!sky) return; // карт немає (tools/build_starmap.py, tools/import_sky_pano.py) — CSS-тло
-  try { run(canvas, gl, sky.img, sky.cfg); showCredit(sky.cfg.credit); } catch (err) { console.warn("starfield:", err); }
+  if (!sky) { markSkyReady(); return; } // карт немає (tools/build_starmap.py, tools/import_sky_pano.py) — CSS-тло
+  try { run(canvas, gl, sky.img, sky.cfg); showCredit(sky.cfg.credit); } catch (err) { console.warn("starfield:", err); markSkyReady(); }
 }
 
 function run(canvas, gl, img, cfg) {
@@ -238,7 +247,7 @@ function run(canvas, gl, img, cfg) {
   document.body.classList.add("has-starfield");
 
   const resize = () => {
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const dpr = Math.min(window.devicePixelRatio || 1, 1);
     const w = Math.max(1, Math.round(window.innerWidth * dpr)), h = Math.max(1, Math.round(window.innerHeight * dpr));
     if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; gl.viewport(0, 0, w, h); }
   };
@@ -252,7 +261,8 @@ function run(canvas, gl, img, cfg) {
   const shown = (host) => host?.isConnected && host.clientWidth > 0 && host.clientHeight > 0
     && (typeof host.checkVisibility === "function" ? host.checkVisibility({ visibilityProperty: true }) : getComputedStyle(host).visibility !== "hidden");
   const active = () => [...bindings].reverse().find((b) => shown(b.host));
-  let last = "";
+  let last = "", changedAt = performance.now();
+  const hasScene = !!document.querySelector("#moon-globe, #system-view");
   function frame() {
     const b = active();
     let m, tan = 0.4142;
@@ -280,7 +290,10 @@ function run(canvas, gl, img, cfg) {
       gl.uniformMatrix3fv(U.uM, false, new Float32Array(t));
       gl.uniform2f(U.uTan, tan * aspect, tan);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
+      changedAt = performance.now();
     }
+    // готове: кадр не змінювався пів секунди, а сцена (якщо вона є) уже прив'язана й знає орієнтацію Місяця
+    if (!skyReady && performance.now() - changedAt > 250 && (hasScene ? b && orientation : true)) markSkyReady();
   }
   // rAF + запасний таймер: у прихованій панелі rAF стоїть, а небо має встигати за камерою (як в інших модулях)
   let raf = 0, timer = 0;

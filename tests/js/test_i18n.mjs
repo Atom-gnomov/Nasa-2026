@@ -107,3 +107,12 @@ test("шаблони речень із виглядом з поверхні да
     assert.ok(!/[А-Яа-яІіЇїЄє]/.test(out), `${key} → ${out}`);
   }
 });
+
+test("мова системи: українська → uk, інша → en; збережена й адреса важливіші", () => {
+  assert.equal(i18n.pickLang({ languages: ["uk-UA", "en"] }), "uk");
+  assert.equal(i18n.pickLang({ languages: ["en-US"] }), "en");
+  assert.equal(i18n.pickLang({ languages: ["de"] }), "en");
+  assert.equal(i18n.pickLang({ languages: ["en-US"], stored: "uk" }), "uk");
+  assert.equal(i18n.pickLang({ languages: ["uk"], search: "?lang=en" }), "en");
+  assert.equal(i18n.pickLang({ languages: [] }), "uk");
+});

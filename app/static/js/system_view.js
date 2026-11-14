@@ -257,7 +257,7 @@ async function main() {
     if (res.ok) assets = await res.json();
   } catch { /* немає даних — тіла будуть однотонними */ }
 
-  const ctx = createScene(host, { logarithmicDepthBuffer: true, quality });
+  const ctx = createScene(host, { logarithmicDepthBuffer: true, quality, fade: false }); // проявиться, коли з'являться тіла
   if (ctx) bindSky(ctx.camera, host, () => M_ICRF, { controls: ctx.controls }); // зорі обертаються разом із камерою сцени
   if (!ctx) return;
   const { scene, camera, renderer, controls } = ctx;
@@ -973,8 +973,10 @@ async function main() {
   // Перше завантаження: погляд під кутом ~25° до площини екліптики
   camera.position.set(400, 450, 1000);
   setFocus("overview");
+  camAnim.t0 = -1e9; // початковий кадр одразу в кінцевому положенні: без «підльоту» камери при кожному вході на сторінку
   await loadState(simMs);
   loadOrbits(simMs);
+  ctx.reveal(); // тіла вже обчислені — полотно проявляється плавно, а не виринає разом із зсувом
 }
 
 function renderSources(assets) {

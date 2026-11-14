@@ -1,6 +1,6 @@
 """Стан системи Сонце–Земля–Місяць на момент часу (контракт SystemState, задача M1).
 
-Положення — JPL DE440 (skyfield), орієнтація Місяця — модель IAU 2015 (app.core.frames),
+Положення — JPL DE440 (skyfield), орієнтація Місяця — IAU 2015 або ядра NAIF DE440 (app.core.moon_orientation),
 орієнтація Землі — ICRF → ITRS у skyfield (прецесія, нутація, зоряний час).
 Підсонячна точка на Місяці враховує час світла Сонце → Місяць (~8,3 хв), як і метрики.
 """
@@ -54,7 +54,7 @@ def system_state(when: datetime) -> dict:
         "frame": "icrf_geocentric_km",
         "sun_km": [round(float(v), 1) for v in sun_km],
         "moon_km": [round(float(v), 3) for v in moon_km],
-        "moon_orientation": _matrix(frames.icrf_to_moon_me(t.tdb)),
+        "moon_orientation": _matrix(eph.moon_rotation(t.tdb)),
         "sub_solar_point": _latlon(to_sun),
         "sub_earth_point": _latlon(to_earth),
         "earth_rotation_deg": round(float(t.gast) * 15.0 % 360.0, 4),

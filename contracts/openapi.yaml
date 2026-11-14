@@ -447,6 +447,33 @@ paths:
         "501": {$ref: "#/components/responses/NotImplemented"}
         "503": {$ref: "#/components/responses/Unavailable"}
 
+  /mission:
+    post:
+      tags: [planning]
+      x-status: implemented
+      summary: Маса, вартість і ризик місії за розмірами трьох категорій навантаження
+      description: |
+        Збирає модель місії (docs/MATH.md, §20): маса навантаження (`payload`), вартість польоту
+        діапазоном (`cost`) і ризик діапазоном та словесною шкалою (`risk`). Усі коефіцієнти моделі —
+        **тимчасові орієнтовні значення** до задачі D4, тому відповідь завжди має `provisional: true`,
+        а величини — діапазони. Безпілотна місія (`crew: 0`): життєзабезпечення й зручності дорівнюють нулю,
+        ризик екіпажу — `null`. Широта старту береться з `launch_site_id` (каталог `/launch-sites`) або з
+        `launch_lat`; без обох — екватор (поправка 1,0). Разом `launch_site_id` і `launch_lat` не задаються.
+        Відповідь придатна як `facts.mission` для `/advice`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/MissionRequest"}
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/MissionResponse"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "404": {$ref: "#/components/responses/NotFound"}
+
   /launch-window:
     get:
       tags: [planning]
@@ -1355,6 +1382,112 @@ components:
       minItems: 3
       maxItems: 3
       items: {$ref: "#/components/schemas/Vector3"}
+
+    PayloadSize:
+      description: Розмір категорії навантаження — рівень або число 0…1
+      oneOf:
+        - {type: string, enum: [min, basic, extended, max]}
+        - {type: number, minimum: 0, maximum: 1}
+
+    MissionRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        crew: {type: integer, minimum: 0, maximum: 6, default: 0, description: "0 — безпілотна"}
+        days: {type: number, minimum: 0, maximum: 365, default: 0, description: Тривалість перебування на Місяці, діб}
+        sizes:
+          type: object
+          additionalProperties: false
+          description: Розмір категорій; відсутня категорія — «basic»
+          properties:
+            equipment: {$ref: "#/components/schemas/PayloadSize"}
+            life_support: {$ref: "#/components/schemas/PayloadSize"}
+            comfort: {$ref: "#/components/schemas/PayloadSize"}
+        trajectory: {type: string, enum: [direct, low_energy], default: direct}
+        launch_site_id: {type: string, description: "id з /launch-sites; задає широту старту"}
+        launch_lat: {type: number, minimum: -90, maximum: 90, description: Широта старту, градуси}
+        longest_night_h: {type: number, minimum: 0, description: "Найдовша ніч точки, год (з /metrics); під неї підбираються акумулятори"}
+
+    Range2:
+      type: array
+      minItems: 2
+      maxItems: 2
+      items: {type: number}
+      description: "[мінімум, максимум]"
+
+    MissionPayload:
+      type: object
+      required: [sizes, crew, days, masses_kg, power_w, heat_w, panel_kg, battery_kg, payload_kg, total_kg, total_range_kg]
+      additionalProperties: false
+      properties:
+        sizes: {type: object, additionalProperties: {type: number}}
+        crew: {type: integer}
+        days: {type: number}
+        masses_kg:
+          type: object
+          description: equipment, life_support, comfort, power_system, structure, margin
+          additionalProperties: {type: number}
+        power_w: {type: number}
+        heat_w: {type: number}
+        panel_kg: {type: number}
+        battery_kg: {type: number}
+        payload_kg: {type: number, description: Лише три категорії}
+        total_kg: {type: number, description: Усе, що сідає на Місяць}
+        total_range_kg: {$ref: "#/components/schemas/Range2"}
+
+    MissionCost:
+      type: object
+      required: [trajectory, mass_moon_kg, mass_ratio, mass_leo_kg, site_factor, launches, utilization,
+                 flight_time_days, launch_usd, payload_usd, lander_usd, total_usd]
+      additionalProperties: false
+      properties:
+        trajectory: {type: string, enum: [direct, low_energy]}
+        mass_moon_kg: {type: number}
+        mass_ratio: {type: number, description: "кг на НОО на кг на Місяці (Ціолковський)"}
+        mass_leo_kg: {type: number}
+        site_factor: {type: number, description: Поправка на широту старту}
+        launches: {type: integer, minimum: 1}
+        utilization: {type: number, minimum: 0, description: "Заповненість ракети; > 1 — потрібно кілька пусків"}
+        flight_time_days: {$ref: "#/components/schemas/Range2"}
+        launch_usd: {$ref: "#/components/schemas/Range2"}
+        payload_usd: {$ref: "#/components/schemas/Range2"}
+        lander_usd: {$ref: "#/components/schemas/Range2"}
+        total_usd: {$ref: "#/components/schemas/Range2"}
+
+    MissionRisk:
+      type: object
+      required: [p_launch, p_transit, p_landing, p_systems, p_total, p_total_range, band, band_label, launches,
+                 p_crew_loss, p_crew_loss_range, crew_band, crew_band_label]
+      additionalProperties: false
+      properties:
+        p_launch: {type: number}
+        p_transit: {type: number}
+        p_landing: {type: number}
+        p_systems: {type: number}
+        p_total: {type: number}
+        p_total_range: {$ref: "#/components/schemas/Range2"}
+        band: {type: string, enum: [low, moderate, high, very_high]}
+        band_label: {type: string, description: "Словесна шкала українською: низький · помірний · високий · дуже високий"}
+        launches: {type: integer, minimum: 1}
+        p_crew_loss: {type: [number, "null"], description: "null — безпілотна місія"}
+        p_crew_loss_range:
+          oneOf:
+            - {$ref: "#/components/schemas/Range2"}
+            - {type: "null"}
+        crew_band: {type: [string, "null"], enum: [low, moderate, high, very_high, null]}
+        crew_band_label: {type: [string, "null"]}
+
+    MissionResponse:
+      type: object
+      required: [provisional, launch_lat, payload, cost, risk]
+      additionalProperties: false
+      properties:
+        provisional: {type: boolean, description: "true — коефіцієнти моделі тимчасові (чекають D4)"}
+        launch_lat: {type: number, description: Широта старту, з якою рахувалась вартість}
+        launch_site_id: {type: [string, "null"]}
+        payload: {$ref: "#/components/schemas/MissionPayload"}
+        cost: {$ref: "#/components/schemas/MissionCost"}
+        risk: {$ref: "#/components/schemas/MissionRisk"}
 
     ModelAsset:
       type: object

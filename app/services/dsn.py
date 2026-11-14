@@ -21,7 +21,7 @@ class Station:
     lat: float
     lon: float  # градуси на схід
     elevation_m: float
-    min_elevation_deg: float = 10.0  # мінімальний кут місця антени (⚠️ звірити з 810-005, модуль 301)
+    min_elevation_deg: float = 10.0  # запасне; у dsn_stations.json — 10,1° (810-005, §2.2.4, D2)
 
     def to_dict(self) -> dict:
         return asdict(self)

@@ -92,3 +92,21 @@ def test_plan_without_departure_days_has_no_window(client):
 def test_plan_departure_days_out_of_range(client):
     assert plan(client, departure_days=0).status_code == 400
     assert plan(client, departure_days=61).status_code == 400
+
+
+def test_surface_period_follows_arrival_by_default(client):
+    data = plan(client, departure="2027-01-01T00:00:00Z").get_json()
+    assert_valid(api_validator("PlanResponse"), data)
+    sp = data["surface_period"]
+    assert sp["after_arrival"] is True and sp["assumed_flight_days"] == 4.0
+    assert sp["start"] == "2027-01-05T00:00:00Z"
+    assert data["period"]["start"] == sp["start"]  # /search оцінював саме цей період
+    assert (data["period"]["period_h"]) == 240.0  # довжина періоду з start..end збережена
+
+
+def test_surface_period_can_stay_as_requested_and_follows_trajectory(client):
+    data = plan(client, surface_after_arrival=False).get_json()
+    assert data["surface_period"]["start"] == "2027-01-01T00:00:00Z" and not data["surface_period"]["after_arrival"]
+    slow = plan(client, trajectories=["low_energy"]).get_json()
+    assert slow["surface_period"]["assumed_flight_days"] == 105.0
+    assert plan(client, surface_after_arrival="yes").status_code == 400

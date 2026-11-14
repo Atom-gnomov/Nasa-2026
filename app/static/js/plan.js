@@ -124,7 +124,9 @@ function init() {
       saveLead(lead); // «Вікно запуску» підхопить майданчик і траєкторію
       setState({ site: lead.moon.site, lat: lead.moon.lat, lon: lead.moon.lon }); // точка на «Місяці» — лідер плану
     }
-    lead.textContent = response.explanation;
+    const sp = response.surface_period;
+    const period = sp ? ` ${t("Місце оцінено за період")} ${sp.start.slice(0, 10)} – ${sp.end.slice(0, 10)}${sp.after_arrival ? ` (${t("після прибуття")})` : ""}.` : "";
+    lead.textContent = [response.explanation + period, ...(response.notes ?? [])].join(" ");
     lead.hidden = false;
     table.tBodies[0].replaceChildren(...planRows(response).map((r) => {
       const tr = document.createElement("tr");

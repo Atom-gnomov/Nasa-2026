@@ -202,3 +202,16 @@ def test_transfer_arc_rejects_too_few_points():
     r_m, v_m = _circular_moon()
     with pytest.raises(ValueError):
         tr.transfer_arc(r_m, v_m, 4.0, n=1)
+
+
+def test_transfer_arc_timed_matches_time_of_flight_and_energy():
+    import numpy as np
+
+    from app.core import transfer as tr
+    r_moon, v_moon = np.array([384400.0, 0.0, 0.0]), np.array([0.0, 1.022, 0.0])
+    point, points, times, speeds = tr.transfer_arc_timed(r_moon, v_moon, 4.0, n=50)
+    assert len(points) == len(times) == len(speeds) == 50
+    assert times[0] == 0.0 and times[-1] == pytest.approx(4.0 * 86400.0)
+    assert np.all(np.diff(times) > 0)
+    assert speeds[0] > 10.0 and speeds[-1] < 1.0  # від ~10,9 км/с на старті до ~0,2–0,5 біля Місяця
+    assert np.all(np.diff(speeds) < 0.05)  # без зростання за дугою до апогею

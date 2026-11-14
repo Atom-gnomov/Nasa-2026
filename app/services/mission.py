@@ -8,12 +8,12 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from app.core import cost, launch_system, payload, risk
+from app.core import cost, launch_system, mission_profile, payload, risk
 from app.core.launch import TRAJECTORIES
 from app.services import catalogs
 
 ALLOWED = {"crew", "days", "sizes", "trajectory", "launch_site_id", "launch_lat", "launch_system_id",
-           "longest_night_h"}
+           "longest_night_h", "mission_profile"}
 
 
 class MissionError(ValueError):
@@ -70,7 +70,14 @@ def compute(body: Mapping) -> dict:
     if unknown:
         raise MissionError(f"Невідомі поля: {', '.join(sorted(unknown))}")
 
-    crew = body.get("crew", 0)
+    profile = None
+    if body.get("mission_profile") is not None:
+        try:
+            profile = mission_profile.resolve(body["mission_profile"], catalogs.load_mission_thresholds(),
+                                              crew=body.get("crew"))
+        except ValueError as exc:
+            raise MissionError(str(exc)) from exc
+    crew = profile.crew if profile else body.get("crew", 0)
     if isinstance(crew, bool) or not isinstance(crew, int) or not 0 <= crew <= payload.MAX_CREW:
         raise MissionError(f"crew має бути цілим від 0 до {payload.MAX_CREW}")
     days = _number(body, "days", 0.0, 0.0, payload.MAX_DAYS)
@@ -94,6 +101,7 @@ def compute(body: Mapping) -> dict:
         "provisional": True,
         "launch_lat": lat,
         "launch_site_id": site_id,
+        "profile": profile.to_dict() if profile else None,
         "launch_system": ({**choice.to_dict(), "fit": launch_system.fit(estimate.mass_leo_kg, system)}
                           if choice else None),
         "payload": budget.to_dict(),

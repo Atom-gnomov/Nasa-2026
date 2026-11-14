@@ -114,6 +114,25 @@ def test_stale_lock_of_dead_process_is_cleared(tmp_path):
     assert not (tmp_path / "prepare" / "fake.lock").exists()
 
 
+def test_pid_alive_on_this_platform():
+    """Перевірка процесу працює й на Windows, де `os.kill(pid, 0)` кидає OSError (WinError 87)."""
+    import os
+    import subprocess
+
+    assert bootstrap._pid_alive(os.getpid()) is True
+    assert bootstrap._pid_alive(2147483646) is False
+    assert bootstrap._pid_alive(0) is False and bootstrap._pid_alive(-5) is False
+    finished = subprocess.Popen([sys.executable, "-c", "pass"])
+    finished.wait()
+    assert bootstrap._pid_alive(finished.pid) is False
+    running = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(5)"])
+    try:
+        assert bootstrap._pid_alive(running.pid) is True
+    finally:
+        running.kill()
+        running.wait()
+
+
 def test_real_datasets_registry_points_to_existing_scripts_and_cache_layout():
     for d in bootstrap.DATASETS:
         assert (bootstrap.ROOT / d.script).is_file(), d.script

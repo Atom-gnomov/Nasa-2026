@@ -164,3 +164,5 @@ button.primary:disabled { opacity: 0.6; cursor: progress; }
 /* Банер автопідготовки даних (data_status.js) */
 .data-banner { padding: 6px 16px; background: var(--panel); border-bottom: 1px solid var(--border); font-size: 13px; color: var(--muted); }
 .data-banner[hidden] { display: none; }
+/* Перемикач мови (i18n.js) */
+.lang-switch button { padding: 4px 8px; font-size: 13px; }

@@ -12,6 +12,7 @@ from app.services import search as search_service
 from app.services import events as events_service
 from app.services import meta as meta_service
 from app.services import bootstrap
+from app.services import launch_ranking as launch_ranking_service
 from app.services import mission as mission_service
 from app.services import terrain as terrain_service
 from app.services import timeline as timeline_service
@@ -384,6 +385,20 @@ def mission():
         return _error(404, str(exc))
     except ValueError as exc:  # включно з mission_service.MissionError і помилками ядра
         return _error(400, str(exc))
+
+
+@bp.post("/launch-ranking")
+def launch_ranking():
+    """Звідки й якою ракетою летіти до точки Місяця (docs/MATH.md, §21.7); ціни й відмови тимчасові."""
+    body = request.get_json(silent=True)
+    try:
+        return jsonify(launch_ranking_service.compute(body if body is not None else {}))
+    except launch_ranking_service.VehicleNotFound as exc:
+        return _error(404, str(exc))
+    except ValueError as exc:  # включно з LaunchRankingError, помилками моделі місії й ядра
+        return _error(400, str(exc))
+    except RuntimeError as exc:  # немає ефемерид
+        return _error(503, str(exc))
 
 
 @bp.errorhandler(HTTPException)

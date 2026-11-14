@@ -23,6 +23,10 @@
       <a href="{{ url_for('pages.system') }}" class="{{ 'active' if active_tab == 'system' }}">Система</a>
       <a href="{{ url_for('pages.moon') }}#search" class="{{ 'active' if active_tab == 'search' }}">Підбір</a>
     </nav>
+    <div class="seg lang-switch" role="group" aria-label="Language">
+      <button type="button" data-lang="uk" title="Ukrainian">UA</button>
+      <button type="button" data-lang="en" title="English">EN</button>
+    </div>
     {# Календар — спільний для всіх вкладок (модуль static/js/calendar.js) #}
     <div class="calendar">
       <label for="calendar-input">Дата (UTC)</label>
@@ -107,5 +111,6 @@
   <script type="module" src="{{ url_for('static', filename='js/overlay.js') }}"></script>
   <script type="module" src="{{ url_for('static', filename='js/data_status.js') }}"></script>
   {% block scripts %}{% endblock %}
+  <script type="module" src="{{ url_for('static', filename='js/i18n.js') }}"></script>
 </body>
 </html>

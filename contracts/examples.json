@@ -972,5 +972,224 @@
       ],
       "p_transit": 0.01
     }
+  },
+  "LaunchRankingRequest": {
+    "lat": -89.67,
+    "lon": 129.78,
+    "datetime": "2027-07-01T00:00:00Z",
+    "mass_moon_kg": 2000,
+    "trajectories": [
+      "direct"
+    ],
+    "priorities": [
+      "fuel",
+      "windows",
+      "risk",
+      "cost",
+      "speed"
+    ],
+    "limit": 2
+  },
+  "LaunchRankingResponse": {
+    "departure_utc": "2027-07-01T00:00:00Z",
+    "excluded": [
+      {
+        "reason": "майданчика немає в каталозі стартів",
+        "vehicle_id": "starship"
+      },
+      {
+        "reason": "майданчика немає в каталозі стартів",
+        "vehicle_id": "new-glenn-9x4"
+      },
+      {
+        "reason": "система запуску не діє",
+        "vehicle_id": "pegasus-xl"
+      },
+      {
+        "reason": "система запуску не діє",
+        "vehicle_id": "launcherone"
+      },
+      {
+        "reason": "система запуску не діє",
+        "vehicle_id": "zenit-3sl-sea-launch"
+      }
+    ],
+    "leader_explanation": "Куру (Гвіанський космічний центр, ELA-4) + Ariane 64 (Ariane 6, версія A64) (пряма) випереджає Веньчан + Long March 10 (CZ-10) (пряма): найбільша перевага — паливо (маса на НОО).",
+    "mass_moon_kg": 2000.0,
+    "mode": "weighted",
+    "moon_declination_deg": 20.43,
+    "moon_point": {
+      "lat": -89.67,
+      "lon": 129.78
+    },
+    "options": [
+      {
+        "capacity_basis": "leo",
+        "duration_days": [
+          3.0,
+          5.0
+        ],
+        "dv_site_penalty_m_s": 29.256,
+        "dv_total_m_s": [
+          4002.787,
+          4084.193
+        ],
+        "factors": {
+          "cost": 1.0,
+          "fuel": 1.0,
+          "risk": 1.0,
+          "speed": 1.0,
+          "windows": 1.0
+        },
+        "fit_note": null,
+        "fits": true,
+        "inclination_deg": 20.43,
+        "inertial_azimuths_deg": [
+          70.232,
+          109.768
+        ],
+        "launch_cost_usd": [
+          21368612.399,
+          53421530.996
+        ],
+        "launches": 1,
+        "mass_leo_kg": 10684.306,
+        "pareto": true,
+        "provisional_fields": [
+          "price_usd_per_kg",
+          "failure_probability"
+        ],
+        "rank": 1,
+        "risk": {
+          "band": "low",
+          "band_label": "низький",
+          "p": 0.03,
+          "range": [
+            0.015,
+            0.06
+          ]
+        },
+        "score_pct": 100.0,
+        "site": {
+          "id": "kourou",
+          "kind": "spaceport",
+          "lat": 5.265,
+          "lon": -52.792,
+          "name": "Куру (Гвіанський космічний центр, ELA-4)"
+        },
+        "trajectory": "direct",
+        "utilization": 0.495,
+        "vehicle": {
+          "catalog": "launch_systems",
+          "id": "ariane-64",
+          "name": "Ariane 64 (Ariane 6, версія A64)",
+          "status": "active",
+          "verified_by_flight": true
+        },
+        "windows_per_day": 2
+      },
+      {
+        "capacity_basis": "tli",
+        "duration_days": [
+          3.0,
+          5.0
+        ],
+        "dv_site_penalty_m_s": 29.256,
+        "dv_total_m_s": [
+          4002.787,
+          4084.193
+        ],
+        "factors": {
+          "cost": 0.544,
+          "fuel": 0.544,
+          "risk": 1.0,
+          "speed": 1.0,
+          "windows": 1.0
+        },
+        "fit_note": null,
+        "fits": true,
+        "inclination_deg": 20.43,
+        "inertial_azimuths_deg": [
+          84.166,
+          95.834
+        ],
+        "launch_cost_usd": [
+          21534494.676,
+          53836236.691
+        ],
+        "launches": 1,
+        "mass_leo_kg": 10767.247,
+        "pareto": false,
+        "provisional_fields": [
+          "price_usd_per_kg",
+          "failure_probability"
+        ],
+        "rank": 2,
+        "risk": {
+          "band": "low",
+          "band_label": "низький",
+          "p": 0.03,
+          "range": [
+            0.015,
+            0.06
+          ]
+        },
+        "score_pct": 75.1,
+        "site": {
+          "id": "wenchang",
+          "kind": "spaceport",
+          "lat": 19.614,
+          "lon": 110.951,
+          "name": "Веньчан"
+        },
+        "trajectory": "direct",
+        "utilization": 0.185,
+        "vehicle": {
+          "catalog": "rockets",
+          "id": "long-march-10",
+          "name": "Long March 10 (CZ-10)",
+          "status": "design_target",
+          "verified_by_flight": false
+        },
+        "windows_per_day": 2
+      }
+    ],
+    "priorities": [
+      "fuel",
+      "windows",
+      "risk",
+      "cost",
+      "speed"
+    ],
+    "provisional": true,
+    "total_options": 10,
+    "transfers": {
+      "direct": {
+        "arrival_utc": [
+          "2027-07-04T00:00:00Z",
+          "2027-07-06T00:00:00Z"
+        ],
+        "c3_km2_s2": -2.183,
+        "duration_days": [
+          3.0,
+          5.0
+        ],
+        "dv_loi_m_s": [
+          844.714,
+          911.811
+        ],
+        "dv_tli_m_s": [
+          3128.682,
+          3143.125
+        ],
+        "dv_total_m_s": [
+          3973.531,
+          4054.937
+        ],
+        "method": "patched_conic",
+        "name": "Пряма",
+        "trajectory": "direct"
+      }
+    }
   }
 }

@@ -60,13 +60,51 @@ def _now() -> str:
 
 
 def _pid_alive(pid: int) -> bool:
+    """Чи живий процес із таким pid (для блокування від подвійного запуску).
+
+    POSIX — `os.kill(pid, 0)` лише перевіряє процес. На Windows сигналу 0 немає (`os.kill` кидає `OSError`
+    WinError 87/11 замість перевірки), тому там — WinAPI `OpenProcess` + `GetExitCodeProcess`.
+    """
+    if pid <= 0:
+        return False
+    if os.name == "nt":
+        return _pid_alive_windows(pid)
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
         return False
     except PermissionError:
         return True
+    except OSError:
+        return False
     return True
+
+
+def _pid_alive_windows(pid: int) -> bool:
+    import ctypes
+    from ctypes import wintypes
+
+    process_query_limited_information = 0x1000
+    still_active = 259
+    error_access_denied = 5
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.OpenProcess.restype = wintypes.HANDLE
+    kernel32.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
+    kernel32.GetExitCodeProcess.argtypes = (wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD))
+    kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+    if pid > 0xFFFFFFFF:
+        return False
+    handle = kernel32.OpenProcess(process_query_limited_information, False, pid)
+    if not handle:
+        # процесу немає (ERROR_INVALID_PARAMETER) або він чужий і закритий для нас — тоді він є
+        return ctypes.get_last_error() == error_access_denied
+    try:
+        code = wintypes.DWORD()
+        if not kernel32.GetExitCodeProcess(handle, ctypes.byref(code)):
+            return True
+        return code.value == still_active
+    finally:
+        kernel32.CloseHandle(handle)
 
 
 class Preparer:
@@ -186,8 +224,11 @@ class Preparer:
     def _worker(self, d: Dataset, run: dict) -> None:
         last, code = "", None
         try:
+            # Дочірній Python друкує в канал у кодуванні системи (на Windows — cp1251), а читаємо UTF-8:
+            # просимо UTF-8 явно, інакше українські повідомлення скриптів стають «����».
+            env = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1"}
             proc = subprocess.Popen(self.command(d), cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                    text=True, encoding="utf-8", errors="replace")
+                                    text=True, encoding="utf-8", errors="replace", env=env)
             for line in proc.stdout or ():
                 line = line.strip()
                 if line:

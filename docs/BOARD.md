@@ -79,8 +79,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 - **Зараз:** —
 - **Гілка:** —
-- **Зараз (агент Claude):** M22 — підключення таблиць D4 (`payload_tables.json`) до `payload.py` і `cost.py` (F9, F11 злито: PR #70)
-- **Гілка (агент Claude):** `perun/M22-payload-tables`
+- **Зараз (агент Claude):** B19 (єдиний каталог засобів запуску в «Місії»), далі M22 (таблиці D4 у модель) і M23 (вимоги до місця посадки); B18/F16 — після них
+- **Гілка (агент Claude):** `perun/B19-unified-vehicles`, далі `perun/M22-payload-tables`, `perun/M23-landing-requirements`
 
 ### Велес
 

@@ -11,7 +11,7 @@
 | Що | Де змінюється | Як потрапляє далі |
 |---|---|---|
 | Уся тека `docs/`: діздоки (VISION, MODULES, MATH, CONTRACTS, RESOURCES), задачі (TASKS), дошка (BOARD), пропозиції (PROPOSALS) | гілка **`coordination`**, прямий push без PR | Перун регулярно зливає `coordination` → `main` |
-| Код, тести, `contracts/`, `tools/`, `app/`, `AGENTS.md`, `README.md` | гілки задач `<ім'я>/<ID>-…` | PR у `main`, злиття — Перун |
+| Код, тести, `contracts/`, `tools/`, `app/`, `AGENTS.md`, `README.md` | гілки задач `<ім'я>/<ID>-…` | PR у `main`; **зелені PR зливає Перун без окремої команди власника й без обов'язкового рев'ю** (рішення 2026-11-14); `coordination` → `main` — за командою власника |
 
 **Перед будь-якою роботою** (початок сесії, нова задача, перед PR):
 ```bash
@@ -79,8 +79,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 - **Зараз:** —
 - **Гілка:** —
-- **Зараз (агент Claude):** — (B15, B17, I8, виправлення I7 злито в `main`: PR #53, #55, #56, #58); вільний для нових задач
-- **Гілка (агент Claude):** `perun/B17-mission-profile`, далі `perun/I8-docs-env`
+- **Зараз (агент Claude):** F10b → M21 → I9 (окремі PR; `search.js`/`_search.html`, `launch_system.py`, `bootstrap`/`datapack`; не перетинаюсь з Чорнобогом (B8/F7) і Велесом)
+- **Гілка (агент Claude):** `perun/F10b-advice-visible`, `perun/M21-catalog-economics`, `perun/I9-data-pack`
 
 ### Велес
 

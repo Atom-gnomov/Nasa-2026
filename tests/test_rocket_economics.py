@@ -94,5 +94,5 @@ def test_ranking_uses_catalog_economics_instead_of_provisional():
     assert f9.price_usd_per_kg_leo == (_value(rows["falcon-9"], "price_usd_per_kg_leo_min"),
                                        _value(rows["falcon-9"], "price_usd_per_kg_leo_max"))
     assert (f9.flights_total, f9.flights_failed) == FLIGHTS["falcon-9"]
-    # правило Лапласа: (1 + 1) / (681 + 2) ≈ 0,29 %
-    assert failure_from_flights(681, 1)[0] == pytest.approx(2 / 683)
+    # зважування зі слабким апріорним рівнем: (1 + 10·0,02) / (681 + 10) ≈ 0,17 %
+    assert failure_from_flights(681, 1)[0] == pytest.approx(1.2 / 691)

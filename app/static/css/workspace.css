@@ -202,7 +202,7 @@ body.page-moon #moon-globe, body.page-system #system-view {
   border: 0;
   border-radius: 0;
   z-index: 1;
-  background: #000;
+  background: transparent;
   transition: left .22s ease, right .22s ease;
 }
 body.page-moon .ui-scene-widget, body.page-system .ui-scene-widget,
@@ -346,7 +346,7 @@ body.page-moon #surface {
   margin: 0;
   min-height: 0;
   overflow: hidden;
-  background: #000;
+  background: transparent;
   transition: left .22s ease, right .22s ease;
 }
 body.page-moon.surface-active #surface { display: block; }
@@ -505,6 +505,9 @@ body:not(.page-moon):not(.page-system) .ui-widget.is-collapsed { width: 43px; mi
     width: min(275px, calc(100vw - 68px));
     bottom: 105px;
   }
+  /* Згорнутий віджет — компактна кнопка, а не панель завширшки 275px (специфічність #metrics-overlay). */
+  body.page-moon .ui-scene-widget.is-collapsed, body.page-system .ui-scene-widget.is-collapsed,
+  body.page-moon #metrics-overlay.ui-scene-widget.is-collapsed, body.page-system .system-info.ui-scene-widget.is-collapsed { width: 43px; bottom: auto; }
   body.page-moon .ui-scene-widget.is-expanded, body.page-system .ui-scene-widget.is-expanded { width: 100vw; bottom: 0; }
   body.page-moon[data-expanded] { --scene-left: 0px; --scene-right: 0px; }
   body.page-system[data-expanded] { --scene-left: 0px; --scene-right: 0px; }

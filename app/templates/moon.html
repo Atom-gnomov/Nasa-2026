@@ -85,6 +85,32 @@
         на решті кулі — лише нахил поверхні. Висоти під курсором — інтерполяція DEM, точність обмежена його кроком.
         Яскравість у режимі «Сонце» нелінійна (√cos i), щоб було видно схили при низькому Сонці.</p>
     </details>
+    {# Модуль surface_view.js (G7, П-3): горизонт за маскою LOLA (/api/horizon), Сонце й Земля за місячну добу (/api/timeline) #}
+    <section id="surface" class="surface-wrap">
+      <h2>Вид з поверхні</h2>
+      <div class="surface-toolbar">
+        <div class="seg" role="group" aria-label="Вигляд з поверхні">
+          <button type="button" data-surface="3d" class="active">3D: очима апарата</button>
+          <button type="button" data-surface="flat">Розгортка 360°</button>
+        </div>
+        <div class="seg" role="group" aria-label="Дивитися на">
+          <button type="button" data-look="sun">Сонце</button>
+          <button type="button" data-look="earth">Земля</button>
+          <button type="button" data-look="0">Північ</button>
+          <button type="button" data-look="180">Південь</button>
+        </div>
+      </div>
+      <div class="surface-toolbar">
+        <button type="button" id="surface-play" aria-label="Рух у межах місячної доби">▶</button>
+        <input type="range" id="surface-time" min="0" max="0" value="0" step="1" aria-label="Момент у межах місячної доби від дати календаря">
+        <button type="button" id="surface-to-calendar" title="Встановити цей момент у календар (усі вкладки)">У календар</button>
+      </div>
+      <p id="surface-moment" class="small"></p>
+      <p id="surface-events" class="small"></p>
+      <div id="surface-view" class="canvas-host surface-host"><p class="placeholder">Виберіть місце на Місяці</p></div>
+      <canvas id="surface-flat" class="surface-flat" aria-label="Розгортка горизонту 360°: азимут і кут місця"></canvas>
+      <p id="surface-status" class="muted small"></p>
+    </section>
   </div>
   <div class="side-panel">
     <h2>Вибір місця</h2>
@@ -124,6 +150,7 @@
 {% endblock %}
 {% block scripts %}
 <script type="module" src="{{ url_for('static', filename='js/moon_globe.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/surface_view.js') }}"></script>
 <script type="module" src="{{ url_for('static', filename='js/globe_view.js') }}"></script>
 <script type="module" src="{{ url_for('static', filename='js/compare.js') }}"></script>
 <script type="module" src="{{ url_for('static', filename='js/charts.js') }}"></script>

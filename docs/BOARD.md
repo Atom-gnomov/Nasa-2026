@@ -84,8 +84,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Велес
 
-- **Зараз:** D4 — таблиці корисного навантаження з джерел NASA (BVAD, NASA-STD-3001, SST State of the Art, CLPS/OIG) замість тимчасових коефіцієнтів `payload.py`; далі D8
-- **Гілка:** `veles/D4-payload-tables`
+- **Зараз:** — (D4 на рев'ю, PR #69)
+- **Гілка:** —
 
 ### Ярило
 
@@ -141,6 +141,7 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 - D6 — Каталог систем запуску з першоджерел (Pegasus XL, LauncherOne, Sea Launch, Ariane 6) — гілка `veles/D6-launch-systems`, PR #36
 - F8 — Перемикач мови інтерфейсу UA / EN (`i18n.js`, словник `en.json`, 228 з 228 текстів шаблонів) — гілка `veles/F8-i18n`, PR #59
 - D6 (доопрацювання за рев'ю #36) — дослівні цитати першоджерел до статусів Pegasus XL і Ariane 64 — гілка `veles/D6-source-quotes`, PR #60
+- D4 — Таблиці корисного навантаження з першоджерел NASA (23 параметри, 25 цитат; модель не змінено, порівняння з тимчасовими коефіцієнтами в PR) — гілка `veles/D4-payload-tables`, PR #69
 
 ### Ярило
 

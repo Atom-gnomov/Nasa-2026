@@ -200,6 +200,10 @@ button.primary:disabled { opacity: 0.6; cursor: progress; }
 .lw-priorities ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
 .lw-priorities button { padding: 0 6px; }
 .lw-note { font-size: 12px; margin: 0; }
+.lw-priorities label { margin-bottom: 6px; }
+.lw-priorities input { width: 100%; box-sizing: border-box; }
+.results-table tr.infeasible td { color: var(--muted); }
+#plan-table td:nth-child(4) { white-space: normal; min-width: 180px; }
 .lw-results { min-width: 0; display: grid; gap: 10px; }
 .lw-scale { display: flex; gap: 3px; align-items: flex-end; height: 180px; overflow-x: auto; padding-bottom: 4px; }
 .lw-bar { flex: 1 0 22px; height: 100%; position: relative; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; background: none; border: 0; padding: 0; color: var(--muted); font: 11px/1.2 system-ui, sans-serif; cursor: pointer; }

@@ -1,0 +1,240 @@
+/*
+ Orbital Glass — premium smoked-glass theme informed by the user's
+ SpaceX-like mission control reference. Purely visual presentation.
+ workspace.css remains the ONLY owner of layout, 50/50, and adaptive geometry.
+*/
+:root {
+  color-scheme: dark;
+  --bg:#03070c; --panel:rgba(12,20,29,.72); --border:rgba(198,227,245,.17);
+  --text:#edf4fa; --muted:#a3b3c1;
+  --og-ink:#04080e; --og-ivory:#eef7ff; --og-subtle:#a8bac9;
+  --og-ice:#bfeefa; --og-amber:#e5ad55; --og-green:#a1e0bf;
+  --og-line:rgba(208,232,247,.17);
+  --og-card:linear-gradient(125deg,rgba(239,250,255,.10) 0%,rgba(237,247,255,.014) 33%,transparent 60%),
+            linear-gradient(160deg,rgba(35,48,61,.71) 0%,rgba(12,20,29,.81) 65%,rgba(19,29,39,.70));
+  --og-rim:linear-gradient(135deg,rgba(250,253,255,.51) 0%,rgba(205,231,250,.18) 28%,rgba(148,186,210,.08) 71%,rgba(222,239,251,.24) 100%);
+  --og-shadow:0 17px 49px rgba(0,0,0,.45),0 4px 15px rgba(0,0,0,.18),
+              inset 0 1px 0 rgba(255,255,255,.17),inset 0 -1px 0 rgba(0,0,0,.22);
+  --og-highlight:linear-gradient(180deg,rgba(245,252,255,.075),rgba(218,240,254,.012));
+  --og-button:linear-gradient(160deg,rgba(223,240,255,.16),rgba(95,141,179,.06));
+  --glass-stroke:var(--og-line); --glass-shadow:var(--og-shadow);
+  --ui-panel-soft:rgba(15,24,34,.78); --ui-input:rgba(7,15,23,.69);
+  --ui-fg-subtle:#a8bac9; --ui-line-soft:rgba(211,234,250,.12);
+  --ui-focus:rgba(156,224,250,.22);
+}
+body { background:#03070c; color:var(--og-ivory); }
+body:not(.page-moon):not(.page-system) #view {
+  background:radial-gradient(ellipse at 53% -15%,rgba(151,216,237,.10),transparent 46%),
+             radial-gradient(ellipse at 100% 78%,rgba(130,168,191,.045),transparent 50%),#04080d;
+}
+::selection { background:rgba(172,230,249,.29); color:white; }
+
+/* One-line frosted navigation and white/silver capsule selection. */
+#site-header.topbar {
+  background:linear-gradient(180deg,rgba(27,37,48,.81),rgba(8,14,20,.87));
+  border-bottom:1px solid rgba(212,235,251,.20);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 8px 26px rgba(0,0,0,.29);
+  backdrop-filter:blur(25px) saturate(155%);
+  -webkit-backdrop-filter:blur(25px) saturate(155%);
+}
+#site-header .brand-mark {
+  background:linear-gradient(140deg,rgba(233,250,255,.24),rgba(143,185,214,.06));
+  border:1px solid rgba(229,244,254,.37);
+  color:#f4fafe; text-shadow:0 0 11px rgba(212,243,255,.46);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.19),0 0 18px rgba(154,211,238,.10);
+}
+#site-header .brand .logo { color:#f3f8fd; letter-spacing:.01em; }
+#site-header .header-middle .tabs a {
+  background:transparent; border:1px solid transparent; color:#aebdca;
+  transition:background .16s,color .16s,border-color .16s;
+}
+#site-header .header-middle .tabs a:hover:not(.active) { background:rgba(213,240,253,.08);color:#f4faff; }
+#site-header .header-middle .tabs a.active,
+#site-header .header-middle .tabs a[aria-current="page"] {
+  color:#f4faff; background:linear-gradient(165deg,rgba(229,244,255,.24),rgba(140,183,210,.09));
+  border:1px solid rgba(211,237,252,.32);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.20),0 0 16px rgba(125,192,226,.09);
+}
+#site-header .header-middle .calendar { color:#b9cbd9; }
+#site-header .header-middle #calendar-input {
+  background:rgba(5,12,21,.71);border:1px solid rgba(204,229,244,.24);color:#eff7fd;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+}
+#site-header .header-middle .cal-steps { background:rgba(8,15,23,.34);border-color:rgba(196,227,244,.19); }
+#site-header .header-middle .cal-steps button { background:rgba(224,243,255,.035);color:#b9cbd7; }
+#site-header .header-middle .cal-steps button:hover { background:rgba(221,240,252,.15);color:#fff; }
+#site-header .header-actions .lang-switch,
+#site-header .header-actions .header-icon {
+  background:var(--og-button);border:1px solid rgba(210,235,251,.24);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12);border-radius:10px;color:#e8f4fc;
+}
+#site-header .header-actions .lang-switch button { background:transparent;color:#b8cad7; }
+#site-header .header-actions .lang-switch button.active {
+  background:linear-gradient(180deg,rgba(226,244,255,.25),rgba(160,207,236,.09));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.20);color:#fff;
+}
+#site-header .header-actions .header-icon:hover { background:rgba(214,238,254,.19);border-color:rgba(235,251,255,.44); }
+.help-menu-content {
+  background:linear-gradient(150deg,rgba(34,48,60,.96),rgba(10,19,28,.97));
+  border-color:rgba(210,235,251,.28);color:#e1ebf5;box-shadow:var(--og-shadow);
+  backdrop-filter:blur(24px);
+}
+
+/* Same optical glass for Moon/System, AI, Mission, Plan, Launch, Search.
+   The edge is a true transparent gradient rim, not a thick white line. */
+body.page-moon .ui-scene-widget,
+body.page-system .ui-scene-widget,
+body.page-moon #metrics-overlay.ui-scene-widget,
+body.page-system .system-info.ui-scene-widget,
+body.page-search #search .ui-widget,
+body.page-mission .mission-form.ui-widget,
+body.page-plan .lw-controls.ui-widget,
+body.page-launch .lw-controls.ui-widget,
+body.page-search #search .workspace-results,
+body.page-mission .workspace-results,
+body.page-plan .workspace-results,
+body.page-launch .workspace-results,
+body.page-moon .ui-dock,
+body.page-system .ui-dock,
+body.page-moon #surface .ui-surface-dock {
+  background:var(--og-card) padding-box,var(--og-rim) border-box;
+  border:1px solid transparent;
+  box-shadow:var(--og-shadow);
+  backdrop-filter:blur(27px) saturate(150%) brightness(1.08);
+  -webkit-backdrop-filter:blur(27px) saturate(150%) brightness(1.08);
+}
+body.page-moon .ui-scene-widget:not(.is-expanded),
+body.page-system .ui-scene-widget:not(.is-expanded),
+body.page-search #search .ui-widget,
+body.page-mission .mission-form.ui-widget,
+body.page-plan .lw-controls.ui-widget,
+body.page-launch .lw-controls.ui-widget,
+body.page-search #search .workspace-results,
+body.page-mission .workspace-results,
+body.page-plan .workspace-results,
+body.page-launch .workspace-results,
+body.page-moon > .ui-dock,
+body.page-system > .ui-dock { border-radius:18px; }
+body.page-moon .ui-scene-widget.is-expanded,
+body.page-system .ui-scene-widget.is-expanded { border-radius:0; }
+.ui-widget .widget-header,.ui-dock .dock-header,.workspace-results .results-heading {
+  background:var(--og-highlight);border-bottom:1px solid rgba(210,236,250,.14);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+}
+.ui-widget .widget-title,.ui-dock .dock-title,.workspace-results .results-heading h2 {
+  color:#f3f9fc;font-weight:650;letter-spacing:.005em;
+}
+.ui-widget .widget-body {color:#dce9f3;}
+.ui-widget .widget-body .muted,body:not(.page-moon):not(.page-system) #view .muted {color:#adbdc9;}
+.ui-widget .widget-body a,body:not(.page-moon):not(.page-system) #view a {color:#c3eef8;}
+
+/* iOS-like pressed-glass segmented controls, consistent everywhere. */
+.ui-widget .seg,.ui-dock .seg,body:not(.page-moon):not(.page-system) #view .seg {
+  background:rgba(4,12,19,.35);border:1px solid rgba(204,228,245,.18);
+  border-radius:10px;box-shadow:inset 0 2px 4px rgba(0,0,0,.15);
+}
+.ui-widget .seg button,.ui-widget .seg a,.ui-dock .seg button,.ui-dock .seg a,
+body:not(.page-moon):not(.page-system) #view .seg button {
+  background:transparent;color:#b8c8d5;border-color:rgba(206,235,250,.10);
+}
+.ui-widget .seg button.active,.ui-widget .seg a.active,
+.ui-dock .seg button.active,.ui-dock .seg a.active,
+body:not(.page-moon):not(.page-system) #view .seg button.active {
+  background:linear-gradient(180deg,rgba(225,243,255,.23),rgba(155,204,232,.10));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.20),0 0 14px rgba(151,210,236,.09);
+  color:#f6fbff;
+}
+.ui-widget .seg button:hover:not(.active),.ui-dock .seg button:hover:not(.active) {
+  background:rgba(224,243,255,.09);color:#fff;
+}
+.widget-action,.dock-toggle,.ui-widget .widget-action,.ui-dock .dock-toggle {
+  color:#e1eff8;background:var(--og-button);
+  border:1px solid rgba(213,236,251,.27);border-radius:9px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14);
+}
+.widget-action:hover,.dock-toggle:hover {
+  color:#fff;background:rgba(217,240,254,.19);border-color:rgba(236,250,255,.48);
+}
+.ui-widget.is-collapsed .widget-collapse {
+  color:#ebf8ff;background:linear-gradient(180deg,rgba(221,244,255,.22),rgba(101,159,191,.11));
+}
+
+/* Recessed dark glass inputs — preserve width & size from workspace.css. */
+#view select,#view textarea,#view input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]),
+.ui-widget .widget-body select,
+.ui-widget .widget-body input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]),
+.ui-dock select {
+  background:rgba(5,12,20,.54);color:#f0f7fc;
+  border:1px solid rgba(205,231,247,.20);border-radius:9px;
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.19),0 1px 0 rgba(255,255,255,.025);
+}
+#view input::placeholder,#view textarea::placeholder {color:#8699aa;}
+#view input:focus-visible,#view select:focus-visible,.ui-dock select:focus-visible {
+  border-color:rgba(190,233,249,.64);outline-color:#b2e6f4;
+  box-shadow:0 0 0 3px rgba(144,214,242,.17);
+}
+#view input[type="checkbox"],#view input[type="range"],.ui-dock input[type="range"] {accent-color:#a4dfef;}
+#view button.primary,#view #plan-flight,.ui-widget .widget-body .coords button {
+  color:#f2fafe;background:linear-gradient(160deg,rgba(212,239,255,.28),rgba(111,172,204,.16));
+  border:1px solid rgba(215,241,253,.42);border-radius:10px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.21),0 4px 14px rgba(0,0,0,.2);
+}
+#view button.primary:hover,#view #plan-flight:hover,.ui-widget .widget-body .coords button:hover {
+  background:rgba(210,238,255,.31);border-color:rgba(245,251,255,.60);
+}
+#view fieldset,.ui-widget .widget-body fieldset {
+  background:linear-gradient(150deg,rgba(214,242,255,.03),rgba(5,13,21,.14));
+  border-color:rgba(201,230,248,.16);border-radius:12px;
+}
+#view fieldset legend {color:#cddde8;}
+
+/* Precision telemetry: subtle hairlines, high-contrast measurements. */
+.ui-widget .widget-body dt,.ui-widget .widget-body .overlay-note {color:#acbccb;}
+.ui-widget .widget-body dd {color:#eef7fd;font-variant-numeric:tabular-nums;}
+.ui-widget .widget-body details {border-color:rgba(207,234,249,.12);}
+.ui-widget .widget-body details summary {color:#dceef8;}
+body:not(.page-moon):not(.page-system) #view .results-table thead th {
+  background:rgba(199,224,241,.08);color:#d0e0ec;border-color:rgba(214,235,249,.17);
+}
+body:not(.page-moon):not(.page-system) #view .results-table tbody td {border-color:rgba(204,231,247,.11);}
+body:not(.page-moon):not(.page-system) #view .results-table tbody tr:hover {background:rgba(218,243,255,.07);}
+body:not(.page-moon):not(.page-system) #view .table-scroll,
+body.page-search #search #s-advice .widget-body #s-advice-out {
+  background:rgba(5,12,20,.28);border:1px solid rgba(201,228,248,.16);border-radius:12px;
+}
+body.page-launch .lw-scale {background:rgba(6,14,22,.30);border-color:rgba(211,238,252,.18);}
+body.page-mission .mission-result details {background:rgba(6,14,24,.22);border-color:rgba(219,238,251,.14);}
+body.page-search #search .widget-body .prio {background:rgba(6,14,22,.30);border-color:rgba(204,232,249,.16);}
+.ui-widget .widget-body .ok,.workspace-results .ok {color:#a1e0bf;}
+.ui-widget .widget-body .bad,.workspace-results .bad {color:#f1a9a4;}
+.ui-widget .widget-body .warn,.workspace-results .warn,.globe-warn {color:#e5ad55;}
+body.page-mission .fill-bar span {background:#a4dce9;}
+body.page-mission .fill-bar.over span {background:#e5a190;}
+body.page-launch .lw-bar.best .lw-fill {background:#a4dce9;box-shadow:0 0 14px rgba(163,214,236,.18);}
+body.page-launch .lw-bar.best {color:#e1f3f9;}
+
+/* Glass fallback for unsupported blur and accessibility preferences. */
+@supports not ((backdrop-filter:blur(2px)) or (-webkit-backdrop-filter:blur(2px))) {
+  body.page-moon .ui-scene-widget,body.page-system .ui-scene-widget,
+  body.page-search #search .ui-widget,body.page-mission .mission-form.ui-widget,
+  body.page-plan .lw-controls.ui-widget,body.page-launch .lw-controls.ui-widget,
+  body.page-search #search .workspace-results,body.page-mission .workspace-results,
+  body.page-plan .workspace-results,body.page-launch .workspace-results,
+  body.page-moon .ui-dock,body.page-system .ui-dock {
+    background:#17222d;border:1px solid rgba(205,232,247,.30);
+  }
+}
+@media (prefers-reduced-transparency:reduce) {
+  body.page-moon .ui-scene-widget,body.page-system .ui-scene-widget,
+  body.page-search #search .ui-widget,body.page-mission .mission-form.ui-widget,
+  body.page-plan .lw-controls.ui-widget,body.page-launch .lw-controls.ui-widget,
+  body.page-search #search .workspace-results,body.page-mission .workspace-results,
+  body.page-plan .workspace-results,body.page-launch .workspace-results,
+  body.page-moon .ui-dock,body.page-system .ui-dock,#site-header.topbar {
+    background:#17222d;border:1px solid rgba(205,232,247,.30);
+    backdrop-filter:none;-webkit-backdrop-filter:none;
+  }
+}
+@media (prefers-reduced-motion:reduce) {
+  #site-header .header-middle .tabs a,.widget-action,.dock-toggle {transition:none;}
+}

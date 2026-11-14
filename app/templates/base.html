@@ -6,6 +6,8 @@
   <title>{% block title %}Lunar Site Explorer{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/workspace.css') }}">
+  {# Orbital Glass: презентаційний шар після layout-стилів. #}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/orbital-glass.css') }}">
   {# М16: Three.js через importmap, версія закріплена #}
   <script type="importmap">
     {

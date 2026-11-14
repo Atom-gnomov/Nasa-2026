@@ -113,3 +113,11 @@ def test_analytics_results_share_glass_panel_class(client):
         html = client.get(url).get_data(as_text=True)
         assert "workspace-results" in html, url
         assert 'class="results-heading"' in html, url
+
+
+def test_orbital_glass_theme_is_included_last(client):
+    """Every tab shares the same glass theme without moving layout logic."""
+    for path in ("/moon", "/system", "/search", "/mission", "/plan", "/launch-window"):
+        html = client.get(path).get_data(as_text=True)
+        assert "css/orbital-glass.css" in html, path
+        assert html.index("css/style.css") < html.index("css/workspace.css") < html.index("css/orbital-glass.css"), path

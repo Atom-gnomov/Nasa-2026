@@ -209,7 +209,8 @@ def timeline():
     end = _parse_datetime(request.args["end"])
     step_h = _parse_optional_float("step_h", 1.0, 0.1, 24.0)
     try:
-        return jsonify(timeline_service.timeline(lat, lon, start, end, step_h, height_m))
+        with_temperature = request.args.get("temperature", "0") in ("1", "true")
+        return jsonify(timeline_service.timeline(lat, lon, start, end, step_h, height_m, with_temperature))
     except ValueError as exc:
         return _error(400, str(exc))
     except RuntimeError as exc:

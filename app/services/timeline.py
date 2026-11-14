@@ -13,14 +13,14 @@ import numpy as np
 
 from app.core import power, stats
 from app.core.ephemeris import get_ephemeris
-from app.services import dsn, horizon, visibility
+from app.services import dsn, horizon, temperature, visibility
 
 MAX_POINTS = 5000  # більше точок — сервер збільшує крок (див. контракт /timeline)
 MAX_PERIOD_DAYS = 400
 
 
 def timeline(lat: float, lon: float, start: datetime, end: datetime, step_h: float = 1.0,
-             height_m: float = 0.0) -> dict:
+             height_m: float = 0.0, with_temperature: bool = False) -> dict:
     span_h = (end - start).total_seconds() / 3600.0
     if span_h <= 0:
         raise ValueError("Кінець періоду має бути пізніше за початок")
@@ -53,12 +53,18 @@ def timeline(lat: float, lon: float, start: datetime, end: datetime, step_h: flo
     times = [x.strftime("%Y-%m-%dT%H:%M:%SZ") for x in t.utc_datetime()]
     r2 = lambda a: [round(float(v), 2) for v in np.atleast_1d(a)]  # noqa: E731
     r3 = lambda a: [round(float(v), 3) for v in np.atleast_1d(a)]  # noqa: E731
+    temp_k = temperature.temperature_series(lat, lon, t) if with_temperature else None
+    if temp_k is not None:  # M11: ряд температури й підсумок за період (лише якщо запитано й дані Diviner є)
+        known = [v for v in temp_k if v is not None]
+        summary["temperature_min_k"] = min(known) if known else None
+        summary["temperature_max_k"] = max(known) if known else None
     return {
         "lat": lat,
         "lon": (lon + 180.0) % 360.0 - 180.0,
         "height_m": height_m,
         "step_h": round(step, 4),
         "times": times,
+        **({"temperature_k": temp_k} if temp_k is not None else {}),
         "sun": {"azimuth_deg": r2(sun.azimuth_deg), "elevation_deg": r3(sun.elevation_deg),
                 "visible_fraction": r3(sun_frac)},
         "earth": {"azimuth_deg": r2(earth.azimuth_deg), "elevation_deg": r3(earth.elevation_deg),

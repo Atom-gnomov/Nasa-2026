@@ -92,6 +92,8 @@ flask --app app run --debug
 | `LSE_DEM_DIR` | `<CACHE_DIR>/globe/src` | Рельєф LOLA (PDS `.img` + `.lbl`) |
 | `LSE_TEMP_DIR` | `<CACHE_DIR>/temperature` | Температурні дані Diviner |
 | `LSE_EPHEMERIS_PATH` | пакет `naif-de440` | Власний файл ефемерид JPL |
+| `LSE_MOON_ORIENTATION` | `iau` | Орієнтація Місяця: `iau` (модель IAU 2015) або `pck` (ядра NAIF DE440; `python tools/download_kernels.py`) |
+| `LSE_KERNEL_DIR` | `data_cache/kernels` | Каталог ядер NAIF для `LSE_MOON_ORIENTATION=pck` |
 | `LSE_AUTO_PREPARE` | `1` | `0` вимикає автоматичну підготовку даних у фоні (CI, автономна робота) |
 | `LSE_AUTO_PREPARE_DATASETS` | `temperature,system` | Які набори готувати самі: `temperature`, `system`, `globe` |
 | `LSE_LLM_BASE_URL` | — | Адреса OpenAI-сумісного API порад ШІ; без неї поради вимкнені |

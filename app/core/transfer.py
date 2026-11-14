@@ -28,7 +28,7 @@ import numpy as np
 
 from app.core.constants import R_EARTH_KM, R_MOON_KM
 from app.core.launch import TRAJECTORIES
-from app.core.orbits import GM_EARTH, GM_MOON
+from app.core.orbits import GM_EARTH, GM_MOON, osculating_orbit
 
 Range = tuple[float, float]
 
@@ -199,6 +199,20 @@ def _declination_deg(r) -> float:
     return math.degrees(math.asin(float(np.clip(r[2] / np.linalg.norm(r), -1.0, 1.0))))
 
 
+def _transfer_plane(r_m: np.ndarray, v_m: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Базис площини переходу (площина орбіти Місяця): e1 — на Місяць, e2 — за рухом, h — нормаль."""
+    h = np.cross(r_m, v_m)
+    h_hat = h / np.linalg.norm(h)
+    e1 = r_m / np.linalg.norm(r_m)
+    return e1, np.cross(h_hat, e1), h_hat
+
+
+def _departure_point(theta_deg: float, r0: float, e1: np.ndarray, e2: np.ndarray) -> np.ndarray:
+    """Точка відльоту на паркувальній орбіті: на θ «позаду» напрямку на Місяць за рухом."""
+    th = math.radians(theta_deg)
+    return r0 * (math.cos(th) * e1 - math.sin(th) * e2)
+
+
 def coplanar_transfer(r_moon_km, v_moon_km_s, tof_days: float,
                       params: TransferParams = DEFAULT_PARAMS) -> TransferPoint:
     """Найкращий (за сумарним Δv) перехід у площині орбіти Місяця за час tof_days.
@@ -209,17 +223,13 @@ def coplanar_transfer(r_moon_km, v_moon_km_s, tof_days: float,
         raise ValueError("Час перельоту має бути додатним")
     r_m = np.asarray(r_moon_km, dtype=float)
     v_m = np.asarray(v_moon_km_s, dtype=float)
-    h = np.cross(r_m, v_m)
-    h_hat = h / np.linalg.norm(h)
-    e1 = r_m / np.linalg.norm(r_m)
-    e2 = np.cross(h_hat, e1)
+    e1, e2, h_hat = _transfer_plane(r_m, v_m)
     r0 = R_EARTH_KM + params.parking_altitude_km
     v_circ = circular_speed_km_s(r0)
     tof_s = tof_days * 86400.0
 
     def evaluate(theta_deg: float):
-        th = math.radians(theta_deg)
-        r1 = r0 * (math.cos(th) * e1 - math.sin(th) * e2)  # точка відльоту на θ «позаду» Місяця за рухом
+        r1 = _departure_point(theta_deg, r0, e1, e2)
         v1, v2 = lambert(r1, r_m, tof_s, normal=h_hat)
         dv_tli = float(np.linalg.norm(v1 - v_circ * np.cross(h_hat, r1 / r0)))
         v_inf = float(np.linalg.norm(v2 - v_m))
@@ -263,6 +273,30 @@ def coplanar_transfer(r_moon_km, v_moon_km_s, tof_days: float,
         moon_distance_km=float(np.linalg.norm(r_m)),
         min_parking_inclination_deg=abs(_declination_deg(r_m)),
     )
+
+
+def transfer_arc(r_moon_km, v_moon_km_s, tof_days: float, params: TransferParams = DEFAULT_PARAMS,
+                 n: int = 96) -> tuple[TransferPoint, np.ndarray]:
+    """Найкращий перехід і n точок його дуги (ICRF, геоцентрично, км) від паркувальної орбіти до центру Місяця.
+
+    Дуга — оскулюючий еліпс після TLI (задача двох тіл), від точки відльоту до точки прибуття за рухом. Для показу
+    в 3D (задача G9, П-5); ділянку виведення на паркувальну орбіту не показуємо.
+    """
+    if n < 2:
+        raise ValueError("Потрібно щонайменше 2 точки")
+    point = coplanar_transfer(r_moon_km, v_moon_km_s, tof_days, params)
+    r_m = np.asarray(r_moon_km, dtype=float)
+    e1, e2, h_hat = _transfer_plane(r_m, np.asarray(v_moon_km_s, dtype=float))
+    r1 = _departure_point(point.transfer_angle_deg, R_EARTH_KM + params.parking_altitude_km, e1, e2)
+    v1, _ = lambert(r1, r_m, tof_days * 86400.0, normal=h_hat)
+    orbit = osculating_orbit(r1, v1, GM_EARTH)  # перехід 3–5 діб — еліпс (C3 < 0); гіпербола — ValueError
+    nu1 = math.atan2(float(r1 @ orbit.q_hat), float(r1 @ orbit.p_hat))
+    nu2 = math.atan2(float(r_m @ orbit.q_hat), float(r_m @ orbit.p_hat))
+    if nu2 <= nu1:
+        nu2 += 2 * math.pi
+    nu = np.linspace(nu1, nu2, n)
+    points = orbit.radius(nu)[:, None] * (np.cos(nu)[:, None] * orbit.p_hat + np.sin(nu)[:, None] * orbit.q_hat)
+    return point, points
 
 
 # --- з ефемеридами ---------------------------------------------------------------------------------------------

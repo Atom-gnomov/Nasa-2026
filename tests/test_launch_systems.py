@@ -123,3 +123,26 @@ def test_secondary_sources_are_labelled():
         for fact in system["facts"]:
             if "wikipedia.org" in fact["source"]["url"] or "flightglobal.com" in fact["source"]["url"]:
                 assert fact["source"]["kind"] == "secondary", (system["id"], fact["quantity"])
+
+
+def test_operational_statuses_of_pegasus_and_ariane_64_are_backed_by_quoted_sources():
+    """Останній політ Pegasus XL і перший політ Ariane 64 — з цитатами; «останній політ» не видаємо за підтверджений."""
+    systems, _, _ = _load()
+    by_id = {s["id"]: s for s in systems}
+    pegasus = by_id["pegasus-xl"]
+    last = _facts(pegasus, "last_flight")
+    assert [f["value"] for f in last] == ["2026-07-03"]
+    assert last[0]["source"]["kind"] == "primary" and "Marshall Islands Time" in last[0]["quote"]
+    flights = {f["value"]: f for f in _facts(pegasus, "flights")}
+    assert sorted(flights) == [45, 46], "до польоту 3 липня 2026 і після нього — окремі факти з умовою"
+    assert all(f.get("condition") for f in flights.values())
+    # прямо сказано, що «останній політ» не підтверджено первинними джерелами
+    assert "не містять" in pegasus["status_note"]
+
+    ariane64 = by_id["ariane-64"]
+    first = _facts(ariane64, "first_flight")
+    assert len(first) == 2 and {f["value"] for f in first} == {"2026-02-12"}
+    assert all(f["source"]["kind"] == "primary" for f in first)
+    assert any("first Ariane 64" in f["quote"] for f in first)
+    assert any("first flight of Ariane 64" in f["quote"] for f in first)
+    assert ariane64["active"] is True

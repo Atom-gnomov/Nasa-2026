@@ -17,7 +17,7 @@ import numpy as np
 from skyfield.api import load, wgs84
 from skyfield.timelib import Time
 
-from app.core import frames
+from app.core import frames, moon_orientation
 from app.core.constants import C_KM_S
 
 
@@ -44,12 +44,14 @@ def _default_kernel_path() -> str:
 
 
 class Ephemeris:
-    def __init__(self, kernel_path: str | None = None):
+    def __init__(self, kernel_path: str | None = None, moon_orientation_mode: str | None = None):
         self.ts = load.timescale(builtin=True)
         self.kernel = load(kernel_path or _default_kernel_path())
         self.sun = self.kernel["sun"]
         self.earth = self.kernel["earth"]
         self.moon = self.kernel["moon"]
+        # ICRF → MOON_ME: IAU 2015 або ядра NAIF DE440 (LSE_MOON_ORIENTATION, задача M7)
+        self.moon_rotation, self.moon_orientation_source = moon_orientation.load(moon_orientation_mode)
 
     # --- час -----------------------------------------------------------------
     def time(self, when: datetime) -> Time:
@@ -69,7 +71,7 @@ class Ephemeris:
     # --- вектори в системі Місяця ME, км, від центру Місяця --------------------
     def _to_me(self, t: Time, icrf_km: np.ndarray) -> np.ndarray:
         """icrf_km форми (3, N) або (3,) → (N, 3) або (3,)."""
-        return frames.rotate(frames.icrf_to_moon_me(t.tdb), np.moveaxis(icrf_km, 0, -1))
+        return frames.rotate(self.moon_rotation(t.tdb), np.moveaxis(icrf_km, 0, -1))
 
     def sun_vector_me(self, t: Time) -> np.ndarray:
         """Напрямок на Сонце з поправкою на час світла (~8,3 хв)."""

@@ -251,7 +251,9 @@ def scene():
     lon = _parse_float("lon", -180, 360) if "lon" in request.args else None
     markers = request.args.get("markers", "1") not in ("0", "false")
     try:
-        return jsonify(models3d.scene(when, lat, lon, markers))
+        return jsonify(models3d.scene(when, lat, lon, markers, request.args.get("launch_site") or None))
+    except models3d.LaunchSiteNotFound as exc:
+        return _error(404, str(exc))
     except RuntimeError as exc:
         return _error(503, str(exc))
 

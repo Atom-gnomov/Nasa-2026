@@ -79,8 +79,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 - **Зараз:** —
 - **Гілка:** —
-- **Зараз (агент Claude):** — (PR Велеса #29–#33 злито; наступне: I6, M17, B9).
-- **Гілка (агент Claude):** `claude/wizardly-keller-qd77lt` (змінюється від свіжого `main` для нової задачі)
+- **Зараз (агент Claude):** I6 → M17 → B9 → M18 (по черзі; кожна — окремий PR; лише `app/core/`, `app/services/`, `app/routes/`, `tests/`, `contracts/`; з Велесом не перетинаюсь)
+- **Гілка (агент Claude):** `perun/I6-tests-config` (далі `perun/M17-…`, `perun/B9-…`, `perun/M18-…`)
 
 ### Велес
 

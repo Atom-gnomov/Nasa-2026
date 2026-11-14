@@ -11,6 +11,7 @@
 import * as THREE from "three";
 import { createScene, hasWebGL } from "./three/scene.js";
 import { qualitySettings } from "./three/quality.js";
+import { onLangChange, t } from "./i18n.js";
 import { getState, setState, subscribe } from "./state.js";
 import {
   EARTH_DIAMETER_DEG, SUN_DIAMETER_DEG, compassLabels, eventText, horizonProfile, panoramaRange, skyVector, splitAtWrap,
@@ -324,8 +325,8 @@ function createPanorama(canvas) {
     const ex = xOf(series.earthAz[i]), ey = yOf(series.earth[i]);
     drawSunDisc(g, sx, sy, Math.max((SUN_DIAMETER_DEG / 2) * ppd, 4 * scale));
     drawEarthDisc(g, ex, ey, Math.max((EARTH_DIAMETER_DEG / 2) * ppd, 6 * scale), ph);
-    drawBodyLabel(g, "Сонце", sx, sy, SUN_RGB, scale);
-    drawBodyLabel(g, `Земля (освітлено ${Math.round(ph.fraction * 100)} %)`, ex, ey, EARTH_RGB, scale);
+    drawBodyLabel(g, t("Сонце"), sx, sy, SUN_RGB, scale);
+    drawBodyLabel(g, t("Земля (освітлено {p} %)", { p: Math.round(ph.fraction * 100) }), ex, ey, EARTH_RGB, scale);
 
     // 3. поверхня: DEM довкола + силует за маскою; закриває все, що нижче рельєфу
     if (!imageData || imageData.width !== W || imageData.height !== H) {
@@ -356,7 +357,7 @@ function createPanorama(canvas) {
       g.fillText(`${e}°`, 3 * scale, yOf(e) - 2 * scale);
     }
     const hStep = niceStep(view.fov, [1, 5, 10, 15, 30, 45]);
-    const names = new Map(compassLabels(lat).map((l) => [l.az, l.text]));
+    const names = new Map(compassLabels(lat).map((l) => [l.az, t(l.text)]));
     for (let a = Math.ceil((view.az - view.fov / 2) / hStep) * hStep; a <= view.az + view.fov / 2; a += hStep) {
       const az = ((a % 360) + 360) % 360, x = xOf(az);
       g.fillStyle = "rgba(138,146,166,0.9)";
@@ -396,7 +397,7 @@ function drawUnwrapped(canvas, mask, series, i, lat) {
     g.beginPath(); g.moveTo(pad.l, Y(e)); g.lineTo(w - pad.r, Y(e)); g.stroke();
     g.fillText(`${e}°`, 2, Y(e) + 4);
   }
-  for (const { az, text } of compassLabels(lat)) g.fillText(text, Math.min(X(az) - 6, w - 60), h - 4);
+  for (const { az, text } of compassLabels(lat)) g.fillText(t(text), Math.min(X(az) - 6, w - 60), h - 4);
   // шляхи ламаною: видимі ділянки яскраві, сховані за рельєфом — тьмяні; розрив на 360° → 0°
   g.lineWidth = 1.5;
   for (const [azs, els, vis, rgb] of [[series.sunAz, series.sun, series.sunVis, SUN_RGB], [series.earthAz, series.earth, series.earthVis, EARTH_RGB]]) {
@@ -493,7 +494,8 @@ if (root) {
   function render() {
     if (!mask || !series) return;
     const i = index();
-    momentEl.textContent = `${fmtMoment(series.t[i])} (+${Math.round((series.t[i] - series.t[0]) / HOUR_MS)} год від дати календаря)`;
+    const hours = Math.round((series.t[i] - series.t[0]) / HOUR_MS);
+    momentEl.textContent = `${fmtMoment(series.t[i])} ${t("(+{n} год від дати календаря)", { n: hours })}`;
     const st = series.stations[i];
     const ph = earthPhase(series.sunAz[i], series.sun[i], series.earthAz[i], series.earth[i]);
     eventsEl.textContent = [
@@ -550,6 +552,26 @@ if (root) {
     requestDraw();
   }
 
+  // Опис рельєфу — речення-шаблони з підстановкою: так їх можна перекласти (i18n.js), а не склеювати з уламків
+  function renderStatus() {
+    if (!mask) return;
+    const m = mask, a = patch?.api;
+    const src = m.source === "flat" ? t("гладка сфера (немає DEM для цієї точки)") : `LOLA ${m.source.toUpperCase()}`;
+    const pat = !patch ? t("поверхня довкола недоступна — лише силует горизонту")
+      : a.source === "flat" ? t("поверхня довкола: гладка сфера (немає DEM)")
+        : t("поверхня довкола: LOLA {src}, крок {step} м, радіус {r} км (відносно точки {lo}…+{hi} м)",
+          { src: a.source.toUpperCase(), step: a.spacing_m.toFixed(0), r: a.radius_km, lo: a.min_height_m.toFixed(0), hi: a.max_height_m.toFixed(0) });
+    const pole = Math.abs(lat) > 89.999 ? ` ${t("(на полюсі — від меридіана 0°)")}` : "";
+    statusEl.textContent = [
+      t("Рельєф: {src}; {pat}.", { src, pat }),
+      t("Далі — силует за маскою до {d} км, найвища точка горизонту {max}°, відкрите небо {sky} %.",
+        { d: m.max_distance_km ?? 200, max: (m.max_elevation_deg ?? Math.max(...m.elevations_deg)).toFixed(1), sky: Math.round(m.sky_view_fraction * 100) }),
+      t("Яскравість умовна, тіні — геометричні, з DEM (за межами ділянки не враховано); камера на висоті {eye} м — лише для вигляду.", { eye: EYE_M }),
+      t("Азимут — від півночі за годинниковою стрілкою{pole}.", { pole }),
+      t("Перетягування — повернути, колесо — масштаб."),
+    ].join(" ");
+  }
+
   async function load({ lat: la, lon, datetime, height_m: height = 0 }) {
     if (la == null || lon == null) {
       statusEl.textContent = "Виберіть місце на Місяці — вид з поверхні покаже горизонт і рух Сонця й Землі.";
@@ -588,16 +610,7 @@ if (root) {
       maskKey = mKey; tlKey = tKey; terrainKey = pKey; lightKey = "";
       slider.max = String(series.t.length - 1);
       slider.value = "0";
-      const src = m.source === "flat" ? "гладка сфера (немає DEM для цієї точки)" : `LOLA ${m.source.toUpperCase()}`;
-      const pat = !patch ? "поверхня довкола недоступна — лише силует горизонту"
-        : patch.api.source === "flat" ? "поверхня довкола: гладка сфера (немає DEM)"
-          : `поверхня довкола: LOLA ${patch.api.source.toUpperCase()}, крок ${patch.api.spacing_m.toFixed(0)} м, радіус ${patch.api.radius_km} км ` +
-            `(відносно точки ${patch.api.min_height_m.toFixed(0)}…+${patch.api.max_height_m.toFixed(0)} м)`;
-      statusEl.textContent = `Рельєф: ${src}; ${pat}. Далі — силует за маскою до ${m.max_distance_km ?? 200} км, ` +
-        `найвища точка горизонту ${(m.max_elevation_deg ?? Math.max(...m.elevations_deg)).toFixed(1)}°, відкрите небо ${Math.round(m.sky_view_fraction * 100)} %. ` +
-        `Яскравість умовна, тіні — геометричні, з DEM (за межами ділянки не враховано); камера на висоті ${EYE_M} м — лише для вигляду. ` +
-        `Азимут — від півночі за годинниковою стрілкою${Math.abs(la) > 89.999 ? " (на полюсі — від меридіана 0°)" : ""}. ` +
-        "Перетягування — повернути, колесо — масштаб.";
+      renderStatus();
       view3d?.setData(mask, series, lat, patch, exag());
       if (newPlace) lookAtBody(series.sun[0] > -2 ? "sun" : "earth");
       ensure3D();
@@ -672,6 +685,7 @@ if (root) {
   }).observe(root);
 
   exagOut.textContent = exagInput.value;
+  onLangChange(() => { render(); renderStatus(); requestDraw(); }); // canvas і складені речення перемальовуються
   setMode(mode);
   subscribe((st) => { clearTimeout(timer); timer = setTimeout(() => load(st), 300); });
 }

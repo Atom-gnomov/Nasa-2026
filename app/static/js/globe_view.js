@@ -13,6 +13,7 @@ import { anisotropy, createScene, hasWebGL, NO_WEBGL_MESSAGE } from "./three/sce
 import { mountFallbackMap } from "./three/fallback2d.js";
 import { mountQualitySelect, qualitySettings } from "./three/quality.js";
 import { subscribeHighlights } from "./highlights.js";
+import { t as tr } from "./i18n.js";
 import { getState, setState, subscribe } from "./state.js";
 
 const ASSETS = "/assets/globe/";
@@ -491,7 +492,7 @@ function drawDiurnalChart(canvas, t) {
   const pad = { l: 40, r: 8, t: 8, b: 20 };
   const pts = t.diurnal.filter((p) => p.tbol_k != null);
   g.font = "11px system-ui";
-  if (!pts.length) { g.fillStyle = muted; g.fillText("Немає вимірювань Diviner у цій комірці", pad.l, h / 2); return; }
+  if (!pts.length) { g.fillStyle = muted; g.fillText(tr("Немає вимірювань Diviner у цій комірці"), pad.l, h / 2); return; }
   const yMax = Math.max(400, ...pts.map((p) => p.tbol_k));
   const X = (lt) => pad.l + (lt / 24) * (w - pad.l - pad.r);
   const Y = (k) => h - pad.b - (k / yMax) * (h - pad.t - pad.b);

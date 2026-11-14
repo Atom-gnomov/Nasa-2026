@@ -79,8 +79,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 - **Зараз:** —
 - **Гілка:** —
-- **Зараз (агент Claude):** — (B13, B16, I7, B1 злито в `main`: PR #46–#48, #50); далі B8 після злиття M10 (PR #44)
-- **Гілка (агент Claude):** `perun/B13-profile-rank`, далі `perun/B16-mission-launch-system`, `perun/I7-auto-prepare-data`, `perun/B1-shared-visibility`
+- **Зараз (агент Claude):** B17 → I8 (дрібні, по черзі, окремі PR; `app/services/mission.py`, README, `.env.example`; не перетинаюсь з Чорнобогом (B8/F7 — `launch_window`, `launch_ranking`) і Велесом)
+- **Гілка (агент Claude):** `perun/B17-mission-profile`, далі `perun/I8-docs-env`
 
 ### Велес
 

@@ -9,8 +9,7 @@ import numpy as np
 
 from app.core import events, frames, power
 from app.core.ephemeris import get_ephemeris
-from app.core.horizon import EARTH_ANGULAR_RADIUS_DEG, SUN_ANGULAR_RADIUS_DEG, disk_fraction
-from app.services import dsn, horizon
+from app.services import dsn, horizon, visibility
 
 SEARCH_DAYS = 30.0  # шукаємо схід/захід у межах ~лунної доби
 SUN_STEP_HOURS = 1 / 3  # 20 хв (Сонце біля полюса рухається ~0,5°/год по азимуту)
@@ -63,19 +62,12 @@ def site_metrics(lat: float, lon: float, when: datetime, height_m: float = 0.0) 
     t = eph.time(when)
     mask = horizon.load_mask(lat, lon, height_m)
 
-    sun = eph.sun_track(t, lat, lon, height_m)
-    earth = eph.earth_track(t, lat, lon, height_m)
-    sun_frac = float(disk_fraction(sun.elevation_deg, mask.at(sun.azimuth_deg), SUN_ANGULAR_RADIUS_DEG))
-    earth_frac = float(disk_fraction(earth.elevation_deg, mask.at(earth.azimuth_deg), EARTH_ANGULAR_RADIUS_DEG))
+    sun, earth, sun_frac, earth_frac = visibility.sun_earth_visibility(eph, t, mask, lat, lon, height_m)
+    sun_frac, earth_frac = float(sun_frac), float(earth_frac)
 
     # Видимість: будь-яка частина диска над маскою (для Сонця) / центр Землі над маскою.
-    def sun_fn(jd):
-        tr = eph.sun_track(eph.ts.tt_jd(jd), lat, lon, height_m)
-        return tr.elevation_deg + SUN_ANGULAR_RADIUS_DEG - mask.at(tr.azimuth_deg)
-
-    def earth_fn(jd):
-        tr = eph.earth_track(eph.ts.tt_jd(jd), lat, lon, height_m)
-        return tr.elevation_deg - mask.at(tr.azimuth_deg)
+    sun_fn = visibility.sun_margin_fn(eph, mask, lat, lon, height_m)
+    earth_fn = visibility.earth_margin_fn(eph, mask, lat, lon, height_m)
 
     jd0 = float(t.tt)
     sun_events = events.find_crossings(sun_fn, jd0, jd0 + SEARCH_DAYS, SUN_STEP_HOURS)

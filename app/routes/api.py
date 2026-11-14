@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, abort, current_app, jsonify, request
 from werkzeug.exceptions import HTTPException
 
+from app.core import launch_system
 from app.services import catalogs, dsn, elevation, metrics, models3d, ranking, sites, system, temperature
 from app.services import advice as advice_service
 from app.services import search as search_service
@@ -102,6 +103,12 @@ def data_prepare():
     prep = bootstrap.preparer(current_app)
     started = prep.start(ids)
     return jsonify({"started": started, "status": prep.status(True)}), 202
+
+
+@bp.get("/launch-systems")
+def list_launch_systems():
+    """Системи запуску (ракета + спосіб старту) з каталогу D6 у стислому вигляді."""
+    return jsonify([launch_system.from_catalog(row).to_dict() for row in catalogs.load_launch_systems()])
 
 
 @bp.get("/launch-sites")

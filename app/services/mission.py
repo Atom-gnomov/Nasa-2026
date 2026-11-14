@@ -8,11 +8,12 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from app.core import cost, payload, risk
+from app.core import cost, launch_system, payload, risk
 from app.core.launch import TRAJECTORIES
 from app.services import catalogs
 
-ALLOWED = {"crew", "days", "sizes", "trajectory", "launch_site_id", "launch_lat", "longest_night_h"}
+ALLOWED = {"crew", "days", "sizes", "trajectory", "launch_site_id", "launch_lat", "launch_system_id",
+           "longest_night_h"}
 
 
 class MissionError(ValueError):
@@ -20,7 +21,7 @@ class MissionError(ValueError):
 
 
 class LaunchSiteNotFound(MissionError):
-    """Невідомий launch_site_id (404)."""
+    """Невідомий launch_site_id або launch_system_id (404)."""
 
 
 def _number(body: Mapping, key: str, default: float, low: float, high: float | None = None) -> float:
@@ -32,8 +33,23 @@ def _number(body: Mapping, key: str, default: float, low: float, high: float | N
     return float(value)
 
 
-def _latitude(body: Mapping) -> tuple[float, str | None]:
+def _system(body: Mapping) -> launch_system.LaunchSystem | None:
+    system_id = body.get("launch_system_id")
+    if system_id is None:
+        return None
+    if not isinstance(system_id, str):
+        raise MissionError("launch_system_id має бути рядком")
+    row = next((r for r in catalogs.load_launch_systems() if r["id"] == system_id), None)
+    if row is None:
+        raise LaunchSiteNotFound(f"Систему запуску {system_id} не знайдено")
+    return launch_system.from_catalog(row)
+
+
+def _latitude(body: Mapping, system: launch_system.LaunchSystem | None = None) -> tuple[float, str | None]:
+    """Широта старту: явні launch_site_id / launch_lat, інакше перше місце системи запуску, інакше екватор."""
     site_id, lat = body.get("launch_site_id"), body.get("launch_lat")
+    if site_id is None and lat is None and system is not None and system.launch_site_ids:
+        site_id = system.launch_site_ids[0]
     if site_id is not None and lat is not None:
         raise MissionError("Задайте або launch_site_id, або launch_lat, не обидва")
     if site_id is not None:
@@ -65,16 +81,21 @@ def compute(body: Mapping) -> dict:
     trajectory = body.get("trajectory", "direct")
     if trajectory not in TRAJECTORIES:
         raise MissionError(f"trajectory: допустимо {', '.join(TRAJECTORIES)}")
-    lat, site_id = _latitude(body)
+    system = _system(body)
+    lat, site_id = _latitude(body, system)
 
     budget = payload.payload_budget(sizes, crew=crew, days=days, longest_night_h=night)
-    estimate = cost.mission_cost(budget.masses_kg, trajectory=trajectory, latitude_deg=lat)
+    choice = launch_system.to_rocket(system) if system else None
+    rocket_kwargs = {"rocket": choice.rocket} if choice else {}
+    estimate = cost.mission_cost(budget.masses_kg, trajectory=trajectory, latitude_deg=lat, **rocket_kwargs)
     assessment = risk.assess(estimate.utilization, estimate.mass_moon_kg, budget.sizes, crew=crew,
                              trajectory=trajectory)
     return {
         "provisional": True,
         "launch_lat": lat,
         "launch_site_id": site_id,
+        "launch_system": ({**choice.to_dict(), "fit": launch_system.fit(estimate.mass_leo_kg, system)}
+                          if choice else None),
         "payload": budget.to_dict(),
         "cost": estimate.to_dict(),
         "risk": assessment.to_dict(),

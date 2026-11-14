@@ -109,6 +109,25 @@ paths:
                 type: array
                 items: {$ref: "#/components/schemas/LaunchSite"}
 
+  /launch-systems:
+    get:
+      tags: [planning]
+      x-status: implemented
+      summary: Системи запуску (ракета + спосіб старту) з першоджерел
+      description: |
+        Каталог D6 (`app/data/launch_systems.json`) у стислому вигляді: спосіб старту, місткість на НОО
+        (`null`, якщо в джерелах її немає — наприклад, лише ГПО), висота скидання для повітряного старту,
+        місця старту. Ціни й імовірності відмови в каталозі немає; для них `/mission` використовує тимчасові
+        значення і прямо перелічує їх у `provisional_fields`. Повні цитати й джерела — у файлі даних.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/LaunchSystem"}
+
   /metrics:
     get:
       tags: [point]
@@ -1389,6 +1408,49 @@ components:
         - {type: string, enum: [min, basic, extended, max]}
         - {type: number, minimum: 0, maximum: 1}
 
+    LaunchSystem:
+      type: object
+      required: [id, name, kind, active, capacity_leo_kg, capacity_condition, drop_altitude_m, launch_site_ids]
+      additionalProperties: false
+      properties:
+        id: {type: string}
+        name: {type: string}
+        kind: {type: string, enum: [spaceport, sea_platform, air_launch]}
+        active: {type: [boolean, "null"], description: "null — стан не підтверджено джерелом"}
+        capacity_leo_kg: {type: [number, "null"]}
+        capacity_condition: {type: [string, "null"], description: Для якої орбіти й умови справедлива місткість}
+        drop_altitude_m: {type: [number, "null"]}
+        launch_site_ids: {type: array, items: {type: string}}
+
+    MissionLaunchSystem:
+      type: object
+      required: [system, provisional_fields, rocket, fit]
+      additionalProperties: false
+      properties:
+        system: {$ref: "#/components/schemas/LaunchSystem"}
+        provisional_fields:
+          type: array
+          items: {type: string, enum: [price_usd_per_kg, failure_probability]}
+          description: Поля ракети, яких немає в каталозі — використано тимчасові значення «типової ракети»
+        rocket:
+          type: object
+          required: [name, capacity_leo_kg, price_usd_per_kg, failure_probability]
+          additionalProperties: false
+          properties:
+            name: {type: string}
+            capacity_leo_kg: {type: number}
+            price_usd_per_kg: {$ref: "#/components/schemas/Range2"}
+            failure_probability: {type: number}
+        fit:
+          type: object
+          required: [utilization, launches, fits_single_launch, note]
+          additionalProperties: false
+          properties:
+            utilization: {type: number}
+            launches: {type: integer, minimum: 1}
+            fits_single_launch: {type: boolean}
+            note: {type: [string, "null"]}
+
     MissionRequest:
       type: object
       additionalProperties: false
@@ -1405,6 +1467,12 @@ components:
             comfort: {$ref: "#/components/schemas/PayloadSize"}
         trajectory: {type: string, enum: [direct, low_energy], default: direct}
         launch_site_id: {type: string, description: "id з /launch-sites; задає широту старту"}
+        launch_system_id:
+          type: string
+          description: |
+            id з /launch-systems: місткість ракети береться з каталогу замість «типової ракети». Без явних
+            `launch_site_id` / `launch_lat` широта береться з першого місця старту системи (повітряний старт
+            місця не має — тоді екватор). Система без місткості на НОО відхиляється (400).
         launch_lat: {type: number, minimum: -90, maximum: 90, description: Широта старту, градуси}
         longest_night_h: {type: number, minimum: 0, description: "Найдовша ніч точки, год (з /metrics); під неї підбираються акумулятори"}
 
@@ -1485,6 +1553,11 @@ components:
         provisional: {type: boolean, description: "true — коефіцієнти моделі тимчасові (чекають D4)"}
         launch_lat: {type: number, description: Широта старту, з якою рахувалась вартість}
         launch_site_id: {type: [string, "null"]}
+        launch_system:
+          description: Система запуску, з якою рахувалось (лише якщо задано `launch_system_id`)
+          oneOf:
+            - {$ref: "#/components/schemas/MissionLaunchSystem"}
+            - {type: "null"}
         payload: {$ref: "#/components/schemas/MissionPayload"}
         cost: {$ref: "#/components/schemas/MissionCost"}
         risk: {$ref: "#/components/schemas/MissionRisk"}

@@ -11,7 +11,8 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { anisotropy, createScene, hasWebGL, NO_WEBGL_MESSAGE } from "./three/scene.js";
 import { mountQualitySelect, qualitySettings } from "./three/quality.js";
 import { getState, setState, subscribe } from "./state.js";
-import { AUTO_OPTIONS, choiceFact, flightFact, flightUrl, needsReload, splitExtras } from "./flight.js";
+import { AUTO_OPTIONS, choiceFact, flightFact, flightUrl, needsReload, splitExtras, stateAt, telemetryRows } from "./flight.js";
+import { t } from "./i18n.js";
 
 const DEG = Math.PI / 180;
 const EPS = 23.4392911 * DEG; // нахил екліптики J2000 (IAU)
@@ -339,8 +340,12 @@ async function main() {
   // Траса площини відльоту на Землі (оптимальна точка старту, П-12): точки на ній потрапляють у площину одразу
   const groundTrack = new THREE.Line(new THREE.BufferGeometry(),
     new THREE.LineBasicMaterial({ color: 0xffd34d, transparent: true, opacity: 0.85 }));
-  scene.add(flightLine, flightHead, moonAtArrival, rocketMesh, landerMesh, groundTrack);
-  for (const o of [flightLine, flightHead, moonAtArrival, rocketMesh, landerMesh, groundTrack]) o.visible = false;
+  // Симуляція польоту (G12): ракета на дузі й вектор швидкості
+  const simRocket = new THREE.Mesh(new THREE.ConeGeometry(0.35, 1, 12), new THREE.MeshBasicMaterial({ color: 0xffe14d }));
+  const velArrow = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(), 1, 0x4dd2ff, 0.3, 0.15);
+  scene.add(flightLine, flightHead, moonAtArrival, rocketMesh, landerMesh, groundTrack, simRocket, velArrow);
+  for (const o of [flightLine, flightHead, moonAtArrival, rocketMesh, landerMesh, groundTrack, simRocket, velArrow]) o.visible = false;
+  const sim = { on: false, elapsed: 0, traj: null }; // elapsed — секунди польоту від відльоту
   const UP = new THREE.Vector3(0, 1, 0);
   let flight = null; // splitExtras(...) останньої відповіді
   let flightReq = null; // { siteId, ms, lat, lon } останнього запиту
@@ -374,6 +379,57 @@ async function main() {
     } catch { flight = null; } finally { flightLoading = false; }
   }
   flightSelect?.addEventListener("change", () => loadFlight(simMs, true));
+
+  const simButton = $("system-sim");
+  const telemetry = $("flight-telemetry");
+  function stopSim() {
+    sim.on = false;
+    if (simButton) simButton.textContent = "Симуляція";
+  }
+  simButton?.addEventListener("click", () => {
+    if (sim.on) { stopSim(); return; }
+    const t = flight?.trajectory;
+    if (!stateAt(t, 0)) return;
+    if (sim.elapsed >= t.times_s[t.times_s.length - 1]) sim.elapsed = 0;
+    sim.on = true;
+    simButton.textContent = "Стоп";
+    playing = false; // час сцени заморожуємо: летить лише ракета
+    $("system-play").textContent = "▶";
+  });
+
+  function updateSim(lay, dtS) {
+    const traj = flight?.trajectory;
+    if (sim.traj !== traj) { sim.traj = traj; sim.elapsed = 0; stopSim(); } // інший політ — починаємо спочатку
+    const ok = Boolean(traj && stateAt(traj, 0));
+    if (simButton) simButton.disabled = !ok;
+    if (!ok && sim.on) stopSim();
+    const show = ok && (sim.on || sim.elapsed > 0);
+    simRocket.visible = velArrow.visible = Boolean(show);
+    if (telemetry) telemetry.hidden = !show;
+    if (!show) return;
+    if (sim.on) sim.elapsed += dtS * Number($("system-sim-speed").value);
+    const st = stateAt(traj, sim.elapsed);
+    if (st.done && sim.on) stopSim();
+    const kMoon = lay.moon.pos.distanceTo(lay.earth.pos) / toScene(state.moon_km).length();
+    const pos = lay.earth.pos.clone().addScaledVector(toScene(st.pos), kMoon);
+    const dir = dirScene(st.dir);
+    const h = lay.earth.r * 0.3;
+    simRocket.scale.set(h, h, h);
+    simRocket.position.copy(pos);
+    simRocket.quaternion.setFromUnitVectors(UP, dir);
+    velArrow.position.copy(pos);
+    velArrow.setDirection(dir);
+    velArrow.setLength(lay.earth.r * 2.5, lay.earth.r * 0.7, lay.earth.r * 0.35);
+    const rows = telemetryRows(st);
+    const dl = $("flight-telemetry-rows");
+    dl.replaceChildren(...rows.flatMap(([name, value]) => {
+      const dt = document.createElement("dt");
+      dt.textContent = t(name);
+      const dd = document.createElement("dd");
+      dd.textContent = value;
+      return [dt, dd];
+    }));
+  }
 
   function updateFlight(lay, eM, mM) {
     const t = flight?.trajectory;
@@ -590,6 +646,7 @@ async function main() {
     updateOrbits(lay);
     const facts = updatePointAndStations(lay, earthRot, eM, mM, sunFromMoonKm);
     updateFlight(lay, eM, mM);
+    updateSim(lay, dt / 1000);
     updateCamera(lay, now);
     controls.update();
     updateLabels(lay);

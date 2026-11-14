@@ -94,7 +94,7 @@
             "quantity": {
               "type": "string",
               "pattern": "^[a-z0-9_]+$",
-              "description": "capacity_leo_kg, capacity_tli_kg, capacity_gto_kg, capacity_geo_kg, capacity_mars_kg, price_usd_per_kg_lunar_surface, flight_tests…"
+              "description": "capacity_leo_kg, capacity_tli_kg, capacity_gto_kg, capacity_geo_kg, capacity_mars_kg, price_usd_per_kg_lunar_surface, flight_tests…; D8: price_usd_per_kg_leo_min / price_usd_per_kg_leo_max ($/кг на НОО діапазоном), flights_total / flights_failed (статистика польотів, з as_of), nasa_launch_contract_usd, production_cost_usd"
             },
             "value": {
               "type": [
@@ -156,13 +156,83 @@
             },
             "note": {
               "type": "string"
+            },
+            "as_of": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "Дата, станом на яку пораховано значення, що змінюється з часом (кількість польотів)"
+            },
+            "derivation": {
+              "type": "string",
+              "description": "Як значення обчислено з цитованого джерела (наприклад, ціна контракту / місткість на НОО)"
             }
           },
           "dependentRequired": {
             "as_published": [
               "unit"
             ]
-          }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "quantity": {
+                    "enum": [
+                      "flights_total",
+                      "flights_failed"
+                    ]
+                  }
+                },
+                "required": [
+                  "quantity"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "value": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "unit": {
+                    "const": "flights"
+                  }
+                },
+                "required": [
+                  "as_of",
+                  "unit"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "quantity": {
+                    "enum": [
+                      "price_usd_per_kg_leo_min",
+                      "price_usd_per_kg_leo_max"
+                    ]
+                  }
+                },
+                "required": [
+                  "quantity"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "value": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "unit": {
+                    "const": "USD/kg"
+                  }
+                },
+                "required": [
+                  "unit"
+                ]
+              }
+            }
+          ]
         }
       }
     }

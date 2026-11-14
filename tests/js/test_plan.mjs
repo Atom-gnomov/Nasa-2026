@@ -14,6 +14,7 @@ test("запит: період від календаря, вимоги лише 
   assert.equal(body.min_earth_fraction, 0.25);
   assert.ok(!("min_sun_hours" in body) && !("vehicle" in body) && !("trajectories" in body));
   assert.equal(body.mission_profile, "uncrewed");
+  assert.equal(body.departure_days, 7);
   assert.equal(body.days, 0);
 });
 
@@ -38,6 +39,7 @@ const response = {
     rank: 1, score_pct: 71.234, mass_moon_kg: 1234.5,
     landing: { moon_site: { site_id: null, name: null, lat: -89.5, lon: 12.25 } },
     requirements: { feasible: true, violations: [], warnings: [{ requirement: "min_earth_fraction", value: 0.1, required: 0.25, kind: "screening" }], unchecked: ["max_slope_deg"] },
+    route: { departure_utc: "2027-03-02T00:00:00Z" },
     launch: { site: { name: "Kourou" }, vehicle: { name: "Falcon Heavy" }, trajectory: "direct", duration_days: [3.5, 4.2],
               launch_cost_usd: [2.0e7, 3.5e7], risk: { p: 0.031, band_label: "низький" } },
   }, {
@@ -54,6 +56,7 @@ test("рядки: лідер виділений, координати без н�
   assert.ok(rows[0].lead && !rows[1].lead);
   assert.ok(rows[0].feasible && !rows[1].feasible);
   assert.equal(rows[0].cells[1], "-89.50°, 12.25°");
+  assert.equal(rows[0].cells[5], "2027-03-02");
   assert.equal(rows[1].cells[1], "Shackleton");
   for (const row of rows) for (const c of row.cells) assert.ok(typeof c === "string" && !/undefined|NaN/.test(c), c);
 });

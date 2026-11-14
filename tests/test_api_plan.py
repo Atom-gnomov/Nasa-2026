@@ -73,3 +73,22 @@ def test_plan_rejects_bad_input(client, extra):
     res = plan(client, **extra)
     assert res.status_code == 400, res.get_json()
     assert "error" in res.get_json() or "message" in res.get_json()
+
+
+def test_plan_searches_the_best_departure_date(client):
+    data = plan(client, departure_days=3, departure="2027-01-01T00:00:00Z").get_json()
+    assert_valid(api_validator("PlanResponse"), data)
+    lead = data["plans"][0]
+    window = lead["departure_window"]
+    assert [d["date"] for d in window["days"]] == ["2027-01-01", "2027-01-02", "2027-01-03"]
+    assert window["best"]["score_pct"] == max(d["score_pct"] for d in window["days"])
+    assert lead["route"]["departure_utc"].startswith(window["best"]["date"])
+
+
+def test_plan_without_departure_days_has_no_window(client):
+    assert plan(client).get_json()["plans"][0]["departure_window"] is None
+
+
+def test_plan_departure_days_out_of_range(client):
+    assert plan(client, departure_days=0).status_code == 400
+    assert plan(client, departure_days=61).status_code == 400

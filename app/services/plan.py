@@ -11,15 +11,16 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
-from app.services import launch_ranking, mission, search
+from app.services import launch_ranking, launch_window, mission, search
 
 SEARCH_KEYS = {"region", "include_catalog", "grid_step_deg", "max_candidates", "step_h", "height_m", "priorities",
                "mode", "params", "min_sun_hours", "min_comm_hours", "max_slope_deg", "min_earth_fraction",
                "min_sun_fraction", "mission_profile", "crew", "earth_target"}
 PLAN_KEYS = {"start", "end", "departure", "days", "sizes", "vehicle", "trajectories", "launch_priorities",
-             "launch_mode", "include_design_targets", "allow_multiple_launches", "landing_candidates", "limit"}
+             "launch_mode", "include_design_targets", "allow_multiple_launches", "landing_candidates", "limit",
+             "departure_days"}
 ALLOWED = SEARCH_KEYS | PLAN_KEYS
 MAX_LANDING_CANDIDATES = 10
 SEARCH_LIMIT = 100  # скільки місць повертає /search; з них вибираємо найкращі за вимогами
@@ -61,6 +62,17 @@ def _launch_body(chain: dict, departure: datetime, mass_kg: float, body: Mapping
         if src in body:
             out[dst] = body[src]
     return out
+
+
+def _best_departure(option: dict, chain: dict, departure: datetime, days: int) -> tuple[datetime, dict]:
+    """Найкраща дата старту (B8) з `days` діб від `departure` для знайденого майданчика й траєкторії."""
+    site = chain["moon_site"]
+    day0 = departure.astimezone(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    win = launch_window.launch_window(option["site"]["id"], site["lat"], site["lon"], day0,
+                                      day0 + timedelta(days=days - 1), option["trajectory"])
+    best = datetime.fromisoformat(win["best"]["date"]).replace(tzinfo=timezone.utc)
+    scale = [{"date": d["date"], "score_pct": d["score_pct"], "arrival": d.get("arrival")} for d in win["days"]]
+    return best, {"days": scale, "best": win["best"], "method": win["method"]}
 
 
 def _mission_body(body: Mapping, night_h: float | None) -> dict:
@@ -118,6 +130,7 @@ def compute(body: Mapping, start: datetime, end: datetime) -> dict:
         raise PlanError(f"Невідомі поля: {', '.join(sorted(unknown))}")
     n_landing = _int(body, "landing_candidates", 3, 1, MAX_LANDING_CANDIDATES)
     limit = _int(body, "limit", 5, 1, 20)
+    departure_days = _int(body, "departure_days", 1, 1, launch_window.MAX_DAYS)
     departure = start
     if body.get("departure") is not None:
         try:
@@ -141,6 +154,13 @@ def compute(body: Mapping, start: datetime, end: datetime) -> dict:
         mass = float(payload["total_kg"])
         ranked = launch_ranking.compute(_launch_body(chain, departure, mass, body))
         option = ranked["options"][0] if ranked["options"] else None
+        window = None
+        when = departure
+        if option and departure_days > 1:  # B20: перебір дат старту; потім рейтинг запусків уже на найкращу дату
+            when, window = _best_departure(option, chain, departure, departure_days)
+            on_date = {**_launch_body(chain, when, mass, body), "vehicle": option["vehicle"]["id"]}
+            ranked = launch_ranking.compute(on_date)
+            option = ranked["options"][0] if ranked["options"] else None
         launch_score = option["score_pct"] if option else 0.0
         plan = {
             "landing": _landing(chain),
@@ -149,6 +169,7 @@ def compute(body: Mapping, start: datetime, end: datetime) -> dict:
             "mass_moon_kg": mass,
             "launch": option,
             "launch_explanation": ranked["leader_explanation"],
+            "departure_window": window,
             "route": None,
             "mission": None,
             "score_pct": round(chain["score_pct"] * launch_score / 100.0, 2),

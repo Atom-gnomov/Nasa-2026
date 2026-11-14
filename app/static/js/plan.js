@@ -7,7 +7,7 @@ export const DEFAULT_FORM = {
   profile: "uncrewed", crew: null, days: 5,
   regionLatMin: -90, regionLatMax: -80, gridStep: 2, periodDays: 10,
   minSunHours: null, minCommHours: null, maxSlope: null, minEarth: null, minSun: null,
-  vehicle: "any", trajectory: "any", plans: 5,
+  vehicle: "any", trajectory: "any", plans: 5, departureDays: 7,
 };
 
 const REQUIREMENT_LABELS = {
@@ -35,6 +35,7 @@ export function buildPlanRequest(form, state) {
     mission_profile: form.profile,
     days: form.profile === "crewed" ? num(form.days) ?? 0 : 0,
     limit: num(form.plans) ?? 5,
+    departure_days: Math.min(Math.max(Math.round(num(form.departureDays) ?? 1), 1), 60),
   };
   if (form.profile === "crewed" && num(form.crew) !== null) body.crew = Number(form.crew);
   const reqs = { min_sun_hours: form.minSunHours, min_comm_hours: form.minCommHours, max_slope_deg: form.maxSlope,
@@ -76,6 +77,7 @@ export function planRows(response) {
         `${fmt(p.score_pct, 1)} %`,
         requirementsText(p.requirements),
         launch ? launch.site.name : "—",
+        p.route ? p.route.departure_utc.slice(0, 10) : "—",
         launch ? launch.vehicle.name : t("немає варіанта, що вміщує масу"),
         launch ? launch.trajectory : "—",
         launch ? `${fmt(launch.duration_days[0], 1)}–${fmt(launch.duration_days[1], 1)} ${t("діб")}` : "—",
@@ -107,6 +109,7 @@ function init() {
     minCommHours: $("plan-min-comm-hours").value, maxSlope: $("plan-max-slope").value,
     minEarth: $("plan-min-earth").value, minSun: $("plan-min-sun").value,
     vehicle: $("plan-vehicle").value, trajectory: $("plan-trajectory").value, plans: 5,
+    departureDays: $("plan-departure-days").value,
   });
 
   const syncProfile = () => {

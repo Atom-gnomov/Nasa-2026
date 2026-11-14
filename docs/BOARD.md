@@ -156,3 +156,4 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 - M10 — Перехід Земля → Місяць за зшитими конічними перерізами (`app/core/transfer.py`): Ламберт, крива «паливо ↔ час», LOI, C3 — гілка `chornobog/M10-transfer`, PR #44
 - M19 — Δv з майданчика (`app/core/launch.py`): азимут, нахил, вікна на добу, доворот площини — гілка `chornobog/M19-launch-dv`, PR #45
 - D7 — Каталог сучасних ракет з першоджерел (`app/data/rockets.json` + схема) — гілка `chornobog/D7-rockets`, PR #49
+- M20 — Ранжування майданчиків і ракет (`app/core/launch_rank.py`) — гілка `chornobog/M20-launch-rank`, PR #51

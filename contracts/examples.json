@@ -634,24 +634,153 @@
     }
   },
   "LaunchWindow": {
-    "launch_site_id": "kourou",
-    "trajectory": "direct",
+    "best": {
+      "date": "2027-07-22",
+      "score_pct": 73.39
+    },
     "days": [
       {
-        "date": "2027-07-01",
-        "score_pct": 42.0,
-        "arrival": "2027-07-05T10:00:00Z"
+        "arrival": "2027-07-24T00:00:00Z",
+        "date": "2027-07-19",
+        "dv_total_m_s": 3954.664,
+        "earth_fraction": 1.0,
+        "factors": {
+          "comms": 1.0,
+          "fuel": 1.0,
+          "light": 0.306,
+          "windows": 0.5
+        },
+        "flight_days": 5.0,
+        "inclination_deg": 5.265,
+        "score_pct": 60.72,
+        "sun_fraction": 0.306,
+        "sunlit_at_arrival": false,
+        "windows_per_day": 1
       },
       {
-        "date": "2027-07-02",
-        "score_pct": 77.5,
-        "arrival": "2027-07-06T09:00:00Z"
+        "arrival": "2027-07-25T00:00:00Z",
+        "date": "2027-07-20",
+        "dv_total_m_s": 3959.061,
+        "earth_fraction": 1.0,
+        "factors": {
+          "comms": 1.0,
+          "fuel": 0.93,
+          "light": 0.447,
+          "windows": 1.0
+        },
+        "flight_days": 5.0,
+        "inclination_deg": 8.724,
+        "score_pct": 69.3,
+        "sun_fraction": 0.447,
+        "sunlit_at_arrival": false,
+        "windows_per_day": 2
+      },
+      {
+        "arrival": "2027-07-26T00:00:00Z",
+        "date": "2027-07-21",
+        "dv_total_m_s": 3969.083,
+        "earth_fraction": 1.0,
+        "factors": {
+          "comms": 1.0,
+          "fuel": 0.77,
+          "light": 0.588,
+          "windows": 1.0
+        },
+        "flight_days": 5.0,
+        "inclination_deg": 14.006,
+        "score_pct": 72.33,
+        "sun_fraction": 0.588,
+        "sunlit_at_arrival": false,
+        "windows_per_day": 2
+      },
+      {
+        "arrival": "2027-07-27T00:00:00Z",
+        "date": "2027-07-22",
+        "dv_total_m_s": 3982.453,
+        "earth_fraction": 0.965,
+        "factors": {
+          "comms": 0.965,
+          "fuel": 0.557,
+          "light": 0.729,
+          "windows": 1.0
+        },
+        "flight_days": 5.0,
+        "inclination_deg": 18.821,
+        "score_pct": 73.39,
+        "sun_fraction": 0.729,
+        "sunlit_at_arrival": false,
+        "windows_per_day": 2
+      },
+      {
+        "arrival": "2027-07-28T00:00:00Z",
+        "date": "2027-07-23",
+        "dv_total_m_s": 3997.302,
+        "earth_fraction": 0.824,
+        "factors": {
+          "comms": 0.824,
+          "fuel": 0.32,
+          "light": 0.871,
+          "windows": 1.0
+        },
+        "flight_days": 5.0,
+        "inclination_deg": 22.863,
+        "score_pct": 72.27,
+        "sun_fraction": 0.871,
+        "sunlit_at_arrival": false,
+        "windows_per_day": 2
+      },
+      {
+        "arrival": "2027-07-29T00:00:00Z",
+        "date": "2027-07-24",
+        "dv_total_m_s": 4010.992,
+        "earth_fraction": 0.682,
+        "factors": {
+          "comms": 0.682,
+          "fuel": 0.102,
+          "light": 1.0,
+          "windows": 1.0
+        },
+        "flight_days": 5.0,
+        "inclination_deg": 25.76,
+        "score_pct": 71.04,
+        "sun_fraction": 1.0,
+        "sunlit_at_arrival": true,
+        "windows_per_day": 2
+      },
+      {
+        "arrival": "2027-07-29T12:00:00Z",
+        "date": "2027-07-25",
+        "dv_total_m_s": 4017.363,
+        "earth_fraction": 0.612,
+        "factors": {
+          "comms": 0.612,
+          "fuel": 0.0,
+          "light": 1.0,
+          "windows": 1.0
+        },
+        "flight_days": 4.5,
+        "inclination_deg": 26.658,
+        "score_pct": 67.25,
+        "sun_fraction": 1.0,
+        "sunlit_at_arrival": true,
+        "windows_per_day": 2
       }
     ],
-    "best": {
-      "date": "2027-07-02",
-      "score_pct": 77.5
-    }
+    "horizon_source": "flat",
+    "landed_days": 7.0,
+    "launch_site_id": "kourou",
+    "method": "patched_conic",
+    "moon_point": {
+      "lat": -89.67,
+      "lon": 129.78
+    },
+    "priorities": [
+      "light",
+      "fuel",
+      "comms",
+      "windows"
+    ],
+    "trajectory": "direct"
   },
   "AdviceRequest": {
     "facts": {

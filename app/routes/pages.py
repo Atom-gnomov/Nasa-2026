@@ -18,10 +18,22 @@ def moon():
     return render_template("moon.html", active_tab="moon")
 
 
+@bp.get("/mission")
+def mission():
+    """Вкладка «Місія»: склад місії (екіпаж, розмір категорій, траєкторія, ракета) → маса, вартість, ризик."""
+    return render_template("mission.html", active_tab="mission")
+
+
 @bp.get("/search")
 def search():
     """«Підбір» живе на сторінці «Місяць» під глобусом (результати позначаються на карті): стара адреса веде туди."""
     return redirect(url_for("pages.moon", **request.args) + "#search")  # параметри (дата, місце, lang) зберігаються
+
+
+@bp.get("/launch-window")
+def launch_window():
+    """Вкладка «Вікно запуску»: шкала дат старту з оцінкою у %, найкраща дата виділена (F7)."""
+    return render_template("launch_window.html", active_tab="launch")
 
 
 @bp.get("/system")

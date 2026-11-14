@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Вікно запуску — Lunar Site Explorer{% endblock %}
+{% block content %}
+<section class="lw-layout">
+  <form id="lw-form" class="lw-controls" autocomplete="off">
+    <h2>Вікно запуску</h2>
+    <p class="muted lw-point">Точка посадки: <span id="lw-point">не вибрано — виберіть її на вкладці «Місяць»</span></p>
+    <label>Майданчик старту <select id="lw-site" required></select></label>
+    <label>Траєкторія
+      <select id="lw-trajectory">
+        <option value="direct" selected>пряма (3–5 діб)</option>
+        <option value="low_energy">найекономніша (оцінка, ~105 діб)</option>
+      </select>
+    </label>
+    <label>Період від дати календаря
+      <select id="lw-days">
+        <option value="14">14 діб</option>
+        <option value="30" selected>30 діб (≈ місячна доба)</option>
+        <option value="60">60 діб</option>
+      </select>
+    </label>
+    <fieldset class="lw-priorities">
+      <legend>Пріоритети (вище — важливіше)</legend>
+      <ol id="lw-priorities"></ol>
+    </fieldset>
+    <button type="submit" class="primary" id="lw-run">Розрахувати</button>
+    <p class="muted lw-note">Оцінка дати 0–100 %: світло й зв'язок у точці посадки за 7 діб після прибуття, паливо
+      (Δv переходу й майданчика, відносно інших дат), вікна запуску на добу. Ваги — за порядком пріоритетів.</p>
+  </form>
+
+  <div class="lw-results">
+    <p id="lw-status" class="muted" role="status"></p>
+    <div id="lw-scale" class="lw-scale" role="list" aria-label="Шкала дат старту з оцінкою"></div>
+    <p id="lw-best" class="compare-note" hidden></p>
+    <div class="table-scroll">
+      <table class="results-table" id="lw-table" hidden>
+        <thead><tr>
+          <th>Дата старту</th><th>Оцінка</th><th>Прибуття (UTC)</th><th>Δv, м/с</th><th>Вікон на добу</th>
+          <th>Сонце після посадки</th><th>Земля після посадки</th><th></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script type="module" src="{{ url_for('static', filename='js/launch_window.js') }}"></script>
+{% endblock %}

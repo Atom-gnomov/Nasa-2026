@@ -63,3 +63,11 @@ def test_search_redirect_keeps_query_parameters(client):
     for part in ("lang=en", "datetime=2027-07-01T00:00Z", "lat=-85", "lon=0"):
         assert part in location
     assert client.get("/search").headers["Location"] == "/moon#search"
+
+
+def test_mission_page_renders_with_tab_and_scripts(client):
+    html = client.get("/mission").get_data(as_text=True)
+    assert "Конфігуратор місії" in html
+    assert 'id="m-crewed"' in html and 'id="m-system"' in html
+    assert "js/mission.js" in html
+    assert 'href="/mission"' in html  # вкладка «Місія» в навігації

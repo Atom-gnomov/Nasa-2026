@@ -135,7 +135,6 @@
     </section>
   </div>
   <div class="side-panel">
-    <h2>Вибір місця</h2>
     <select id="site-select"><option value="">— список місць —</option></select>
     <fieldset class="coords">
       <legend>Або координати</legend>
@@ -146,11 +145,11 @@
     <h2>Температура в точці</h2>
     {# Добова крива болометричної температури LRO Diviner (модуль globe_view.js, /api/temperature) #}
     <canvas id="temp-chart" class="temp-chart" width="520" height="280" aria-label="Добова крива температури"></canvas>
-    <p id="temp-summary" class="muted small">Виберіть місце на Місяці</p>
+    <p id="temp-summary" class="muted small"></p>
     <h2>Сонце, Земля й зв'язок за місячну добу</h2>
     {# Модуль charts.js (F5): кути Сонця й Землі та смуги видимості й зв'язку DSN — GET /api/timeline #}
     <canvas id="timeline-chart" class="timeline-chart" aria-label="Кут Сонця й Землі над горизонтом і вікна зв'язку DSN за місячну добу"></canvas>
-    <p id="timeline-summary" class="muted small">Виберіть місце на Місяці</p>
+    <p id="timeline-summary" class="muted small"></p>
     <p id="timeline-readout" class="muted small"></p>
     <h2>Порівняння</h2>
     {# Модуль compare.js: два місця каталогу поруч (GET /api/compare); вибір — у спільному стані compare #}
@@ -164,7 +163,7 @@
         <thead><tr><th scope="col">На дату календаря</th><th scope="col"></th><th scope="col"></th></tr></thead>
         <tbody></tbody>
       </table>
-      <p class="muted small">✓ — краще значення для посадкового апарата на сонячних панелях зі зв'язком через DSN. Рядки без позначки довідкові або рівні з точністю показу.</p>
+      <p class="muted small">✓ — краще значення.</p>
     </div>
   </div>
 </section>

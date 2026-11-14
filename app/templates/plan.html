@@ -4,7 +4,6 @@
 <section class="lw-layout">
   <form id="plan-form" class="lw-controls" autocomplete="off">
     <h2>План місії</h2>
-    <p class="muted lw-note">Від вимог до місця посадки — до майданчика, ракети й траєкторії. Дата старту береться з календаря.</p>
     <fieldset class="lw-priorities">
       <legend>Місце посадки: вимоги</legend>
       <label>Широта від, ° <input type="number" id="plan-lat-min" value="-90" min="-90" max="90" step="1"></label>
@@ -19,7 +18,7 @@
     </fieldset>
     <fieldset class="lw-priorities">
       <legend>Місія й ракета</legend>
-      <p id="plan-prefill" class="muted lw-note" hidden>Підставлено з вкладки «Місія»; змініть тут, якщо потрібно інакше.</p>
+      <p id="plan-prefill" class="muted lw-note" hidden>Підставлено з «Місії».</p>
       <label>Профіль
         <select id="plan-profile">
           <option value="uncrewed" selected>безпілотна</option>
@@ -46,7 +45,7 @@
   </form>
 
   <div class="lw-results workspace-results">
-    <header class="results-heading"><h2>Результати</h2><p class="muted small">Оберіть параметри ліворуч і запустіть розрахунок.</p></header>
+    <header class="results-heading"><h2>Результати</h2></header>
     <p id="plan-status" class="muted" role="status"></p>
     <p id="plan-explanation" class="compare-note" hidden></p>
     <div class="table-scroll">

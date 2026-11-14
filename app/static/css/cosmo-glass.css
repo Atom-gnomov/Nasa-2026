@@ -10,7 +10,7 @@
   --cg-fill-faint: rgba(255, 255, 255, .045);
   --cg-line: rgba(255, 255, 255, .26);        /* тонка світла рамка */
   --cg-line-soft: rgba(255, 255, 255, .14);
-  --cg-blur: blur(22px) saturate(140%);
+  --cg-blur: blur(22px) saturate(140%) brightness(.78); /* приглушує яскраве тло (Місяць) за склом, щоб текст читався */
   --cg-ink: #f6f8fb;
   --cg-muted: rgba(246, 248, 251, .66);
   --cg-sun: #ff9a4d;                          /* акценти шкал: Сонце — теплий, решта — холодний лід */
@@ -118,5 +118,81 @@ body.page-moon .scale-bar, body.page-moon .globe-status {
 body.page-moon .scale-bar i { border-color: #fff; }
 body.page-mission .fill-bar span, body.page-launch .lw-bar.best .lw-fill, .bar::after { background: #fff; box-shadow: none; }
 body.page-launch .lw-bar.best { color: #fff; }
+
+/* ---------- Єдина шкала розмірів і відступів (токени) ----------
+   Усі інтерактивні елементи — одна висота, один радіус, один шрифт; усі проміжки — з двох значень. */
+:root {
+  --ctl-h: 32px;        /* кнопки, перемикачі, списки, поля */
+  --ctl-icon: 28px;     /* круглі кнопки в шапках віджетів (згорнути, ⌄) */
+  --ctl-r: 10px;
+  --ctl-fs: 12px;
+  --ctl-px: 12px;
+  --gap: 12px;          /* між блоками, відступ усередині панелей і груп */
+  --gap-s: 8px;         /* заголовок → вміст, елементи всередині групи */
+}
+
+/* кнопки (крім круглих іконок і складових перемикачів) */
+:where(.topbar, .ui-widget, .ui-dock, #view, .globe-toolbar, .surface-wrap) :where(button:not(.widget-action):not(.dock-toggle):not(.header-icon):not(.prio-btn):not([data-prio])) {
+  box-sizing: border-box !important; height: var(--ctl-h) !important; min-height: var(--ctl-h) !important; padding: 0 var(--ctl-px) !important;
+  font-size: var(--ctl-fs) !important; line-height: 1 !important; border-radius: var(--ctl-r) !important;
+  display: inline-flex !important; align-items: center !important; justify-content: center !important; gap: 6px !important; white-space: nowrap !important;
+}
+/* перемикачі: контейнер задає висоту й радіус, елементи — заповнюють */
+.seg { box-sizing: border-box !important; display: inline-flex !important; align-items: stretch !important; height: var(--ctl-h) !important; border-radius: var(--ctl-r) !important; overflow: hidden !important; }
+.seg > button, .seg > a {
+  box-sizing: border-box !important; height: 100% !important; min-height: 0 !important; padding: 0 var(--ctl-px) !important; border-radius: 0 !important; margin: 0 !important;
+  font-size: var(--ctl-fs) !important; line-height: 1 !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; white-space: nowrap !important;
+}
+/* у вузьких панелях перемикач переноситься на другий рядок (кнопки лишаються тієї ж висоти) */
+.ui-widget .widget-body .seg { flex-wrap: wrap !important; height: auto !important; min-height: var(--ctl-h) !important; }
+.ui-widget .widget-body .seg > button, .ui-widget .widget-body .seg > a { height: var(--ctl-h) !important; }
+
+/* вкладки шапки — той самий розмір */
+#site-header .header-middle .tabs a {
+  box-sizing: border-box !important; height: var(--ctl-h) !important; padding: 0 var(--ctl-px) !important; font-size: var(--ctl-fs) !important; line-height: 1 !important;
+  border-radius: var(--ctl-r) !important; display: inline-flex !important; align-items: center !important; justify-content: center !important;
+}
+/* круглі іконки: шапка віджета й документа */
+.widget-action, .dock-toggle {
+  box-sizing: border-box !important; width: var(--ctl-icon) !important; height: var(--ctl-icon) !important; min-width: var(--ctl-icon) !important; padding: 0 !important;
+  display: inline-flex !important; align-items: center !important; justify-content: center !important; font-size: 16px !important; line-height: 1 !important; border-radius: 50% !important;
+}
+.header-icon {
+  box-sizing: border-box !important; width: var(--ctl-h) !important; height: var(--ctl-h) !important; padding: 0 !important; border-radius: var(--ctl-r) !important;
+  display: inline-flex !important; align-items: center !important; justify-content: center !important; font-size: 16px !important; line-height: 1 !important;
+}
+/* поля й списки */
+:where(.topbar, .ui-widget, .ui-dock, #view) select,
+:where(.topbar, .ui-widget, .ui-dock, #view) input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]) {
+  box-sizing: border-box !important; height: var(--ctl-h) !important; min-height: var(--ctl-h) !important; padding: 0 10px !important; font-size: var(--ctl-fs) !important; line-height: 1 !important; border-radius: var(--ctl-r) !important;
+}
+
+/* поля на всю ширину панелі */
+.ui-widget .widget-body > select, .ui-widget .widget-body fieldset input:not([type="checkbox"]):not([type="radio"]), .ui-widget .widget-body fieldset select { width: 100% !important; }
+
+/* відступи: панель 12, між блоками 12, заголовок → вміст 8, усередині груп 8 */
+.ui-widget .widget-header { padding: var(--gap-s) var(--gap-s) var(--gap-s) var(--gap) !important; min-height: 0 !important; }
+.ui-widget .widget-body { padding: var(--gap) !important; }
+.ui-widget .widget-body > * { margin-top: 0 !important; margin-bottom: 0 !important; }
+.ui-widget .widget-body > * + * { margin-top: var(--gap) !important; }
+.ui-widget .widget-body > :is(h2, h3, summary) + * { margin-top: var(--gap-s) !important; }
+.ui-widget .widget-body > :is(h2, h3) { padding: 0 !important; }
+.ui-widget .widget-body details > summary { padding: 0 !important; }
+.ui-widget .widget-body > details + details { margin-top: var(--gap-s) !important; }
+.ui-widget .widget-body fieldset { padding: var(--gap-s) var(--gap) !important; margin-inline: 0 !important; }
+.ui-widget .widget-body fieldset > * + * { margin-top: var(--gap-s) !important; }
+.ui-widget .widget-body fieldset > legend { padding: 0 var(--gap-s) !important; margin: 0 !important; }
+.ui-dock .dock-content { padding: var(--gap-s) var(--gap) !important; gap: var(--gap-s) !important; }
+.ui-dock .dock-header { padding: var(--gap-s) var(--gap-s) 0 var(--gap) !important; }
+
+/* підписи виду з поверхні — компактні скляні «чіпи», по центру, без накладання на панель; порожні не показуємо */
+body.page-moon #surface :is(#surface-moment, #surface-events, #surface-status) {
+  display: block !important; width: fit-content !important; max-width: min(760px, 100%) !important; margin: 0 auto var(--gap-s) !important;
+  padding: 6px var(--gap) !important; box-sizing: border-box !important; border-radius: var(--ctl-r) !important; font-size: var(--ctl-fs) !important;
+  line-height: 1.35 !important; text-align: center !important; color: var(--cg-ink) !important;
+  background: var(--cg-fill) !important; border: 1px solid var(--cg-line-soft) !important;
+  backdrop-filter: var(--cg-blur) !important; -webkit-backdrop-filter: var(--cg-blur) !important;
+}
+body.page-moon #surface :is(#surface-moment, #surface-events, #surface-status):empty { display: none !important; }
 
 @media (prefers-reduced-motion: reduce) { #starfield { transition: none; } }

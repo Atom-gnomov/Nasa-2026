@@ -516,7 +516,7 @@ if (root) {
     if (!mask || !series) return;
     const i = index();
     const hours = Math.round((series.t[i] - series.t[0]) / HOUR_MS);
-    momentEl.textContent = `${fmtMoment(series.t[i])} ${t("(+{n} год від дати календаря)", { n: hours })}`;
+    momentEl.textContent = `${fmtMoment(series.t[i])} ${t("+{n} год", { n: hours })}`;
     setSkyTime(series.t[i]); // зорі за моментом на повзунку
     const st = series.stations[i];
     const ph = earthPhase(series.sunAz[i], series.sun[i], series.earthAz[i], series.earth[i]);
@@ -583,20 +583,14 @@ if (root) {
       : a.source === "flat" ? t("поверхня довкола: гладка сфера (немає DEM)")
         : t("поверхня довкола: LOLA {src}, крок {step} м, радіус {r} км (відносно точки {lo}…+{hi} м)",
           { src: a.source.toUpperCase(), step: a.spacing_m.toFixed(0), r: a.radius_km, lo: a.min_height_m.toFixed(0), hi: a.max_height_m.toFixed(0) });
-    const pole = Math.abs(lat) > 89.999 ? ` ${t("(на полюсі — від меридіана 0°)")}` : "";
-    statusEl.textContent = [
-      t("Рельєф: {src}; {pat}.", { src, pat }),
-      t("Далі — силует за маскою до {d} км, найвища точка горизонту {max}°, відкрите небо {sky} %.",
-        { d: m.max_distance_km ?? 200, max: (m.max_elevation_deg ?? Math.max(...m.elevations_deg)).toFixed(1), sky: Math.round(m.sky_view_fraction * 100) }),
-      t("Яскравість умовна, тіні — геометричні, з DEM (за межами ділянки не враховано); камера на висоті {eye} м — лише для вигляду.", { eye: EYE_M }),
-      t("Азимут — від півночі за годинниковою стрілкою{pole}.", { pole }),
-      t("Перетягування — повернути, колесо — масштаб."),
-    ].join(" ");
+    // Джерело рельєфу вже є в «Метриках» (висота, горизонт) — тут лише застереження, коли DEM немає чи він неповний
+    const degraded = m.source === "flat" || !patch || a.source === "flat";
+    statusEl.textContent = degraded ? t("Рельєф: {src}; {pat}.", { src, pat }) : "";
   }
 
   async function load({ lat: la, lon, datetime, height_m: height = 0 }) {
     if (la == null || lon == null) {
-      statusEl.textContent = "Виберіть місце на Місяці — вид з поверхні покаже горизонт і рух Сонця й Землі.";
+      statusEl.textContent = "";
       return;
     }
     const point = { lat: la, lon };

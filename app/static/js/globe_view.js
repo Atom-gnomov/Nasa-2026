@@ -601,7 +601,7 @@ function tempPanel() {
   return async function updateTempPanel() {
     const { lat, lon, datetime } = getState();
     if (!chart) return;
-    if (lat === null || lon === null) { chartSummary.textContent = "Виберіть місце на Місяці"; return; }
+    if (lat === null || lon === null) { chartSummary.textContent = ""; return; }
     const key = `${lat}|${lon}|${datetime}`;
     if (key === pointKey) return;
     pointKey = key;
@@ -612,7 +612,7 @@ function tempPanel() {
       const t = await res.json();
       if (!res.ok) throw new Error(t.detail);
       drawDiurnalChart(chart, t);
-      chartSummary.textContent = `${describeTemperature(t)}. Комірка Diviner 0,5° × 0,5°, місцевий час кроком 15 хв.`;
+      chartSummary.textContent = ""; // значення — у «Метриках» (Температура), тут лише крива
     } catch (err) {
       if (err.name === "AbortError") return;
       pointKey = null;
@@ -875,7 +875,7 @@ async function main() {
       if (!res.ok) throw new Error(s.detail);
       const p = s.sub_solar_point;
       shared.uSunDir.value.copy(unitUp(p.lat, p.lon));
-      sunInfo.textContent = `Сонце в зеніті над ${fmtLat(p.lat, 2)}, ${fmtLon(p.lon, 2)} (${s.datetime})`;
+      sunInfo.textContent = `Сонце в зеніті над ${fmtLat(p.lat, 2)}, ${fmtLon(p.lon, 2)}`;
     } catch (err) {
       if (err.name !== "AbortError") sunInfo.textContent = "Сонце: немає даних ефемерид";
     }

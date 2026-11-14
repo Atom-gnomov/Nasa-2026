@@ -31,7 +31,7 @@
     </label>
 
     <h3>Пріоритети</h3>
-    <p class="muted small">Перетягніть блок або натисніть ↑ ↓: що вище — то важливіше. Знімайте галочку, щоб не враховувати фактор.</p>
+    <p class="muted small">Перетягніть блок або натисніть ↑ ↓: що вище — то важливіше.</p>
     <ol id="s-priorities" class="priorities"></ol>
 
     <div class="seg" role="group" aria-label="Режим оцінки">
@@ -47,7 +47,7 @@
   </div>
 
   <div class="search-results workspace-results">
-    <header class="results-heading"><h2>Результати</h2><p class="muted small">Результати з’являться після натискання «Знайти».</p></header>
+    <header class="results-heading"><h2>Результати</h2></header>
     <p id="s-status" class="globe-warn" role="status" hidden></p>
     <p id="s-note" class="muted small"></p>
     <p id="s-compare" class="compare-note" hidden></p>
@@ -59,7 +59,7 @@
     </div>
     <section id="s-advice" class="advice">
       <h3>Порада ШІ</h3>
-      <p class="muted small">ШІ лише пояснює готові результати пошуку й радить, що змінити; він нічого не рахує. Порада — не розрахунок.</p>
+      <p class="muted small">ШІ лише пояснює результати, нічого не рахує.</p>
       <div class="advice-controls">
         <input type="text" id="s-advice-question" maxlength="500" placeholder="Питання до результатів (необов'язково)">
         <select id="s-advice-audience" aria-label="Для кого відповідь">
@@ -71,7 +71,7 @@
       <p id="s-advice-status" class="globe-warn" role="status" hidden></p>
       <div id="s-advice-out" hidden></div>
     </section>
-    <p class="muted small">★ — недомінована точка (жодна допустима не краща за всіма факторами). Результати можна побачити на вкладці «Місяць» (зелена — найкраща, блакитні — решта). Клік по рядку вибирає місце й відкриває його на глобусі з метриками. Оцінка — за абсолютними шкалами (docs/MATH.md, §19), тож не залежить від інших кандидатів.</p>
+    <p class="muted small">★ — недомінована точка. Клік по рядку відкриває місце на глобусі.</p>
     {# TODO: місце старту / вартість / ризик у результатах — після моделі запусків #}
   </div>
 </section>

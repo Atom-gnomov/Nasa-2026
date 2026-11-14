@@ -164,20 +164,15 @@ const canvas = typeof document === "undefined" ? null : document.getElementById(
 if (canvas) {
   const summary = document.getElementById("timeline-summary");
   const out = document.getElementById("timeline-readout");
-  let series = null, frame = null, key = null, abort = null, timer = null, lastSummary = null;
-  // Підсумок — речення-шаблон з підстановкою (перекладається разом з мовою)
-  function renderSummary() {
-    if (!lastSummary) return;
-    const terrain = lastSummary.source === "flat" ? tr("гладка сфера") : `LOLA ${lastSummary.source.toUpperCase()}`;
-    summary.textContent = tr("Від {from} на 29,53 доби: Сонце {sun} % часу, зв'язок DSN {comm} %. Рельєф: {terrain}.", { ...lastSummary, terrain });
-  }
+  let series = null, frame = null, key = null, abort = null, timer = null;
+  // Підсумок («Сонце 48 %, DSN 99 %») лишається лише в «Метриках» (розділ «За місячну добу»): тут — крива й помилки
   const redraw = (cursor = null) => { if (series) frame = drawTimeline(canvas, series, cursor); };
 
   async function load({ lat, lon, datetime }) {
     if (lat == null || lon == null) {
       series = null; key = null;
       canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
-      summary.textContent = "Виберіть місце на Місяці";
+      summary.textContent = "";
       out.textContent = "";
       return;
     }
@@ -188,17 +183,14 @@ if (canvas) {
     abort = new AbortController();
     const start = Date.parse(datetime);
     const end = new Date(start + PERIOD_H * HOUR_MS).toISOString().slice(0, 16) + "Z";
-    summary.textContent = "Рахую…";
+    summary.textContent = "";
     try {
       const res = await fetch(`/api/timeline?${new URLSearchParams({ lat, lon, start: datetime, end, step_h: 1 })}`, { signal: abort.signal });
       const t = await res.json();
       if (!res.ok) throw new Error(t.detail || res.statusText);
       series = timelineSeries(t);
       redraw();
-      const s = t.summary;
-      lastSummary = { from: dayMonth(series.t[0]), sun: Math.round(s.sun_fraction * 100), comm: Math.round(s.comm_fraction * 100), source: t.horizon_source };
-      renderSummary();
-      out.textContent = "Наведіть курсор на графік — момент і значення.";
+      out.textContent = "";
     } catch (err) {
       if (err.name === "AbortError") return;
       key = null;
@@ -216,5 +208,5 @@ if (canvas) {
   canvas.addEventListener("mouseleave", () => redraw());
   new ResizeObserver(() => redraw()).observe(canvas);
   subscribe((st) => { clearTimeout(timer); timer = setTimeout(() => load(st), 300); });
-  onLangChange(() => { renderSummary(); redraw(); });
+  onLangChange(() => redraw());
 }

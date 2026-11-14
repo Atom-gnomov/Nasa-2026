@@ -784,7 +784,7 @@ async function main() {
   const relief = $("relief");
   const reliefOut = $("relief-value");
   const lightSel = $("light-mode");
-  const sunInfo = $("globe-sun");
+  const sunInfo = $("overlay-sun"); // «Сонце в зеніті» — у «Метриках» під координатами місця
   const warnEl = $("globe-warn");
 
   function configureControls(v) {
@@ -875,9 +875,9 @@ async function main() {
       if (!res.ok) throw new Error(s.detail);
       const p = s.sub_solar_point;
       shared.uSunDir.value.copy(unitUp(p.lat, p.lon));
-      sunInfo.textContent = `Сонце в зеніті над ${fmtLat(p.lat, 2)}, ${fmtLon(p.lon, 2)}`;
+      if (sunInfo) sunInfo.textContent = tr("Сонце в зеніті над {pos}", { pos: `${fmtLat(p.lat, 2)}, ${fmtLon(p.lon, 2)}` });
     } catch (err) {
-      if (err.name !== "AbortError") sunInfo.textContent = "Сонце: немає даних ефемерид";
+      if (err.name !== "AbortError" && sunInfo) sunInfo.textContent = tr("Сонце: немає даних ефемерид");
     }
   }
   subscribe((st) => updateSun(st.datetime));

@@ -518,7 +518,14 @@
     "Оцінка дати 0–100 %: світло й зв'язок за 7 діб після прибуття, паливо, вікна на добу.": "Date score 0–100 %: light and communications for 7 days after arrival, fuel, windows per day.",
     "Клік по Місяцю — вибір точки посадки.": "Click the Moon to select a landing site.",
     "✓ — краще значення.": "✓ — better value.",
-    "+{n} год": "+{n} h"
+    "+{n} год": "+{n} h",
+    "Сонце в зеніті над {pos}": "Sun at zenith over {pos}",
+    "Сітка й рельєф": "Grid and relief",
+    "Шари": "Layers",
+    "Шкала": "Scale",
+    "Джерела": "Sources",
+    "Час": "Time",
+    "Дані": "Data"
   },
   "phrases": {
     "млн": "M",
@@ -641,6 +648,9 @@
     "США": "USA",
     "Іспанія": "Spain",
     "Австралія": "Australia",
-    "Небо": "Sky"
+    "Небо": "Sky",
+    "Курсор": "Cursor",
+    "Сітка": "Grid",
+    "висота": "height"
   }
 }

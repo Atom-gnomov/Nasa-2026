@@ -231,4 +231,9 @@ body.page-moon #surface :is(#surface-moment, #surface-events, #surface-status):e
 /* рядок «Курсор · Сітка · Сонце в зеніті» не залазить на лінійку масштабу: праворуч лишається місце під неї */
 body.page-moon .globe-status { max-width: calc(100vw - var(--scene-left) - var(--scene-right) - 28px - 170px) !important; white-space: normal !important; }
 
+/* «Сонце в зеніті над …» — рядок у «Метриках» одразу під координатами місця */
+#overlay-sun { margin: 0 !important; font-size: var(--ctl-fs); line-height: 1.35; color: var(--cg-muted); }
+#overlay-sun:empty { display: none; }
+.ui-widget .widget-body > #overlay-sun { margin-top: 4px !important; }
+
 @media (prefers-reduced-motion: reduce) { #starfield { transition: none; } }

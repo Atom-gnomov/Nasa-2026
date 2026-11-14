@@ -1172,3 +1172,180 @@ body.page-moon #surface .ui-surface-dock .dock-content { scrollbar-width: thin; 
     -webkit-backdrop-filter: none;
   }
 }
+
+
+/* Stage geometry — panels extend to bottom, compact dock is BETWEEN them.
+   The scene center is the center of unused space, not the full viewport.
+   JS supplies --scene-left/right from actual widget bounding rectangles. */
+body.page-moon .ui-scene-widget:not(.is-collapsed):not(.is-expanded),
+body.page-system .ui-scene-widget:not(.is-collapsed):not(.is-expanded),
+body.page-moon #metrics-overlay.ui-scene-widget:not(.is-collapsed):not(.is-expanded),
+body.page-system .system-info.ui-scene-widget:not(.is-collapsed):not(.is-expanded) {
+  top: calc(var(--header-h) + 10px);
+  bottom: 10px;
+  max-height: none;
+}
+body.page-moon .ui-scene-widget.is-expanded,
+body.page-system .ui-scene-widget.is-expanded { bottom: 0; }
+body.page-moon #moon-globe,
+body.page-system #system-view,
+body.page-moon #surface {
+  left: var(--scene-left);
+  right: var(--scene-right);
+  transition: left .18s ease, right .18s ease;
+}
+/* The dock is always centered in the free stage; neither panel obscures it. */
+body.page-moon > .ui-dock.ui-tabbed-dock,
+body.page-system > .ui-dock.ui-tabbed-dock {
+  left: calc(var(--scene-left) + 10px);
+  right: calc(var(--scene-right) + 10px);
+  width: min(760px, calc(100vw - var(--scene-left) - var(--scene-right) - 20px));
+  bottom: 10px;
+  margin-inline: auto;
+  max-height: calc(100dvh - var(--header-h) - 20px);
+  height: auto;
+  min-height: 0;
+  overflow: hidden;
+}
+body.page-moon > .ui-tabbed-dock .dock-header,
+body.page-system > .ui-tabbed-dock .dock-header {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 9px;
+  padding: 5px 9px;
+  min-height: 33px;
+}
+body.page-moon > .ui-tabbed-dock .dock-header .dock-title,
+body.page-system > .ui-tabbed-dock .dock-header .dock-title {
+  font-size: 11px;
+  margin-left: auto;
+  white-space: nowrap;
+}
+.ui-tabbed-dock .dock-tabs {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: center;
+  gap: 3px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.ui-tabbed-dock .dock-tabs::-webkit-scrollbar { display: none; }
+.ui-tabbed-dock .dock-tab {
+  flex: 0 0 auto;
+  font: 600 11px/1.2 system-ui,sans-serif;
+  padding: 6px 10px;
+  color: #bacbd8;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ui-tabbed-dock .dock-tab.active {
+  color: #f3faff;
+  background: linear-gradient(165deg,rgba(219,241,254,.20),rgba(136,192,222,.08));
+  border: 1px solid rgba(206,231,249,.25);
+}
+.ui-tabbed-dock .dock-tab:hover:not(.active) { background: rgba(227,243,254,.08); }
+.ui-tabbed-dock .dock-pages { min-width: 0; }
+body.page-moon > .ui-tabbed-dock .dock-content,
+body.page-system > .ui-tabbed-dock .dock-content {
+  padding: 6px 10px 7px;
+  overflow: visible;
+  max-height: none;
+}
+.ui-tabbed-dock .dock-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 5px 12px;
+  min-height: 35px;
+  overflow: visible;
+}
+.ui-tabbed-dock .dock-page[hidden] { display:none!important; }
+.ui-tabbed-dock .dock-page > * { flex: 0 1 auto; }
+.ui-tabbed-dock .dock-page > label {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 4px;
+  white-space: nowrap;
+  color: #b9c9d9;
+  font-size: 11px;
+}
+.ui-tabbed-dock .dock-page select {
+  width: auto;
+  max-width: min(220px, 47vw);
+  padding: 5px 6px;
+  font-size: 11px;
+}
+.ui-tabbed-dock .dock-page input[type="range"] {
+  width: clamp(74px,7vw,140px);
+  min-width: 70px;
+}
+.ui-tabbed-dock .dock-page .seg { flex-wrap: nowrap; }
+.ui-tabbed-dock .dock-page .seg button,
+.ui-tabbed-dock .dock-page .seg a { padding: 5px 7px; font-size: 11px; }
+.ui-tabbed-dock .dock-page .legend {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  justify-content: center;
+}
+.ui-tabbed-dock .dock-page .legend .relief-only {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.ui-tabbed-dock .dock-page .globe-sources {
+  min-width: 0;
+  max-width: 100%;
+  font-size: 11px;
+}
+/* Sources are intentionally optional and may be very long. They get a
+   vertically scrollable drawer only when the user explicitly opens them;
+   the default compact dock has no horizontal/vertical scrollbars. */
+.ui-tabbed-dock .dock-page .globe-sources[open] {
+  max-height: min(35dvh, 300px);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.ui-tabbed-dock .dock-page .globe-sources[open]::-webkit-scrollbar { display: none; }
+body.page-moon > .ui-tabbed-dock.is-collapsed .dock-content,
+body.page-system > .ui-tabbed-dock.is-collapsed .dock-content { display: none; }
+.ui-tabbed-dock .dock-content .globe-toolbar:empty,
+.ui-tabbed-dock .dock-content .system-toolbar:empty { display:none; }
+/* Put labels/status over the free scene and above the dock, not underneath it. */
+body.page-moon .globe-status {
+  left: calc(var(--scene-left) + 14px);
+  bottom: calc(var(--scene-dock-height, 68px) + 24px);
+  max-width: calc(100vw - var(--scene-left) - var(--scene-right) - 28px);
+}
+body.page-moon #globe-warn {
+  left: calc(var(--scene-left) + 14px);
+  right: calc(var(--scene-right) + 14px);
+  bottom: calc(var(--scene-dock-height, 68px) + 62px);
+}
+/* At phone widths the scene becomes an underlay because a usable stage
+   cannot exist between panels; keep dock available without overlap. */
+body[data-scene-compact="true"].page-moon .ui-scene-widget:not(.is-expanded):not(.is-collapsed),
+body[data-scene-compact="true"].page-system .ui-scene-widget:not(.is-expanded):not(.is-collapsed),
+body[data-scene-compact="true"].page-moon #metrics-overlay.ui-scene-widget:not(.is-expanded):not(.is-collapsed),
+body[data-scene-compact="true"].page-system .system-info.ui-scene-widget:not(.is-expanded):not(.is-collapsed) {
+  bottom: calc(var(--scene-dock-height, 68px) + 24px);
+}
+@media (max-width: 760px) {
+  body.page-moon > .ui-dock.ui-tabbed-dock,
+  body.page-system > .ui-dock.ui-tabbed-dock {
+    left: calc(var(--scene-left) + 8px);
+    right: calc(var(--scene-right) + 8px);
+    width: calc(100vw - var(--scene-left) - var(--scene-right) - 16px);
+    bottom: 8px;
+    max-height: calc(100dvh - var(--header-h) - 16px);
+  }
+  .ui-tabbed-dock .dock-page { justify-content:flex-start; }
+  .ui-tabbed-dock .dock-header .dock-title { display:none; }
+}

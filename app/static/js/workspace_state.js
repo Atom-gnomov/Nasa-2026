@@ -42,3 +42,22 @@ export function fitSideWidgets(raw, viewportWidth, panelWidth, preferredSide = "
   next[preferredSide === "right" ? "left" : "right"] = "collapsed";
   return next;
 }
+
+
+/**
+ * Reserve the actual widths of currently visible fixed widgets, keeping the
+ * camera centered in the remaining open stage. Insets are measured from the
+ * viewport edges and include the space between widgets and the render host.
+ * On narrow screens we deliberately fall back to a full-screen scene behind
+ * collapsible panels rather than rendering a useless 10px-wide canvas.
+ */
+export function sceneInsets(viewportWidth, leftInset, rightInset, expanded = "none", minStageWidth = 210) {
+  const width = Math.max(0, Number(viewportWidth) || 0);
+  if (width <= 0) return { left: 0, right: 0, compact: true };
+  const positive = (n) => Math.max(0, Math.min(width, Number(n) || 0));
+  const half = width / 2;
+  const left = expanded === "left" ? half : positive(leftInset);
+  const right = expanded === "right" ? half : positive(rightInset);
+  if (width - left - right < minStageWidth) return { left: 0, right: 0, compact: true };
+  return { left, right, compact: false };
+}

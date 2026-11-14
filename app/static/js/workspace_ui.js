@@ -1,6 +1,6 @@
 // Спільна оболонка робочого простору. DOM/ID існуючих модулів НЕ замінюємо:
 // переміщуємо наявні вузли до фіксованих віджетів, зберігаючи обробники та canvas.
-import { expandedWidget, fitSideWidgets, normalizeWidgetStates, widgetTransition } from "./workspace_state.js";
+import { expandedWidget, fitSideWidgets, normalizeWidgetStates, sceneInsets, widgetTransition } from "./workspace_state.js";
 
 const page = document.body.className.match(/page-(moon|system|search|mission|launch|plan)/)?.[1];
 const widgets = {};
@@ -81,6 +81,98 @@ function createDock(name, items, owner = root) {
   return { dock, heading, content };
 }
 
+
+
+/**
+ * Compact dock: all native controls are MOVED (never cloned) into small pages.
+ * This replaces horizontal/vertical sliders with explicit functional tabs.
+ * Read-only sources can expand, without making the default dock tall.
+ */
+function tabifyDock(dockParts, groups, key) {
+  const { dock, heading, content } = dockParts;
+  dock.classList.add("ui-tabbed-dock");
+  const tabs = element("div", "dock-tabs");
+  tabs.setAttribute("role", "tablist");
+  tabs.setAttribute("aria-label", "Групи налаштувань");
+  const panels = element("div", "dock-pages");
+  const records = [];
+  for (const [i, group] of groups.entries()) {
+    const button = element("button", "dock-tab" + (i === 0 ? " active" : ""), group.label);
+    button.type = "button";
+    button.id = "dock-tab-" + key + "-" + i;
+    const panel = element("div", "dock-page");
+    panel.id = "dock-page-" + key + "-" + i;
+    button.setAttribute("role", "tab");
+    button.setAttribute("aria-controls", panel.id);
+    panel.setAttribute("role", "tabpanel");
+    panel.setAttribute("aria-labelledby", button.id);
+    for (const node of group.nodes) if (node) panel.append(node);
+    tabs.append(button);
+    panels.append(panel);
+    records.push({ button, panel });
+  }
+  function select(index) {
+    records.forEach(({ button, panel }, i) => {
+      const selected = i === index;
+      button.classList.toggle("active", selected);
+      button.setAttribute("aria-selected", String(selected));
+      button.tabIndex = selected ? 0 : -1;
+      panel.hidden = !selected;
+    });
+    dock.dataset.activeGroup = String(index);
+    requestAnimationFrame(() => {
+      refreshSceneBounds();
+      window.dispatchEvent(new Event("resize"));
+    });
+  }
+  records.forEach(({button}, i) => {
+    button.addEventListener("click", () => select(i));
+    button.addEventListener("keydown", (e) => {
+      const next = e.key === "ArrowRight" ? (i + 1) % records.length
+        : e.key === "ArrowLeft" ? (i - 1 + records.length) % records.length : -1;
+      if (next < 0) return;
+      e.preventDefault();
+      records[next].button.focus();
+      select(next);
+    });
+  });
+  content.replaceChildren(panels);
+  const headingTitle = heading.querySelector(".dock-title");
+  heading.insertBefore(tabs, headingTitle);
+  select(0);
+  return dockParts;
+}
+
+function moonDockGroups(parts) {
+  const first = parts.content.querySelector(".globe-toolbar:not(.layer-toolbar)");
+  const layer = parts.content.querySelector(".globe-toolbar.layer-toolbar");
+  const legend = parts.content.querySelector("#layer-legend");
+  const sources = parts.content.querySelector(".globe-sources");
+  const wrapped = (id) => document.getElementById(id)?.closest("label");
+  const groups = [
+    {label:"Вигляд", nodes:[first?.querySelector('[data-view="globe"]')?.closest(".seg"), wrapped("light-mode"), wrapped("quality-select")]},
+    {label:"Сітка й рельєф", nodes:[wrapped("grid-toggle"),wrapped("grid-step"),wrapped("relief"),wrapped("contour-toggle"),wrapped("contour-step")]},
+    {label:"Шари", nodes:[layer?.querySelector('[data-layer="color"]')?.closest(".seg"), wrapped("temp-kind")]},
+    {label:"Шкала", nodes:[legend]},
+    {label:"Джерела", nodes:[sources]},
+  ];
+  tabifyDock(parts,groups,"moon");
+}
+
+function systemDockGroups(parts) {
+  const toolbar = parts.content.querySelector(".system-toolbar");
+  const wrapped = (id) => document.getElementById(id)?.closest("label");
+  const mode = toolbar?.querySelector(".mode-switch");
+  const time = document.getElementById("system-play")?.closest(".time-controls");
+  const simulation = document.getElementById("system-sim-controls");
+  tabifyDock(parts,[
+    {label:"Система",nodes:[mode,wrapped("system-scale"),wrapped("quality-select")]},
+    {label:"Час",nodes:[time]},
+    {label:"Політ",nodes:[wrapped("system-path"),simulation]},
+    {label:"Дані",nodes:[parts.content.querySelector("#system-note"),parts.content.querySelector(".globe-sources")]},
+  ],"system");
+}
+
 function initMoon() {
   const left = document.querySelector(".moon-layout > .side-panel");
   const right = document.getElementById("metrics-overlay");
@@ -89,7 +181,9 @@ function initMoon() {
   const globe = document.querySelector(".globe-wrap");
   if (!globe) return;
   const controls = [...globe.querySelectorAll(":scope > .globe-toolbar, :scope > #layer-legend, :scope > .globe-sources")];
-  const { heading } = createDock("Налаштування карти", controls);
+  const mainDock = createDock("Налаштування карти", controls);
+  const { heading } = mainDock;
+  moonDockGroups(mainDock);
   const modes = element("div", "scene-mode-switch seg");
   for (const [mode, name] of [["globe", "Глобус"], ["surface", "Вид з поверхні"]]) {
     const button = element("button", mode === "globe" ? "active" : "", name);
@@ -162,7 +256,8 @@ function initSystem() {
     rightBody.append(details);
     metrics.classList.add("ui-embedded-metrics");
   }
-  createDock("Налаштування системи", [toolbar, layout.querySelector("#system-note"), layout.querySelector(".globe-sources")]);
+  const mainDock = createDock("Налаштування системи", [toolbar, layout.querySelector("#system-note"), layout.querySelector(".globe-sources")]);
+  systemDockGroups(mainDock);
 }
 
 function initSearch() {
@@ -184,6 +279,7 @@ let states = {};
 let preferredSide = "left";
 let currentVisibleStates = {};
 let refreshSceneClearance = () => {};
+let refreshSceneBounds = () => {};
 function normalPanelWidth() {
   const width = window.innerWidth;
   return width <= 480 ? Math.min(275, Math.max(80, width - 92)) : width <= 760 ? Math.min(275, Math.max(80, width - 68)) : Math.min(340, Math.max(285, width * 0.23));
@@ -228,7 +324,10 @@ function paint() {
   }
   // Three.js має ResizeObserver на host, а графіки — на canvas; це додаткова
   // подія для модулів, які ще використовують window.resize.
-  requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
+  requestAnimationFrame(() => {
+    refreshSceneBounds();
+    window.dispatchEvent(new Event("resize"));
+  });
 }
 
 function updateState(side, action) {
@@ -243,30 +342,49 @@ function updateState(side, action) {
   } catch { /* приватний режим */ }
 }
 
-// Measure the REAL height of the dock, including after it wraps to more lines.
- // Side widgets end above that dock instead of covering it.
+// Render scene bounds follow the ACTUAL visible widget rectangles instead
+// of the entire viewport. The Moon/System cameras stay centered in free space.
 function initSceneGeometry() {
   if (page !== "moon" && page !== "system") return;
   const mainDock = document.querySelector("body > .ui-dock");
   const surfaceDock = document.querySelector("#surface .ui-surface-dock");
   const update = () => {
+    const width = window.innerWidth;
+    const gap = 10;
+    const leftWidget = widgets.left?.target;
+    const rightWidget = widgets.right?.target;
+    const edge = (el,side) => {
+      if (!el || getComputedStyle(el).display === "none") return 0;
+      const r = el.getBoundingClientRect();
+      return side === "left" ? Math.ceil(r.right + gap) : Math.ceil(width - r.left + gap);
+    };
+    const {left,right,compact} = sceneInsets(
+      width, edge(leftWidget,"left"), edge(rightWidget,"right"), root.dataset.expanded, 210
+    );
+    const set = (key,value) => {
+      if (root.style.getPropertyValue(key) !== value) root.style.setProperty(key,value);
+    };
+    set("--scene-left",left + "px");
+    set("--scene-right",right + "px");
+    root.dataset.sceneCompact = String(compact);
     const dock = root.classList.contains("surface-active") ? surfaceDock : mainDock;
     const rect = dock?.getBoundingClientRect();
-    const clearance = rect && rect.height ? Math.max(58, Math.ceil(window.innerHeight - rect.top + 8)) : 98;
-    root.style.setProperty("--scene-dock-space", clearance + "px");
+    const height = rect && rect.height ? Math.ceil(rect.height) : 68;
+    set("--scene-dock-height",height + "px");
+    set("--scene-dock-space",Math.max(58, height + 18) + "px");
   };
+  refreshSceneBounds = update;
   refreshSceneClearance = update;
   if (typeof ResizeObserver !== "undefined") {
     const observer = new ResizeObserver(() => requestAnimationFrame(update));
-    if (mainDock) observer.observe(mainDock);
-    if (surfaceDock) observer.observe(surfaceDock);
+    for (const item of [mainDock,surfaceDock,widgets.left?.target,widgets.right?.target]) {
+      if (item) observer.observe(item);
+    }
   }
-  // paint() emits a synthetic resize for the renderers; avoid an event loop.
   window.addEventListener("resize", (event) => {
-    if (!event.isTrusted) return;
-    paint();
+    if (event.isTrusted) paint();
     requestAnimationFrame(update);
-  }, { passive: true });
+  }, {passive:true});
   requestAnimationFrame(update);
 }
 

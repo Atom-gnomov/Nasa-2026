@@ -121,3 +121,9 @@ def test_orbital_glass_theme_is_included_last(client):
         html = client.get(path).get_data(as_text=True)
         assert "css/orbital-glass.css" in html, path
         assert html.index("css/style.css") < html.index("css/workspace.css") < html.index("css/orbital-glass.css"), path
+
+def test_scene_dock_uses_compact_group_tabs(client):
+    for route in ("/moon", "/system"):
+        html = client.get(route).get_data(as_text=True)
+        assert "js/workspace_ui.js" in html
+        assert "css/workspace.css" in html

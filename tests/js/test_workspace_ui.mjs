@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { expandedWidget, fitSideWidgets, normalizeWidgetStates, widgetTransition } from "../../app/static/js/workspace_state.js";
+import { expandedWidget, fitSideWidgets, normalizeWidgetStates, sceneInsets, widgetTransition } from "../../app/static/js/workspace_state.js";
 
 test("згортання і повернення не зачіпають другу панель", () => {
   const a = widgetTransition({left:"normal",right:"normal"},"left","collapse");
@@ -55,4 +55,19 @@ test("320px phones reserve space for a collapsed 43px edge control", () => {
   assert.equal(drawn.right, "collapsed");
   // Left margin 13; right pill width 43 and right margin 13; >=20px gap.
   assert.ok(viewport - 13 - 43 - (13 + panel) >= 20);
+});
+
+test("scene center follows free area between visible panels", () => {
+  assert.deepEqual(sceneInsets(1440, 362, 362), { left: 362, right: 362, compact: false });
+  assert.deepEqual(sceneInsets(1440, 362, 66), { left: 362, right: 66, compact: false });
+  const shifted = sceneInsets(1440, 362, 66);
+  assert.equal((shifted.left + (1440 - shifted.right)) / 2, 868);
+});
+test("expanded scene still honors the half-screen boundary", () => {
+  assert.deepEqual(sceneInsets(1440, 362, 66, "left"), { left: 720, right: 66, compact: false });
+  assert.deepEqual(sceneInsets(1440, 66, 362, "right"), { left: 66, right: 720, compact: false });
+});
+test("mobile fallback never creates an unusably thin 3D canvas", () => {
+  assert.deepEqual(sceneInsets(390, 290, 66), { left: 0, right: 0, compact: true });
+  assert.deepEqual(sceneInsets(0, 0, 0), { left: 0, right: 0, compact: true });
 });

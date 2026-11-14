@@ -104,8 +104,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Чорнобог
 
-- **Зараз:** —
-- **Гілка:** —
+- **Зараз:** M10 — перехід до Місяця за зшитими конічними перерізами (`app/core/transfer.py`)
+- **Гілка:** `chornobog/M10-transfer`
 
 ---
 

@@ -163,3 +163,13 @@ test("точки для карти: координати, ранг, допуст
   ]);
 });
 
+
+test("поради ШІ: блок видно завжди; без джерела llm — пояснення й вимкнені елементи", async () => {
+  const { adviceState } = await import(new URL("../../app/static/js/search.js", import.meta.url).href);
+  assert.deepEqual(adviceState({ data_sources: [{ id: "de440" }, { id: "llm" }] }), { enabled: true, note: "" });
+  const off = adviceState({ data_sources: [{ id: "de440" }] });
+  assert.equal(off.enabled, false);
+  assert.match(off.note, /LSE_LLM_BASE_URL/);
+  assert.equal(adviceState(undefined).enabled, false);
+  assert.equal(adviceState({}).enabled, false);
+});

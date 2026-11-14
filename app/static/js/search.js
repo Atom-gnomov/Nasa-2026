@@ -152,6 +152,14 @@ export const highlightPoints = (response) => response.chains.map((c) => ({
   lat: c.moon_site.lat, lon: c.moon_site.lon, rank: c.rank, feasible: c.feasible,
 }));
 
+/** Чи налаштований на сервері сервіс порад ШІ: за /api/meta (джерело "llm"). Блок порад видно завжди (рішення 2026-11-14). */
+export function adviceState(meta) {
+  const on = (meta?.data_sources ?? []).some((s) => s.id === "llm");
+  return on
+    ? { enabled: true, note: "" }
+    : { enabled: false, note: "Поради ШІ вимкнені: сервер не налаштований (задайте LSE_LLM_BASE_URL, LSE_LLM_MODEL і ключ у .env)." };
+}
+
 /** Факти для POST /api/advice: готові результати пошуку (лише числа й підписи з відповіді сервера). */
 export function buildAdviceFacts(response, form, top = 5) {
   const limitFields = (c) => ({
@@ -316,7 +324,7 @@ if (root) {
     el.compare.hidden = !response.comparison;
   }
 
-  // ----- Порада ШІ (POST /api/advice): блок видно лише коли сервер оголосив джерело "llm" у /api/meta -----
+  // ----- Порада ШІ (POST /api/advice): блок видно завжди; кнопка активна, коли сервер оголосив джерело "llm" у /api/meta -----
   function renderAdvice(a) {
     el.adviceOut.replaceChildren();
     const summary = Object.assign(document.createElement("p"), { className: "advice-summary", textContent: a.summary });
@@ -416,7 +424,12 @@ if (root) {
   renderForm();
   fetch("/api/meta").then((r) => r.json()).then((meta) => {
     available = new Set((meta.data_sources ?? []).map((s) => s.id));
-    el.advice.hidden = !available.has("llm"); // поради ШІ вимкнені, доки сервер не налаштований
+    const advice = adviceState(meta); // блок порад видно завжди; без сервера — з поясненням
+    for (const control of [el.adviceAsk, el.adviceQuestion, el.adviceAudience]) control.disabled = !advice.enabled;
+    if (!advice.enabled) {
+      el.adviceStatus.textContent = advice.note;
+      el.adviceStatus.hidden = false;
+    }
     renderPriorities();
   }).catch(() => { /* без /api/meta температура лишається вимкненою */ });
 }

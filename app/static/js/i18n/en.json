@@ -4,6 +4,7 @@
   "Система": "System",
   "Підбір": "Selection",
   "Дата (UTC)": "Date (UTC)",
+  "Поради ШІ вимкнені: сервер не налаштований (задайте LSE_LLM_BASE_URL, LSE_LLM_MODEL і ключ у .env).": "AI advice is off: the server is not configured (set LSE_LLM_BASE_URL, LSE_LLM_MODEL and a key in .env).",
   "+1 год": "+1 h",
   "+1 доба": "+1 day",
   "+29,53 доби": "+29.53 days",

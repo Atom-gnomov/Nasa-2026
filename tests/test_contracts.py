@@ -53,6 +53,7 @@ def test_all_contract_paths_are_routed(client):
     ("sites.json", "sites.schema.json"),
     ("dsn_stations.json", "dsn_stations.schema.json"),
     ("launch_sites.json", "launch_sites.schema.json"),
+    ("rockets.json", "rockets.schema.json"),
 ])
 def test_data_files_match_schemas(data_file, schema_file):
     schema = json.loads((SCHEMAS / schema_file).read_text(encoding="utf-8"))
@@ -61,7 +62,7 @@ def test_data_files_match_schemas(data_file, schema_file):
 
 
 def test_ids_are_unique():
-    for name in ("sites.json", "dsn_stations.json", "launch_sites.json"):
+    for name in ("sites.json", "dsn_stations.json", "launch_sites.json", "rockets.json"):
         ids = [r["id"] for r in json.loads((DATA / name).read_text(encoding="utf-8"))]
         assert len(ids) == len(set(ids)), name
 

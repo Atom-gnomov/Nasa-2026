@@ -104,7 +104,7 @@
 | `POST /launch-ranking` | 👀 PR #53 | `LaunchRankingResponse` — для точки Місяця й дати старту: найкращий перехід кожної траєкторії (Δv, C3, прибуття) і рейтинг «майданчик + ракета + траєкторія» з вікнами, Δv, масою на НОО, заповненістю, вартістю й ризиком діапазонами, `excluded`, `leader_explanation`; `provisional: true` (MATH.md, §21) | панель «Звідки летіти» (F15), `facts.launch` для `/advice` |
 | `GET /data/status` | ✅ PR #48 | `DataStatus` — стан підготовки даних NASA (температура, 3D-ресурси, глобус): `ready` · `running` · `failed` · `missing` | банер «Готую дані» |
 | `POST /data/prepare` | ✅ PR #48 | `DataPrepareResponse` — запуск підготовки відсутніх наборів у фоні (202); 400, якщо `LSE_AUTO_PREPARE=0` | кнопка «Спробувати знову» |
-| `GET /launch-window` | 📝 | `LaunchWindow` — оцінка у % по датах | вікно запуску (друга черга) |
+| `GET /launch-window` | 👀 PR #54 | `LaunchWindow` — оцінка у % по датах старту: перехід і прибуття (M10), вікна й добавка майданчика (M19), частки часу з Сонцем і Землею в точці посадки 7 діб після прибуття; фактори light / fuel / comms / windows, ваги ROC за `priorities`; до 60 діб | вкладка «Вікно запуску» (F7, PR #57) |
 | `POST /advice` | ✅ | `AdviceResponse` — поради й пояснення від відкритої LLM до готових результатів | блок порад (друга черга) |
 
 ✅ — реалізовано, 📝 — контракт є, сервер відповідає 501. Реалізації `/horizon`, `/timeline`, `/system`, `/orbits`, `/elevation`, `/temperature*` — злито в `main` (PR #12).

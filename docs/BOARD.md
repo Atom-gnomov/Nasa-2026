@@ -104,8 +104,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Чорнобог
 
-- **Зараз:** B8 → F7 — вікно запуску: `GET /api/launch-window` і екран зі шкалою дат у %
-- **Гілка:** `chornobog/B8-launch-window`, далі `chornobog/F7-launch-window-ui`
+- **Зараз:** — (на рев'ю: B15 #53, B8 #54, F7 #57)
+- **Гілка:** —
 
 ---
 
@@ -158,3 +158,5 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 - D7 — Каталог сучасних ракет з першоджерел (`app/data/rockets.json` + схема) — гілка `chornobog/D7-rockets`, PR #49
 - M20 — Ранжування майданчиків і ракет (`app/core/launch_rank.py`) — гілка `chornobog/M20-launch-rank`, PR #51
 - B15 — `POST /api/launch-ranking`: контракт, сервіс, маршрут — гілка `chornobog/B15-launch-ranking`, PR #53
+- B8 — `GET /api/launch-window`: оцінка у % для кожної дати старту — гілка `chornobog/B8-launch-window`, PR #54
+- F7 — Вкладка «Вікно запуску»: шкала дат з оцінкою у %, найкраща дата, клік — у календар — гілка `chornobog/F7-launch-window-ui`, PR #57

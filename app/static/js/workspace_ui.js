@@ -95,6 +95,16 @@ function initMoon() {
     modes.append(button);
   }
   heading.prepend(modes);
+  // Док глобуса ховається у виді з поверхні: потрібна окрема видима
+  // кнопка повернення, інакше користувач залишиться в цьому режимі.
+  const surface = document.getElementById("surface");
+  if (surface) {
+    const back = element("button", "surface-back", "← Глобус");
+    back.type = "button";
+    back.title = "Повернутися до глобуса";
+    back.addEventListener("click", () => modes.querySelector('[data-scene-mode="globe"]').click());
+    surface.prepend(back);
+  }
 }
 
 function initSystem() {

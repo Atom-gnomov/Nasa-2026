@@ -99,6 +99,7 @@ def test_catalog_loader_gives_the_same_rows(app):
 
 
 # ---------- M21: економіка з каталогу (D8) на синтетичних фактах ----------
+EXPECTED_200_3 = (3 + ls.PRIOR_FLIGHTS * ls.PRIOR_FAILURE) / (200 + ls.PRIOR_FLIGHTS)  # 200 польотів, 3 невдалі
 def _fact_row(**facts):
     """Рядок каталогу з місткістю 20 000 кг і заданими фактами (синтетичний, не дані про реальну ракету)."""
     base = {"id": "synthetic", "name": "Синтетична ракета", "kind": "spaceport", "active": True,
@@ -109,12 +110,19 @@ def _fact_row(**facts):
     return base
 
 
-def test_failure_from_flights_uses_laplace_rule_with_wilson_range():
+def test_failure_from_flights_blends_a_weak_prior_with_the_flight_record():
+    w, p0 = ls.PRIOR_FLIGHTS, ls.PRIOR_FAILURE
     p, (lo, hi) = ls.failure_from_flights(100, 2)
-    assert p == pytest.approx(3 / 102)
+    assert p == pytest.approx((2 + w * p0) / (100 + w))
     assert 0 <= lo < p < hi <= 1
-    p0, (lo0, hi0) = ls.failure_from_flights(10, 0)
-    assert p0 == pytest.approx(1 / 12) and lo0 == 0 and hi0 > p0  # навіть без невдач — не нуль
+    # без невдач ймовірність не нуль, але й не стрибає: 2–3 успішні польоти лишаються поблизу апріорного, а не 25 %
+    assert 0 < ls.failure_from_flights(2, 0)[0] < p0
+    assert ls.failure_from_flights(3, 0)[0] < 0.03
+    # велика вибірка визначає результат сама
+    assert ls.failure_from_flights(681, 1)[0] == pytest.approx(1.2 / 691)
+    assert ls.failure_from_flights(100_000, 1000)[0] == pytest.approx(0.01, rel=0.01)
+    # провал помітний навіть на малій вибірці: 1 невдача з 3 — помітно вище апріорного
+    assert ls.failure_from_flights(3, 1)[0] > 3 * p0
     few = ls.failure_from_flights(3, 0)[1]
     many = ls.failure_from_flights(300, 0)[1]
     assert (few[1] - few[0]) > (many[1] - many[0])  # мало польотів — широкий діапазон
@@ -124,6 +132,15 @@ def test_failure_from_flights_uses_laplace_rule_with_wilson_range():
         ls.failure_from_flights(5, 6)
 
 
+def test_no_real_catalog_vehicle_gets_an_absurd_failure_rate():
+    """Регресія: правило Лапласа давало Ariane 64 20 %, а Vulcan і SLS — 25 % за 2–3 успішні польоти."""
+    for row in CATALOG:
+        system = ls.from_catalog(row)
+        estimate = system.failure_estimate()
+        if estimate and system.flights_failed == 0:
+            assert estimate[0] < 0.03, (system.id, estimate)
+
+
 def test_catalog_price_and_flight_stats_replace_provisional_values():
     system = ls.from_catalog(_fact_row(price_usd_per_kg_leo_min=1500, price_usd_per_kg_leo_max=2500,
                                        flights_total=200, flights_failed=3))
@@ -131,10 +148,10 @@ def test_catalog_price_and_flight_stats_replace_provisional_values():
     choice = ls.to_rocket(system)
     assert choice.provisional_fields == ()  # усе з каталогу
     assert choice.rocket.price_usd_per_kg == (1500.0, 2500.0)
-    assert choice.rocket.failure_probability == pytest.approx(4 / 202)
+    assert choice.rocket.failure_probability == pytest.approx(EXPECTED_200_3)
     assert choice.failure_range is not None and choice.failure_range[0] < choice.rocket.failure_probability
-    assert choice.risk_params().p_launch_base == pytest.approx(4 / 202)
-    assert system.to_dict()["failure_probability"] == pytest.approx(4 / 202)
+    assert choice.risk_params().p_launch_base == pytest.approx(EXPECTED_200_3)
+    assert system.to_dict()["failure_probability"] == pytest.approx(EXPECTED_200_3)
 
 
 def test_partial_data_keeps_only_the_missing_field_provisional():

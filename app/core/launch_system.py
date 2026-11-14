@@ -3,8 +3,9 @@
 Замість «типової ракети» в моделі вартості й ризику (`cost.py`, `risk.py`) беремо систему з каталогу
 `app/data/launch_systems.json` (задача D6) або `rockets.json` (D7). Каталог містить лише те, що є в джерелах:
 місткість на НОО, висоту скидання, літак-носій і — після задачі D8 — **ціну за кг** (`price_usd_per_kg_leo_min`
-/ `_max`) та **статистику польотів** (`flights_total`, `flights_failed`). Ймовірність відмови з неї — за правилом
-спадкоємності Лапласа `(невдалих + 1) / (усього + 2)` з діапазоном Вілсона 90 % (MATH §20). Чого в каталозі
+/ `_max`) та **статистику польотів** (`flights_total`, `flights_failed`). Ймовірність відмови з неї — байєсівське
+зважування слабкого апріорного рівня (2 % вагою 10 польотів) із записом польотів, діапазон — Вілсона 90 %
+(MATH §20). Чого в каталозі
 немає, для того лишається тимчасове значення «типової ракети», а `provisional_fields` прямо перелічує, які поля
 тимчасові (M21: після D8 список скорочується сам) — користувач не вважатиме їх даними про цю ракету.
 
@@ -82,22 +83,32 @@ def _int_fact(row: Mapping, quantity: str) -> int | None:
     return int(value)
 
 
-def failure_from_flights(flights_total: int, flights_failed: int, z: float = 1.645) -> tuple[float, Range]:
+# ⚠️ Слабкий апріорний рівень відмови нової ракети (як у «типової ракети», тимчасовий) і його вага в «польотах»:
+# без нього 2–3 успішні польоти давали б 20–25 % відмов (правило Лапласа), що вводить в оману.
+PRIOR_FAILURE = DEFAULT_ROCKET.failure_probability
+PRIOR_FLIGHTS = 10.0
+
+
+def failure_from_flights(flights_total: int, flights_failed: int, z: float = 1.645,
+                         prior: float = PRIOR_FAILURE, prior_flights: float = PRIOR_FLIGHTS) -> tuple[float, Range]:
     """Ймовірність відмови за статистикою польотів і її діапазон.
 
-    Точка — правило спадкоємності Лапласа `(f + 1) / (n + 2)`: навіть без невдач ймовірність не нуль, а мало польотів
-    дають широкий діапазон. Діапазон — інтервал Вілсона (z = 1,645 → 90 %). `n = 0` — статистики немає (ValueError).
+    Точка — байєсівське зважування: `(f + w·p₀) / (n + w)`, де `p₀` — слабкий апріорний рівень, `w` — його вага в
+    «польотах». Для ракети з багатьма польотами визначає статистика (Falcon 9: 681 політ, 1 невдалий → ≈ 0,17 %);
+    для 2–3 польотів результат лишається поблизу апріорного, а не стрибає до 20–25 %, як дало б правило Лапласа.
+    Діапазон — інтервал Вілсона (z = 1,645 → 90 %) на тих самих зважених лічильниках, тож мала вибірка дає широкий
+    діапазон. `n = 0` — статистики немає (ValueError).
     """
     n, f = int(flights_total), int(flights_failed)
     if n < 1:
         raise ValueError("Статистики польотів немає (flights_total = 0)")
     if not 0 <= f <= n:
         raise ValueError("flights_failed має бути в межах 0…flights_total")
-    p = (f + 1) / (n + 2)
-    phat = f / n
-    denom = 1 + z * z / n
-    centre = (phat + z * z / (2 * n)) / denom
-    half = z * math.sqrt(phat * (1 - phat) / n + z * z / (4 * n * n)) / denom
+    n_eff, f_eff = n + prior_flights, f + prior_flights * prior
+    p = f_eff / n_eff
+    denom = 1 + z * z / n_eff
+    centre = (p + z * z / (2 * n_eff)) / denom
+    half = z * math.sqrt(p * (1 - p) / n_eff + z * z / (4 * n_eff * n_eff)) / denom
     return p, (max(0.0, centre - half), min(1.0, centre + half))
 
 

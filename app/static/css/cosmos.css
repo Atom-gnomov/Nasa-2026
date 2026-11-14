@@ -189,8 +189,8 @@ body.page-plan .lw-controls.ui-widget, body.page-launch .lw-controls.ui-widget,
 body.page-search #search .workspace-results, body.page-mission .workspace-results,
 body.page-plan .workspace-results, body.page-launch .workspace-results,
 body.page-moon .ui-dock, body.page-system .ui-dock, body.page-moon #surface .ui-surface-dock {
-  backdrop-filter: blur(20px) saturate(190%) contrast(1.04) brightness(1.12);
-  -webkit-backdrop-filter: blur(20px) saturate(190%) contrast(1.04) brightness(1.12);
+  backdrop-filter: blur(20px) saturate(190%) contrast(1.04) brightness(.98);
+  -webkit-backdrop-filter: blur(20px) saturate(190%) contrast(1.04) brightness(.98);
   border-radius: 24px;
 }
 body.page-moon .ui-dock, body.page-system .ui-dock, body.page-moon #surface .ui-surface-dock { border-radius: 28px; }
@@ -215,17 +215,18 @@ body.ui-focus .ui-scene-widget, body.ui-focus .ui-dock, body.ui-focus .globe-sta
 body.ui-focus #surface .surface-toolbar { display: none !important; }
 body.ui-focus #fullscreen-toggle { background: linear-gradient(160deg, rgba(98, 228, 255, .45), rgba(111, 124, 255, .25)); box-shadow: var(--cx-glow); }
 
-/* ---------- Лінійка масштабу глобуса: над доком, по центру сцени, у склі ---------- */
+/* ---------- Лінійка масштабу глобуса: правий нижній кут сцени над доком, не перекриває Місяць ---------- */
 body.page-moon .scale-bar {
-  position: fixed; z-index: 26; left: 50%; right: auto; bottom: calc(var(--scene-dock-space, 86px) + 12px);
-  transform: translateX(calc((var(--scene-left, 0px) - var(--scene-right, 0px)) / 2 - 50%));
-  padding: 7px 12px 8px; border-radius: 14px; text-align: center; color: #fff; font-family: var(--cx-font-num);
-  background: linear-gradient(160deg, rgba(255, 255, 255, .18), rgba(255, 255, 255, .05)), rgba(8, 10, 34, .35);
-  border: 1px solid rgba(255, 255, 255, .28); text-shadow: none;
-  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .4), 0 8px 24px rgba(1, 2, 16, .4);
-  backdrop-filter: blur(14px) saturate(170%); -webkit-backdrop-filter: blur(14px) saturate(170%);
+  /* батьківський #moon-globe має contain: layout — позиція рахується від нього, а не від вікна */
+  position: absolute; z-index: 26; left: auto; right: 17px; bottom: calc(var(--scene-dock-space, 86px) + 8px);
+  transform: none; padding: 5px 10px 7px; border-radius: 12px; text-align: right; color: #fff; font: 11px/1.2 var(--cx-font-num);
+  background: linear-gradient(160deg, rgba(255, 255, 255, .14), rgba(255, 255, 255, .04)), rgba(8, 10, 34, .34);
+  border: 1px solid rgba(255, 255, 255, .24); text-shadow: none; pointer-events: none;
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .35), 0 6px 18px rgba(1, 2, 16, .35);
+  backdrop-filter: blur(12px) saturate(170%); -webkit-backdrop-filter: blur(12px) saturate(170%);
 }
-body.page-moon .scale-bar i { margin: 0 auto; border-color: var(--cx-cyan); box-shadow: 0 0 8px rgba(98, 228, 255, .5); }
+body.page-moon .scale-bar span { margin-bottom: 4px; opacity: .9; }
+body.page-moon .scale-bar i { margin-left: auto; height: 5px; border: 2px solid var(--cx-cyan); border-top: 0; box-shadow: none; }
 body.page-moon.surface-active .scale-bar { display: none; }
 
 /* ---------- Вхід панелей ---------- */
@@ -249,3 +250,37 @@ body:not(.page-moon):not(.page-system) .ui-widget, body:not(.page-moon):not(.pag
   body.page-plan .workspace-results, body.page-launch .workspace-results,
   body.page-moon .ui-dock, body.page-system .ui-dock, #site-header.topbar { background: #0c0f2c; border-color: rgba(140, 160, 255, .35); }
 }
+
+/* ---------- Легенда міток глобуса ---------- */
+body.page-moon .marker-legend {
+  position: fixed; z-index: 24; margin: 0; padding: 8px 14px; list-style: none; display: flex; flex-wrap: wrap; gap: 4px 16px;
+  top: calc(var(--header-h, 58px) + 12px); left: 50%; max-width: calc(100vw - var(--scene-left, 0px) - var(--scene-right, 0px) - 34px);
+  transform: translateX(calc((var(--scene-left, 0px) - var(--scene-right, 0px)) / 2 - 50%));
+  border-radius: 16px; font-size: 12px; color: #eef2ff; pointer-events: none; white-space: nowrap;
+  background: linear-gradient(160deg, rgba(255, 255, 255, .16), rgba(255, 255, 255, .04)), rgba(8, 10, 34, .38);
+  border: 1px solid rgba(255, 255, 255, .26);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .4), 0 8px 24px rgba(1, 2, 16, .4);
+  backdrop-filter: blur(14px) saturate(170%); -webkit-backdrop-filter: blur(14px) saturate(170%);
+}
+.marker-legend li { display: inline-flex; align-items: center; gap: 7px; }
+.marker-legend .dot { width: 11px; height: 11px; border-radius: 50%; box-shadow: 0 0 8px currentColor; }
+.dot-selected { background: #f5b942; color: #f5b942; }
+.dot-result { background: #4fc3f7; color: #4fc3f7; }
+.dot-best { background: #7bed9f; color: #7bed9f; }
+.dot-site { background: #b8bfcc; color: #b8bfcc; }
+body.page-moon.surface-active .marker-legend { display: none; }
+@media (max-width: 760px) { body.page-moon .marker-legend { gap: 2px 10px; font-size: 11px; padding: 6px 10px; white-space: normal; } }
+
+/* ---------- Метрики системи: підпис над значенням, довгі рядки (політ, DSN, орбіти) переносяться ---------- */
+body.page-system .system-info .widget-body dl { display: block; }
+body.page-system .system-info .widget-body dt {
+  margin: 13px 0 3px; font-size: 10.5px; line-height: 1.3; text-transform: uppercase; letter-spacing: .08em; color: var(--cx-subtle);
+}
+body.page-system .system-info .widget-body dl > dt:first-child { margin-top: 0; }
+body.page-system .system-info .widget-body dd {
+  margin: 0; padding-bottom: 8px; text-align: left; font-size: 13px; line-height: 1.45; color: #f0f4ff;
+  overflow-wrap: anywhere; border-bottom: 1px solid rgba(140, 160, 255, .10);
+}
+body.page-system .system-info .widget-body dd:last-of-type { border-bottom: 0; }
+body.page-system .system-info #flight-telemetry h2 { font-size: 11.5px; text-transform: uppercase; letter-spacing: .09em; color: var(--cx-cyan); margin: 16px 0 10px; }
+.ui-widget .seg button, .ui-widget .seg a, .ui-dock .seg button, .ui-dock .seg a { color: #cdd5f7; text-shadow: 0 1px 2px rgba(1, 2, 16, .55); }

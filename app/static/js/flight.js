@@ -149,3 +149,71 @@ export function telemetryRows(st) {
     ["Затримка зв'язку із Землею", `${st.delayS.toLocaleString("uk-UA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} с (в один бік)`],
   ];
 }
+
+// ---- Політ із посадкою: інтерполяція стану системи та фаза спуску ---------------------------------------------
+// Місяць за 5 діб проходить десятки градусів, тож стан системи беремо з відліків (щогодини) й інтерполюємо:
+// без запитів у кожному кадрі й без ривків. samples — [{ ms, state }] за зростанням ms; state — відповідь /api/system.
+const lerpVec = (a, b, f) => a.map((v, i) => v + (b[i] - v) * f);
+const lerpMat = (a, b, f) => a.map((row, i) => lerpVec(row, b[i], f));
+
+export function interpSystem(samples, ms) {
+  if (!samples?.length) return null;
+  if (ms <= samples[0].ms) return samples[0].state;
+  const last = samples[samples.length - 1];
+  if (ms >= last.ms) return last.state;
+  let lo = 0, hi = samples.length - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (samples[mid].ms <= ms) lo = mid; else hi = mid;
+  }
+  const f = (ms - samples[lo].ms) / (samples[hi].ms - samples[lo].ms);
+  const a = samples[lo].state, b = samples[hi].state;
+  // datetime і орієнтація Землі лишаються з попереднього відліку: обертання Землі система екстраполює сама
+  return {
+    ...a,
+    moon_km: lerpVec(a.moon_km, b.moon_km, f),
+    sun_km: lerpVec(a.sun_km, b.sun_km, f),
+    moon_orientation: lerpMat(a.moon_orientation, b.moon_orientation, f),
+  };
+}
+
+// Відліки часу для польоту: від відльоту до прибуття щогодини (+ кінець).
+export function sampleTimes(departureMs, totalS, stepMs = 3600000) {
+  const end = departureMs + totalS * 1000;
+  const out = [];
+  for (let t = departureMs; t < end; t += stepMs) out.push(t);
+  out.push(end);
+  return out;
+}
+
+// Біля Місяця схематичний масштаб роздуває його в 6 разів, а дуга закінчується в центрі: ракета пролітала б крізь кулю.
+// Відстань s (у одиницях сцени) від центру Місяця стискаємо так, щоб ракета підходила до висоти орбіти (orbitK·R),
+// а не до центру; далі від k·R (s0) відстань не змінюється. Неперервно на s = s0.
+export function remapNearMoon(s, rMoon, k = 7, orbitK = 1.35) {
+  const s0 = rMoon * k, r1 = rMoon * orbitK;
+  return s >= s0 ? s : r1 + (s0 - r1) * (Math.max(s, 0) / s0);
+}
+
+export const DESCENT_REAL_S = 7; // тривалість анімації спуску, с реального часу
+export const ORBIT_ALT_KM = 100; // схематична висота початку спуску
+
+// Стан спуску за прогресом p ∈ [0, 1]: e — частка пройденого вниз (гальмування до нуля), висота й швидкість (схематично).
+export function descentState(p) {
+  const x = Math.min(Math.max(Number(p) || 0, 0), 1);
+  const e = 1 - (1 - x) ** 2; // м'яке торкання: швидкість падіння → 0
+  return { p: x, e, altKm: ORBIT_ALT_KM * (1 - e), speedKmS: 1.63 * Math.sqrt(Math.max(0, 1 - e)), landed: x >= 1 };
+}
+
+export function descentRows(p, site = null) {
+  const d = descentState(p);
+  if (d.landed) {
+    return [["Фаза", "Посадка виконана"], ["Висота над поверхнею", "0 м"], ["Швидкість", "0,00 км/с"],
+      ...(site ? [["Точка посадки", site]] : [])];
+  }
+  return [
+    ["Фаза", "Спуск і посадка"],
+    ["Висота над поверхнею (схем.)", `${d.altKm.toFixed(1)} км`],
+    ["Швидкість (схем.)", `${d.speedKmS.toFixed(2).replace(".", ",")} км/с`],
+    ["Пройдено", `${Math.round(d.p * 100)} %`],
+  ];
+}

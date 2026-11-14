@@ -10,6 +10,7 @@ from app.services import advice as advice_service
 from app.services import search as search_service
 from app.services import events as events_service
 from app.services import meta as meta_service
+from app.services import bootstrap
 from app.services import mission as mission_service
 from app.services import terrain as terrain_service
 from app.services import timeline as timeline_service
@@ -77,6 +78,30 @@ def get_site(site_id: str):
 @bp.get("/dsn")
 def list_dsn():
     return jsonify([s.to_dict() for s in dsn.load_stations()])
+
+
+@bp.get("/data/status")
+def data_status():
+    """Стан підготовки даних NASA (температура, 3D-ресурси, глобус)."""
+    return jsonify(bootstrap.preparer(current_app).status(bool(current_app.config["AUTO_PREPARE"])))
+
+
+@bp.post("/data/prepare")
+def data_prepare():
+    """Запускає підготовку відсутніх наборів у фоні; відповідь одразу."""
+    if not current_app.config["AUTO_PREPARE"]:
+        return _error(400, "Автоматична підготовка даних вимкнена (LSE_AUTO_PREPARE=0); "
+                           "запустіть скрипти tools/build_*.py")
+    body = request.get_json(silent=True) or {}
+    if not isinstance(body, dict) or set(body) - {"datasets"}:
+        return _error(400, "Очікується {\"datasets\": [...]} або порожнє тіло")
+    ids = body.get("datasets") or list(current_app.config["AUTO_PREPARE_DATASETS"])
+    unknown = [i for i in ids if not isinstance(i, str) or i not in bootstrap.BY_ID]
+    if unknown:
+        return _error(400, f"Невідомі набори даних: {unknown}; є {', '.join(bootstrap.BY_ID)}")
+    prep = bootstrap.preparer(current_app)
+    started = prep.start(ids)
+    return jsonify({"started": started, "status": prep.status(True)}), 202
 
 
 @bp.get("/launch-sites")

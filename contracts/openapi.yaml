@@ -39,6 +39,52 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/Health"}
 
+  /data/status:
+    get:
+      tags: [service]
+      x-status: implemented
+      summary: Стан підготовки даних NASA (температура, 3D-ресурси, глобус)
+      description: |
+        Застосунок сам готує дані у фоні (PROPOSALS П-11): кожен набір має стан `ready` (файли є),
+        `running` (скрипт збирання виконується; `message` — останній рядок його виводу, відсотків не вигадуємо),
+        `failed` (`message` — причина) або `missing` (не запущено). Запит, якому бракує даних, повертає 503 з тим самим
+        поясненням. `auto_prepare` — чи ввімкнено автозапуск (`LSE_AUTO_PREPARE`).
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/DataStatus"}
+
+  /data/prepare:
+    post:
+      tags: [service]
+      x-status: implemented
+      summary: Запустити підготовку відсутніх наборів даних у фоні
+      description: |
+        Без `datasets` — набори з налаштування `LSE_AUTO_PREPARE_DATASETS`. Готові й ті, що вже готуються,
+        пропускаються. Відповідь повертається одразу (202): стан дивіться в `/data/status`. Якщо автопідготовку вимкнено
+        (`LSE_AUTO_PREPARE=0`) — 400.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                datasets:
+                  type: array
+                  uniqueItems: true
+                  items: {type: string, enum: [temperature, system, globe]}
+      responses:
+        "202":
+          description: Прийнято
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/DataPrepareResponse"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+
   /meta:
     get:
       tags: [service]
@@ -567,6 +613,37 @@ components:
         detail:
           type: string
           description: Пояснення українською — фронтенд показує його користувачу як є
+
+    DatasetStatus:
+      type: object
+      required: [id, label, approx_download, command, state, message, elapsed_s]
+      additionalProperties: false
+      properties:
+        id: {type: string, enum: [temperature, system, globe]}
+        label: {type: string}
+        approx_download: {type: string, description: "Скільки буде завантажено, для людини"}
+        command: {type: string, description: Команда для ручного запуску}
+        state: {type: string, enum: [ready, running, failed, missing]}
+        message: {type: [string, "null"], description: "Останній рядок виводу скрипта або причина помилки"}
+        elapsed_s: {type: [number, "null"]}
+
+    DataStatus:
+      type: object
+      required: [auto_prepare, datasets]
+      additionalProperties: false
+      properties:
+        auto_prepare: {type: boolean}
+        datasets:
+          type: array
+          items: {$ref: "#/components/schemas/DatasetStatus"}
+
+    DataPrepareResponse:
+      type: object
+      required: [started, status]
+      additionalProperties: false
+      properties:
+        started: {type: array, items: {type: string}, description: Набори, підготовку яких запущено цим запитом}
+        status: {$ref: "#/components/schemas/DataStatus"}
 
     Health:
       type: object

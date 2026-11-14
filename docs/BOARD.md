@@ -79,8 +79,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 - **Зараз:** —
 - **Гілка:** —
-- **Зараз (агент Claude):** — (I6, M17, B9, M18 злито в `main`: PR #39–#42; далі B13, M19, I7)
-- **Гілка (агент Claude):** `perun/I6-tests-config` (далі `perun/M17-…`, `perun/B9-…`, `perun/M18-…`)
+- **Зараз (агент Claude):** — (B13, B16, I7, B1 злито в `main`: PR #46–#48, #50); далі B8 після злиття M10 (PR #44)
+- **Гілка (агент Claude):** `perun/B13-profile-rank`, далі `perun/B16-mission-launch-system`, `perun/I7-auto-prepare-data`, `perun/B1-shared-visibility`
 
 ### Велес
 
@@ -104,8 +104,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Чорнобог
 
-- **Зараз:** M10 — перехід до Місяця за зшитими конічними перерізами (`app/core/transfer.py`)
-- **Гілка:** `chornobog/M10-transfer`
+- **Зараз:** B8 → F7 — вікно запуску: `GET /api/launch-window` і екран зі шкалою дат у %
+- **Гілка:** `chornobog/B8-launch-window`, далі `chornobog/F7-launch-window-ui`
 
 ---
 
@@ -153,4 +153,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Чорнобог
 
-- —
+- M10 — Перехід Земля → Місяць за зшитими конічними перерізами (`app/core/transfer.py`): Ламберт, крива «паливо ↔ час», LOI, C3 — гілка `chornobog/M10-transfer`, PR #44
+- M19 — Δv з майданчика (`app/core/launch.py`): азимут, нахил, вікна на добу, доворот площини — гілка `chornobog/M19-launch-dv`, PR #45
+- D7 — Каталог сучасних ракет з першоджерел (`app/data/rockets.json` + схема) — гілка `chornobog/D7-rockets`, PR #49
+- M20 — Ранжування майданчиків і ракет (`app/core/launch_rank.py`) — гілка `chornobog/M20-launch-rank`, PR #51
+- B15 — `POST /api/launch-ranking`: контракт, сервіс, маршрут — гілка `chornobog/B15-launch-ranking`, PR #53

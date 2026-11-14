@@ -252,7 +252,7 @@ function initSceneGeometry() {
   const update = () => {
     const dock = root.classList.contains("surface-active") ? surfaceDock : mainDock;
     const rect = dock?.getBoundingClientRect();
-    const clearance = rect && rect.height ? Math.max(70, Math.ceil(window.innerHeight - rect.top + 12)) : 98;
+    const clearance = rect && rect.height ? Math.max(58, Math.ceil(window.innerHeight - rect.top + 8)) : 98;
     root.style.setProperty("--scene-dock-space", clearance + "px");
   };
   refreshSceneClearance = update;

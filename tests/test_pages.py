@@ -105,3 +105,11 @@ def test_header_navigation_is_one_scrollable_strip(client):
         assert 'class="header-actions"' in html
         assert html.index('class="brand"') < html.index('id="header-middle"') < html.index('class="header-actions"')
         assert html.count('class="cal-step-short"') == 6
+
+
+def test_analytics_results_share_glass_panel_class(client):
+    pages = ("/search", "/mission", "/plan", "/launch-window")
+    for url in pages:
+        html = client.get(url).get_data(as_text=True)
+        assert "workspace-results" in html, url
+        assert 'class="results-heading"' in html, url

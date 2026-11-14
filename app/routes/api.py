@@ -15,6 +15,7 @@ from app.services import bootstrap
 from app.services import launch_ranking as launch_ranking_service
 from app.services import launch_window as launch_window_service
 from app.services import mission as mission_service
+from app.services import plan as plan_service
 from app.services import terrain as terrain_service
 from app.services import timeline as timeline_service
 
@@ -423,6 +424,20 @@ def launch_ranking():
     except ValueError as exc:  # включно з LaunchRankingError, помилками моделі місії й ядра
         return _error(400, str(exc))
     except RuntimeError as exc:  # немає ефемерид
+        return _error(503, str(exc))
+
+
+@bp.post("/plan")
+def plan():
+    """Повний план місії: місце посадки → майданчик, ракета, траєкторія → місія (B18); автовибір за вимогами."""
+    try:
+        body, start, end = _period_body()
+        return jsonify(plan_service.compute(body, start, end))
+    except launch_ranking_service.VehicleNotFound as exc:
+        return _error(404, str(exc))
+    except ValueError as exc:  # включно з PlanError, RankError, LaunchRankingError, MissionError
+        return _error(400, str(exc))
+    except RuntimeError as exc:  # немає ефемерид чи даних
         return _error(503, str(exc))
 
 

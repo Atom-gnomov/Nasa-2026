@@ -107,7 +107,8 @@ def test_mission_with_launch_system_uses_catalog_capacity_and_reports_provisiona
     assert_valid(api_validator("MissionResponse"), data)
     ls = data["launch_system"]
     assert ls["rocket"]["capacity_leo_kg"] == 21600.0
-    assert ls["provisional_fields"] == ["price_usd_per_kg", "failure_probability"]
+    # D8: база відмови — зі статистики польотів у каталозі; ціни Ariane 64 в каталозі немає
+    assert ls["provisional_fields"] == ["price_usd_per_kg"]
     assert ls["fit"]["utilization"] == pytest.approx(data["cost"]["mass_leo_kg"] / 21600.0)
     assert data["launch_site_id"] == "kourou" and 5 < data["launch_lat"] < 6  # широта з місця системи
 

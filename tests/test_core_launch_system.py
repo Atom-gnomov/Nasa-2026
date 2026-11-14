@@ -1,5 +1,6 @@
 """Система запуску замість «типової ракети» (app/core/launch_system.py, M18)."""
 
+import dataclasses
 import json
 from pathlib import Path
 
@@ -30,7 +31,9 @@ def test_to_rocket_uses_catalog_capacity_and_lists_provisional_fields():
     choice = ls.to_rocket(_system("ariane-64"))
     assert choice.rocket.capacity_leo_kg == 21600.0 and choice.rocket.name.startswith("Ariane 64")
     assert choice.rocket.price_usd_per_kg == cost.DEFAULT_ROCKET.price_usd_per_kg
-    assert choice.provisional_fields == ("price_usd_per_kg", "failure_probability")
+    # D8: у каталозі є статистика польотів Ariane 64 (3 з 3 вдалі за GCAT) — база відмови вже не тимчасова
+    assert choice.provisional_fields == ("price_usd_per_kg",)
+    assert choice.rocket.failure_probability == pytest.approx(ls.failure_from_flights(3, 0)[0])
 
 
 def test_explicit_price_and_failure_are_not_provisional():
@@ -38,7 +41,9 @@ def test_explicit_price_and_failure_are_not_provisional():
     assert choice.rocket.price_usd_per_kg == (3000.0, 4000.0) and choice.rocket.failure_probability == 0.05
     assert choice.provisional_fields == ()
     only_price = ls.to_rocket(_system("ariane-64"), price_usd_per_kg=(3000.0, 4000.0))
-    assert only_price.provisional_fields == ("failure_probability",)
+    assert only_price.provisional_fields == ()  # відмова — зі статистики польотів каталогу (D8)
+    no_stats = dataclasses.replace(_system("ariane-64"), flights_total=None, flights_failed=None)
+    assert ls.to_rocket(no_stats, price_usd_per_kg=(3000.0, 4000.0)).provisional_fields == ("failure_probability",)
 
 
 def test_system_without_leo_capacity_is_rejected():

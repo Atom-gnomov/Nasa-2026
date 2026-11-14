@@ -1,5 +1,9 @@
 """POST /api/launch-ranking: контракт, рейтинг стартів, маса з моделі місії, фільтри, помилки (задача B15)."""
 
+import json
+from functools import cache
+from pathlib import Path
+
 import pytest
 
 from tests.test_contracts import api_validator, assert_valid
@@ -7,6 +11,15 @@ from tests.test_contracts import api_validator, assert_valid
 pytest.importorskip("naif_de440")
 
 BASE = {"lat": -89.67, "lon": 129.78, "datetime": "2027-07-01T00:00:00Z", "mass_moon_kg": 2000}
+DATA = Path(__file__).resolve().parents[1] / "app" / "data"
+
+
+@cache
+def _vehicles_with_flight_stats() -> frozenset[str]:
+    rows = []
+    for name in ("rockets.json", "launch_systems.json"):
+        rows += json.loads((DATA / name).read_text(encoding="utf-8"))
+    return frozenset(r["id"] for r in rows if any(f["quantity"] == "flights_total" for f in r["facts"]))
 
 
 def post(client, **kw):
@@ -38,7 +51,9 @@ def test_ranking_order_and_ranges(client):
         assert o["dv_total_m_s"][0] <= o["dv_total_m_s"][1]
         assert o["launch_cost_usd"][0] <= o["launch_cost_usd"][1]
         assert o["risk"]["range"][0] <= o["risk"]["p"] <= o["risk"]["range"][1]
-        assert "failure_probability" in o["provisional_fields"]
+        # D8: база відмови тимчасова лише для ракет без статистики польотів у каталозі
+        has_stats = o["vehicle"]["id"] in _vehicles_with_flight_stats()
+        assert ("failure_probability" in o["provisional_fields"]) is not has_stats, o["vehicle"]["id"]
     assert all(o["fits"] for o in opts if o["pareto"])
 
 

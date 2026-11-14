@@ -810,3 +810,12 @@ body.page-moon #surface .ui-surface-dock .surface-toolbar { color: #c0cfe1; }
 @media (prefers-reduced-transparency: reduce) {
   .ui-widget, .ui-dock { background: #172337; backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
+
+/* HTML hidden — пріоритетніший за стилі grid/flex окремих старих компонентів. */
+[hidden] { display: none !important; }
+
+/* Інструкція потрібна лише до появи результатів. */
+body.page-search .search-results:has(#s-table:not([hidden])) .results-heading p,
+body.page-launch .lw-results:has(#lw-table:not([hidden])) .results-heading p,
+body.page-plan .lw-results:has(#plan-table:not([hidden])) .results-heading p,
+body.page-mission .mission-result:has(#m-result:not([hidden])) .results-heading p { display: none; }

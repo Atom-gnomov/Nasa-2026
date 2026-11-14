@@ -117,6 +117,15 @@
 | **Via Satellite — «Mission to Rescue NASA Swift Observatory Launches» (2026-07-06)** | «46th Pegasus launch to date», «first time Pegasus has launched since 2021»; слів про «останній політ» немає; дата запуску в статті («July 2») розходиться з NASA (D6, PR #60) | https://www.satellitetoday.com/launch/2026/07/06/mission-to-rescue-nasa-swift-observatory-launches/ |
 | **CNES CSG — «The first Ariane 64 successfully launches 32 Amazon LEO satellites» (2026-02-13)** | Перший Ariane 64, місія VA267, 12.02.2026, 32 супутники Amazon Leo (D6, PR #60) | https://centrespatialguyanais.cnes.fr/en/succes-va267 |
 | **ArianeGroup — «VA267: Ariane 64 Ready for its First Mission for Amazon Leo» (2026-02-09)** | Оголошення першого польоту Ariane 64, 18 польотів Ariane 6 для Amazon Leo (D6, PR #60) | https://www.ariane.group/en/news/va267-ariane-64-ready-for-its-first-mission-for-amazon-leo/ |
+| **NASA/TP-2015-218570/REV2 Life Support BVAD (2022)** | Їжа, кисень, вода на люд·добу; житловий об'єм; маса житла на м³; сонячні батареї й акумулятори на поверхні Місяця; терморегуляція (D4, PR #69) | https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf |
+| **NASA HRP — Minimum Acceptable Net Habitable Volume (2014)** | Мінімум 25 м³ житлового об'єму на людину для довгих місій (D4, PR #69) | https://ntrs.nasa.gov/api/citations/20140016951/downloads/20140016951.pdf |
+| **NASA SST State of the Art — 3.0 Power (2024)** | Питома потужність сонячних батарей (~30 Вт/кг), Li-ion 100–265 Вт·год/кг (D4, PR #69) | https://www.nasa.gov/wp-content/uploads/2025/02/3-soa-power-2024.pdf |
+| **NASA OIG IG-24-013 — CLPS (2024)** | Доставка на Місяць ≈ $1 млн/кг (2019) → ≈ $1,2 млн/кг (2023); маси перших вантажів (D4, PR #69) | https://oig.nasa.gov/wp-content/uploads/2024/06/final-report-ig-24-013-nasas-commercial-lunar-payload-services-initiative.pdf |
+| **NASA OIG IG-22-010 — VIPER (2022)** | Маса VIPER 475 кг, вартість проєкту $433,5 млн без доставки (D4, PR #69) | https://oig.nasa.gov/wp-content/uploads/2024/02/IG-22-010.pdf |
+| **NASA OIG IG-18-016 — Commercial Resupply Services (2018)** | Вантаж на МКС: $63 200/кг (CRS-1), $71 800/кг (CRS-2, прогноз) (D4, PR #69) | https://oig.nasa.gov/wp-content/uploads/2024/02/IG-18-016.pdf |
+| **J. McDowell — GCAT Launch List (launch.tsv), оновлення 2026-11-13** | Статистика польотів ракет: LaunchCode O/D/N, результат S/F (вторинне джерело) (D8, PR #72) | https://planet4589.org/space/gcat/tsv/launch/launch.tsv · визначення: https://planet4589.org/space/gcat/web/launch/lcols.html |
+| **Новини NASA LSP про контракти на запуск** (PACE, NEO Surveyor, JPSS-4 — Falcon 9; Psyche, GOES-U, Gateway PPE+HALO — Falcon Heavy) | Вартість запуску для NASA → ціна за кг на НОО діапазоном (D8, PR #72) | https://www.nasa.gov/news-release/nasa-awards-launch-services-contract-for-earth-science-mission/ та ін. (посилання у фактах `rockets.json`) |
+| **NASA OIG IG-22-003 (2021), CT-24-001 (2024)** | Вартість виготовлення однієї SLS: $2,2 млрд / $2,5 млрд (D8, PR #72) | https://oig.nasa.gov/wp-content/uploads/2024/02/IG-22-003.pdf · https://oig.nasa.gov/wp-content/uploads/2024/02/ct-24-001.pdf |
 | **AIAA, 2026-06-10 — «Growing Launch Demand Revives Interest in Offshore Rocket Operations»** | Відновлення інтересу до морських стартів; Lockheed Martin, Firefly і Seagate — морська платформа для Alpha, цільова готовність кінець 2027 р. (≈ ABS Approval in Principle, грудень 2025) | https://aiaa.org/2026/06/10/growing-launch-demand-revives-interest-in-offshore-rocket-operations/ |
 | **SatNews, 2026-05-14 — Starship V3** | Заявлено ≥ 100 т на НОО (у перспективі до 200 т); мета — повна багаторазовість | https://satnews.com/2026/05/14/spacex-debuts-starship-v3-redefining-heavy-lift-launch-capability/ |
 | **Wikipedia — New Glenn** | 7×2 — 45 т на НОО; 9×4 (у розробці) — ≥ 70 т; у травні 2026 р. вибух на майданчику LC-36, відновлення польотів — з 22 травня | https://en.wikipedia.org/wiki/New_Glenn |
@@ -137,6 +146,33 @@
 - **JPL Horizons (веб)** — https://ssd.jpl.nasa.gov/horizons/
 
 ---
+
+## 9. Текстури й деталізація поверхні (дослідження D9 і D10, 2026-11-14)
+
+> Дослідження за відкритими сторінками NASA/PDS/USGS. **Ліцензії на сторінках самих продуктів явно не знайдено:** загальна політика NASA — матеріали без обмежень на використання з проханням вказувати автора, але для кожного набору це треба перевірити перед розповсюдженням у пакетах (рядок «перевірити» нижче). Усе, що завантажуємо, кешується локально й не лежить у репозиторії.
+
+### D9. Кращі текстури для виду «з поверхні»
+| Джерело | Роздільність, формат, обсяг | Покриття | Умови (за знайденим) | Висновок |
+|---|---|---|---|---|
+| **LROC WAC, відбиття, нормалізоване за Hapke** (PDS LROC Data Node; `WAC_GLOBAL`) | 100 м/піксель (також 256 й 128 пікс/град), 10 регіональних плиток, смуга 643 нм | глобально | дані PDS, у readme — вимоги до цитування; перевірити | **Рекомендовано** як альбедо-тло навколо точки |
+| **LROC NAC ROI-мозаїки** (`data.lroc.im-ldi.com`, напр. `NAC_ROI_SHKLTNPKLO*`) | 1 м/піксель, 16-бітний GeoTIFF/IMG, ≈ 0,5 ГБ на мозаїку | **є для Шеклтона** (кілька ROI, різне Сонце), окремі місця Artemis | PDS; точність прив'язки 5–20 м; перевірити | **Рекомендовано** для детального альбедо в обраних місцях |
+| **CGI Moon Kit** (NASA SVS 4720) | колір до 16K (`lroc_color_16bit_srgb_16k.tif`), 4K/2K; побудований із WAC Hapke + LDAM для широт без кольору | глобально | SVS просить вказувати «NASA's Scientific Visualization Studio»; ліцензію прямо не названо | Уже використовуємо для глобуса; **достатньо для кольору, але не для близького виду** |
+| Безшовні дрібні текстури реголіту й карти нормалей | відкритих планетарних наборів не знайдено | — | — | **Генеруємо процедурно** (шум + кратери з розподілом за розміром) — залежності від зовнішніх даних немає |
+| Знімки Apollo (Apollo Image Gallery, ALSJ) | сканы фото | місця Apollo | НЕ перевірено в цьому дослідженні | лише як еталон вигляду для звірки, у застосунок не вбудовуємо |
+
+**Висновок D9.** Для G13: (1) альбедо — **LROC NAC 1 м** там, де є ROI (Шеклтон тощо), інакше **WAC Hapke 100 м**; (2) дрібну текстуру реголіту й нормалі — **процедурно** біля камери; (3) освітлення — Lommel–Seeliger або спрощений Hapke замість Ламберта. Підписи джерел і умов — у «Джерела даних».
+
+### D10. Деталізація поверхні для наближення
+| Джерело | Роздільність | Доступ | Умови | Висновок |
+|---|---|---|---|---|
+| **LOLA 5 м/піксель, південний полюс** (PGDA, продукти `78`, `81`; приблизно 87–90° пд.) та 5 м GeoTIFF **для окремих місць** | 5 м; медіанна похибка висоти 0,3–0,5 м, нахилу ≈ 1,5–2,5° | завантаження файлів PGDA (`pgda.gsfc.nasa.gov`) | NASA; перевірити | Більшість пікселів **інтерпольована** (заповнення ≈ 10 % біля полюса); корисно ≥ 20 м/піксель |
+| Мозаїки 10–20 м, 80–90° пд. | 10–20 м | «в роботі» за презентаціями NASA | — | у наявності не підтверджено; поки лишаємо **LOLA 80/20 м** |
+| **LROC NAC DTM** | 1–5 м, локально | PDS LROC / USGS | перевірити | для Шеклтона конкретного DTM не знайдено; **окремо перевірити** на `data.lroc.im-ldi.com` |
+| **NASA Moon Trek, WMTS** (`trek.nasa.gov/tiles/Moon/EQ/<шар>/1.0.0/default/default028mm/{z}/{y}/{x}.jpg|png`; реєстр шарів — `WMTSCapabilities.xml`; опис API — `trek.nasa.gov/tiles/apidoc/trekAPI.html?body=moon`) | напр. шар `LRO_WAC_Mosaic_Global_303ppd_v02` (≈ 100 м) та шари кольору; DEM-шари — за каталогом | відкрито, без ключа на `trek.nasa.gov` (на `api.nasa.gov` — з `api_key`, за вторинними джерелами) | **офіційних умов використання не знайдено** | Підходить для кольору «на вимогу»; рішення 2026-11-14 дозволяє зовнішні тайлові сервіси з локальним кешем |
+
+**Висновок D10 (стратегія «на вимогу чи в пакеті»).** Колір — **тайли Moon Trek на вимогу з локальним кешем у `data_cache/`** (обмежений обсяг, ввічливі запити, підпис джерела); рельєф — найдетальніший **локальний DEM області** з пакета даних (LOLA 20 м для полюса, 5 м лише для обраних майданчиків), а не з веб-сервісу; без мережі й даних — теперішній вигляд. Перед включенням у пакети для розповсюдження — перевірити ліцензії кожного набору.
+
+Джерела: [LROC NAC ROI Shackleton](https://data.lroc.im-ldi.com/lroc/view_rdr_product/NAC_ROI_SHKLTNPKLOB_P888S1247) · [WAC GLOBAL README](https://pds.lroc.im-ldi.com/data/LRO-L-LROC-5-RDR-V1.0/LROLRC_2001/DATA/BDR/WAC_GLOBAL/WAC_GLOBAL_README.TXT) · [CGI Moon Kit](https://svs.gsfc.nasa.gov/4720) · [Trek WMTS API](https://trek.nasa.gov/tiles/apidoc/trekAPI.html?body=moon) · [LOLA 5 м, полюс](https://pgda.gsfc.nasa.gov/products/78) · [LOLA 5 м README](https://core2.gsfc.nasa.gov/PGDA/LOLA_5mpp/README)
 
 ## Рекомендований стек візуалізації (пропозиція, не рішення)
 

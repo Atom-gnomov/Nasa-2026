@@ -680,10 +680,16 @@ components:
 
     DataStatus:
       type: object
-      required: [auto_prepare, datasets]
+      required: [auto_prepare, mode, datasets]
       additionalProperties: false
       properties:
         auto_prepare: {type: boolean}
+        mode:
+          type: string
+          enum: [pack, light, full]
+          description: |
+            Режим підготовки (`LSE_AUTO_PREPARE_MODE`): `pack` — готовий пакет із GitHub Release (запасний шлях — збірка
+            зі скриптів), `light` — легкий пакет, `full` — лише збірка з PDS
         datasets:
           type: array
           items: {$ref: "#/components/schemas/DatasetStatus"}

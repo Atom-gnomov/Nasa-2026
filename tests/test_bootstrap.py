@@ -48,6 +48,9 @@ def test_missing_then_ready_after_background_run(tmp_path):
     assert prep.start(["fake"]) == ["fake"]
     st = _wait(prep, FAKE, {"ready"})
     assert st["state"] == "ready" and st["message"] is None
+    end = time.time() + 5  # файли з'являються раніше, ніж воркер знімає блокування
+    while (tmp_path / "prepare" / "fake.lock").exists() and time.time() < end:
+        time.sleep(0.02)
     assert not (tmp_path / "prepare" / "fake.lock").exists()  # блокування знято
     assert prep.start(["fake"]) == []  # уже готове — повторно не запускається
 
@@ -62,7 +65,7 @@ def test_running_state_shows_last_line(tmp_path):
     st = _wait(prep, FAKE, {"running"})
     assert st["state"] == "running"
     end = time.time() + 5
-    while time.time() < end and prep.status_of(FAKE)["message"] in (None, "запуск…"):
+    while time.time() < end and prep.status_of(FAKE)["message"] != "завантаження частини 3":
         time.sleep(0.05)
     assert prep.status_of(FAKE)["message"] == "завантаження частини 3"
     assert prep.start(["fake"]) == []  # поки йде — другий запуск не створюється

@@ -2297,6 +2297,7 @@ components:
         launch_mode: {type: string, enum: [weighted, maximin]}
         include_design_targets: {type: boolean, default: true}
         allow_multiple_launches: {type: boolean, default: false}
+        departure_days: {type: integer, minimum: 1, maximum: 60, default: 1, description: "Скільки діб від `departure` перебирати для найкращої дати старту (B20, на основі /launch-window); 1 — лише `departure`"}
         landing_candidates: {type: integer, minimum: 1, maximum: 10, default: 3, description: Скільки найкращих місць комбінувати із запусками}
         limit: {type: integer, minimum: 1, maximum: 20, default: 5, description: Скільки планів повернути}
 
@@ -2335,6 +2336,12 @@ components:
                   - {$ref: "#/components/schemas/LaunchRankingOption"}
                   - {type: "null"}
               launch_explanation: {type: [string, "null"]}
+              departure_window:
+                description: Оцінки дат старту (лише якщо `departure_days` > 1); `best` — обрана дата
+                oneOf:
+                  - type: object
+                    required: [days, best]
+                  - {type: "null"}
               route:
                 oneOf:
                   - type: object

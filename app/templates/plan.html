@@ -27,6 +27,7 @@
       </label>
       <label class="plan-crewed" hidden>Екіпаж, осіб <input type="number" id="plan-crew" min="1" max="6" step="1" placeholder="за профілем"></label>
       <label class="plan-crewed" hidden>Тривалість на Місяці, діб <input type="number" id="plan-days" value="5" min="0" max="365" step="1"></label>
+      <label>Дат старту перебрати <input type="number" id="plan-departure-days" value="7" min="1" max="60" step="1"></label>
       <label>Ракета
         <select id="plan-vehicle"><option value="any" selected>підібрати автоматично</option></select>
       </label>
@@ -47,7 +48,7 @@
     <div class="table-scroll">
       <table class="results-table" id="plan-table" hidden>
         <thead><tr>
-          <th>№</th><th>Місце посадки</th><th>Оцінка</th><th>Вимоги</th><th>Майданчик старту</th><th>Ракета</th>
+          <th>№</th><th>Місце посадки</th><th>Оцінка</th><th>Вимоги</th><th>Майданчик старту</th><th>Дата старту</th><th>Ракета</th>
           <th>Траєкторія</th><th>Переліт</th><th>Вартість запуску</th><th>Ризик</th><th>Маса на Місяці</th><th></th>
         </tr></thead>
         <tbody></tbody>

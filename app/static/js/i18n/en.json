@@ -4,6 +4,8 @@
   "Система": "System",
   "Підбір": "Selection",
   "Дата (UTC)": "Date (UTC)",
+ "Дата старту": "Launch date",
+ "Дат старту перебрати": "Launch dates to try",
  "План місії": "Mission plan",
  "План місії — Lunar Site Explorer": "Mission plan — Lunar Site Explorer",
  "Від вимог до місця посадки — до майданчика, ракети й траєкторії. Дата старту береться з календаря.": "From landing-site requirements to launch site, rocket and trajectory. The start date is taken from the calendar.",

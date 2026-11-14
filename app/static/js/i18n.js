@@ -91,10 +91,13 @@ function applyAttr(el, name) {
   if (value !== shown) el.setAttribute(name, shown);
 }
 
+// Елемент (чи предок) із translate="no" — власні назви й дані з каталогів: не перекладаємо підрядками.
+const notTranslated = (el) => Boolean(el?.closest?.('[translate="no"]'));
+
 export function translateTree(root) {
   if (!root) return;
-  if (root.nodeType === 3) { if (!SKIP.has(root.parentNode?.nodeName)) applyText(root); return; }
-  if (root.nodeType !== 1 || SKIP.has(root.nodeName)) return;
+  if (root.nodeType === 3) { if (!SKIP.has(root.parentNode?.nodeName) && !notTranslated(root.parentElement)) applyText(root); return; }
+  if (root.nodeType !== 1 || SKIP.has(root.nodeName) || notTranslated(root)) return;
   for (const name of ATTRS) if (root.hasAttribute(name)) applyAttr(root, name);
   for (const child of root.childNodes) translateTree(child);
 }

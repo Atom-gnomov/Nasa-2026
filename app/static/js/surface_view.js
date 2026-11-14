@@ -336,6 +336,7 @@ function createPanorama(canvas) {
     }
     const { ringRows } = renderTerrain(patch, light, {
       pixels: px, rings: rings ? RINGS_M : null, width: W, height: H, viewAz: view.az, viewEl: view.el, fov: view.fov,
+      photometry: qualitySettings().photometry ? { sunAz: series.sunAz[i], sunEl: series.sun[i] } : null,
       eye: EYE_M, exag, mask, ambient, fill, farLight: sunUp ? Math.max(0, Math.sin(Math.max(series.sun[i], 0) * DEG)) * 0.55 : 0,
     });
     layer.getContext("2d").putImageData(imageData, 0, 0);

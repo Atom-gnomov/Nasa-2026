@@ -98,6 +98,31 @@
 | **Ariane 6 User's Manual, Issue 2 Rev. 0 (2021)** | Координати стартового комплексу Ariane 6 у Куру, §6.2.3.2: записано як «5°26’46’’ N, 52°79’22’’ W (TBC)» — це десяткові градуси 5,2646° / −52,7922° (D2) | https://ariane.group/app/uploads/sites/4/2024/10/Mua-6_Issue-2_Revision-0_March-2021.pdf |
 | **Jonathan McDowell — GCAT / Launch Log** | Повний журнал запусків: успішні й аварійні запуски за ракетами та космодромами (для розрахунку ймовірності аварії) | https://planet4589.org/space/gcat/ |
 
+**Оптимальна траса, космодроми, нестандартні старти, нові ракети (знайдено 2026-11-14 для задач M10, M19, M20, D6, D7).**
+Нижче — **вторинні джерела** (пошук); кожне число перед використанням у даних звіряти з першоджерелом (D6, D7). Розбіжності між джерелами позначені прямо.
+
+| Джерело | Що дає | Посилання |
+|---|---|---|
+| **NASA NTRS 20080034478** — проєктування місії CEV/LSAM | TLI ≈ 3150 м/с для ступеня відльоту; для частини місць посадки нахил і вузол орбіти навколо Місяця змушують робити триімпульсне гальмування біля Місяця (LOI) | https://ntrs.nasa.gov/citations/20080034478 |
+| **ISSFD 2024, робота 18-1** — низькоенергетичні переходи | Енергетично вигідні переходи можуть давати від'ємну вартість гальмування (балістичний захват); політ триває місяці й відходить на 1–1,5 млн км | https://issfd.org/ISSFD_2024/ISSFD2024_18-1.pdf |
+| **Miller, Belbruno (1991)** — перехід до Місяця з балістичним захватом | Межа слабкої стійкості (WSB): економія ≈ 100–200 м/с (5–10 % палива); інше джерело — до 0,4 км/с. **Оцінки розходяться** — залежать від опорного випадку | https://ui.adsabs.harvard.edu/abs/1991sfm..proc...97M/abstract |
+| **Wikipedia — Low-energy transfer** | Огляд місій з балістичним захватом: Hiten, GRAIL, CAPSTONE, Danuri, Hakuto-R M1; зіставлення «час ↔ Δv» | https://en.wikipedia.org/wiki/Low-energy_transfer |
+| **MathWorks — Trans-Lunar Trajectory Optimization (OTB)** | Відкритий приклад: мінімальний Δv TLI з розв'язку задачі Ламберта (двотільна), далі уточнення методом стрільби в n-тільній моделі — зразок для звірки наших розрахунків | https://www.mathworks.com/matlabcentral/fileexchange/73600-trans-lunar-trajectory-optimization-otb |
+| **ISSFD 2004, P1121** — вікна запуску до Місяця | Майданчик закріплений в Землі, тож змінна лише година виведення на НОО — вона задає напрям площини НОО в інерціальній системі | https://www.issfd.org/ISSFD_2004/papers/P1121.pdf |
+| **Wikipedia — List of rocket launch sites** | Індекс космодромів світу з координатами (для D6; координати брати з першоджерел, не з вікі) | https://en.wikipedia.org/wiki/List_of_rocket_launch_sites |
+| **Wikipedia — Sea Launch, Zenit-3SL** | Платформа «Одіссей» на екваторі ≈ 154° зх., ≈ 370 км на схід від Кірітімаці; 36 запусків, 32 успішні; Chapter 11 у 2009 р.; GTO ≈ 6 000–6 160 кг (джерела розходяться); статус — не діюча | https://en.wikipedia.org/wiki/Sea_Launch |
+| **Wikipedia — Stratolaunch Roc** | Літак-носій: вантажопідйомність ≈ 250 т (це не маса виводимого на орбіту); розробку власних ракет зупинено 2019 р., далі — гіперзвуковий Talon-A | https://en.wikipedia.org/wiki/Stratolaunch_Roc |
+| **SatNews, 2026-07 — «Air launch died the same week responsive space arrived»** | Останній політ Pegasus XL 3 липня 2026 р. (46-й, поблизу Кваджалейна) завершив єдину діючу орбітальну систему повітряного старту; Pegasus XL — ≈ 370 кг на НОО (джерела: 360–443 кг) | https://satnews.com/2026/07/13/air-launch-died-the-same-week-responsive-space-arrived/ |
+| **AIAA, 2026-06-10 — «Growing Launch Demand Revives Interest in Offshore Rocket Operations»** | Відновлення інтересу до морських стартів; Lockheed Martin, Firefly і Seagate — морська платформа для Alpha, цільова готовність кінець 2027 р. (≈ ABS Approval in Principle, грудень 2025) | https://aiaa.org/2026/06/10/growing-launch-demand-revives-interest-in-offshore-rocket-operations/ |
+| **SatNews, 2026-05-14 — Starship V3** | Заявлено ≥ 100 т на НОО (у перспективі до 200 т); мета — повна багаторазовість | https://satnews.com/2026/05/14/spacex-debuts-starship-v3-redefining-heavy-lift-launch-capability/ |
+| **Wikipedia — New Glenn** | 7×2 — 45 т на НОО; 9×4 (у розробці) — ≥ 70 т; у травні 2026 р. вибух на майданчику LC-36, відновлення польотів — з 22 травня | https://en.wikipedia.org/wiki/New_Glenn |
+| **Wikipedia — Long March 10** | ≈ 27 т на траєкторію до Місяця (TLI), ≈ 70 т на НОО — **проєктні цілі**, не підтверджені польотом | https://en.wikipedia.org/wiki/Long_March_10 |
+| **Wikipedia — Ariane 6; newspaceeconomy.ca 2026-02-16** | Ariane 64: ≈ 21 650 кг на НОО, ≈ 11 500 кг на GTO; з покращеними P160C — ≈ 22 т. **Розбіжності між джерелами** | https://newspaceeconomy.ca/2026/02/16/the-ariane-6-rocket-gets-more-oomph/ |
+| **Aerospace Corp. (CSPS), Jones, 2026-06 — Super Heavy Lift** | Порівняння надважких: SLS Block 1 ≈ 70 т на НОО; Falcon Heavy ≈ 64 т (інші таблиці — 57 т) | https://csps.aerospace.org/sites/default/files/2026-06/Jones_SuperHeavyLift_FINAL20260614.pdf |
+| **Wikipedia — Starship HLS** | Для посадки потрібне дозаправлення на орбіті: оцінки — від 4 до ≈ 19 танкерних запусків; графік Artemis III змінювався (2026–2028) | https://en.wikipedia.org/wiki/Starship_HLS |
+
+**Прогалини, які ще треба закрити за першоджерелом (D7):** TLI-місткість Falcon Heavy, Ariane 6 і Vulcan; офіційні посібники користувача (Falcon, Ariane 6, Vulcan, New Glenn); маса, що сідає на поверхню, для Starship HLS і Blue Moon MK1; обмеження азимутів безпеки запуску (для Вандерберга джерела розходяться: 140–201° проти 170–240°).
+
 ## 8. Готові інструменти (для порівняння та натхнення UI)
 
 - **LROC QuickMap** — https://quickmap.lroc.asu.edu/

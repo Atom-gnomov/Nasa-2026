@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "launch_systems.schema.json",
+  "title": "Системи запуску з першоджерел (app/data/launch_systems.json)",
+  "description": "Сутність «ракета + спосіб старту» (П-10, М18): наземний космодром, морська платформа, повітряний старт. Кожен факт має джерело зі сторінкою або розділом і дослівну цитату (задача D6). Чого в джерелах немає — того немає й тут: поле просто відсутнє.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["id", "name", "operator", "kind", "active", "status_note", "launch_site_ids", "facts"],
+    "additionalProperties": false,
+    "properties": {
+      "id": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+      "name": {"type": "string"},
+      "operator": {"type": "string"},
+      "kind": {"enum": ["spaceport", "sea_platform", "air_launch"], "description": "Спосіб старту (launch_sites.schema.json: kind)"},
+      "active": {"type": ["boolean", "null"], "description": "Діюча система; null — стан не підтверджено завантаженим джерелом"},
+      "status_note": {"type": "string", "description": "Чому саме такий статус, з датою події"},
+      "launch_site_ids": {"type": "array", "items": {"type": "string"}, "description": "id з app/data/launch_sites.json; для повітряного старту порожньо — точка старту в межах дальності літака"},
+      "facts": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "required": ["quantity", "value", "source", "quote"],
+          "additionalProperties": false,
+          "properties": {
+            "quantity": {
+              "type": "string",
+              "pattern": "^[a-z0-9_]+$",
+              "description": "capacity_leo_kg, capacity_sso_kg, capacity_polar_kg, capacity_gto_kg, drop_altitude_m, carrier_aircraft, launch_position, flights, last_flight…"
+            },
+            "value": {"type": ["number", "string"]},
+            "unit": {"type": "string"},
+            "as_published": {"type": "string", "description": "Значення так, як у джерелі (одиниці автора), коли воно перераховане в SI"},
+            "condition": {"type": "string", "description": "Для чого справедливе значення: орбіта, конфігурація, політ, рік оцінки"},
+            "source": {
+              "type": "object",
+              "required": ["title", "ref", "url", "kind"],
+              "additionalProperties": false,
+              "properties": {
+                "title": {"type": "string"},
+                "ref": {"type": "string", "description": "Розділ, сторінка чи таблиця"},
+                "url": {"type": "string", "pattern": "^https://"},
+                "date": {"type": "string"},
+                "kind": {"enum": ["primary", "secondary"], "description": "primary — документ виробника, оператора чи агентства; secondary — довідкова стаття або преса"}
+              }
+            },
+            "quote": {"type": "string", "minLength": 10, "description": "Дослівна цитата, що підтверджує значення"},
+            "note": {"type": "string"}
+          },
+          "dependentRequired": {"as_published": ["unit"]}
+        }
+      }
+    }
+  }
+}

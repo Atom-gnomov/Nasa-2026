@@ -181,18 +181,16 @@ async function pickSky() {
   try { return { cfg: NASA_MAP, img: await loadImage(NASA_MAP.url) }; } catch { return null; }
 }
 
-// Подяка автору (умова CC BY-NC-SA): невеликий підпис унизу сторінки з посиланням на джерело.
+// Подяка автору (умова CC BY-NC-SA 4.0 — вказувати авторство): без посилання на сторінці, звичайним рядком у меню «?»
 function showCredit(credit) {
-  if (!credit?.title) return;
-  const a = document.createElement("a");
-  a.className = "sky-credit";
-  a.href = credit.source || "#";
-  a.target = "_blank";
-  a.rel = "noopener noreferrer";
+  const menu = document.querySelector(".help-menu-content");
+  if (!credit?.title || !menu) return;
   const author = String(credit.author || "").replace(/\s*\(.*\)\s*$/, "");
-  a.textContent = `${t("Небо")}: «${credit.title}», ${author}, CC BY-NC-SA 4.0`;
-  a.title = credit.license || "";
-  document.body.append(a);
+  const p = document.createElement("p");
+  p.className = "sky-credit";
+  p.textContent = `${t("Небо")}: «${credit.title}», ${author}, CC BY-NC-SA 4.0`;
+  p.title = [credit.source, credit.license].filter(Boolean).join(" · ");
+  menu.append(p);
 }
 
 async function start() {

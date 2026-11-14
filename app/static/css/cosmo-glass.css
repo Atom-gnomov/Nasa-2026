@@ -36,8 +36,6 @@ html { background: #02030a; }
 body { background: transparent; } /* інакше фон body закриває canvas зоряного неба (z-index: −1) */
 body::before { background: #02030a; }
 body.has-starfield::before, body.has-starfield::after { display: none; }
-.sky-credit { position: fixed; right: 10px; bottom: 3px; z-index: 40; font-size: 10px; line-height: 1.2; color: var(--cg-muted); text-decoration: none; opacity: .75; }
-.sky-credit:hover { opacity: 1; text-decoration: underline; }
 #starfield { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: -1; pointer-events: none; display: block; }
 
 /* ---------- Скляні поверхні ---------- */
@@ -194,5 +192,43 @@ body.page-moon #surface :is(#surface-moment, #surface-events, #surface-status) {
   backdrop-filter: var(--cg-blur) !important; -webkit-backdrop-filter: var(--cg-blur) !important;
 }
 body.page-moon #surface :is(#surface-moment, #surface-events, #surface-status):empty { display: none !important; }
+
+/* подяка за небо — звичайний рядок у меню «?» */
+.help-menu-content .sky-credit { margin: var(--gap-s) 0 0; font-size: 11px; line-height: 1.35; color: var(--cg-muted); }
+
+/* ---------- Вирівнювання (відгук): перемикачі, доки, іконки, статусний рядок ---------- */
+/* перемикачі: кнопки впритул без щілин; у вузьких панелях кожен рядок заповнює всю ширину */
+.seg, .seg.mode-switch { gap: 0 !important; margin: 0 !important; }
+.ui-widget .widget-body .seg > button, .ui-widget .widget-body .seg > a { flex: 1 1 auto !important; }
+
+/* док: рядок елементів по центру простору, без зсувів від зайвих полів */
+.ui-dock .dock-content { display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; }
+.ui-dock .dock-page { width: 100% !important; justify-content: center !important; align-items: center !important; margin: 0 !important; padding: 0 !important; gap: var(--gap-s) var(--gap) !important; }
+.ui-dock .dock-page > * { margin-top: 0 !important; margin-bottom: 0 !important; }
+.ui-dock .dock-page label { display: inline-flex !important; align-items: center !important; gap: var(--gap-s) !important; margin: 0 !important; }
+
+/* шапка дока: вкладки по центру, кнопка згортання — праворуч по центру висоти; симетричні поля, щоб центр був справжній */
+.ui-dock .dock-header { position: relative !important; display: flex !important; align-items: center !important; justify-content: center !important;
+  gap: var(--gap-s) !important; padding: var(--gap-s) calc(var(--ctl-icon) + var(--gap) + var(--gap-s)) !important; min-height: 0 !important; }
+.ui-dock .dock-header .dock-title { margin: 0 !important; }
+.ui-dock .dock-header .dock-toggle { position: absolute !important; right: var(--gap-s) !important; top: 50% !important; transform: translateY(-50%) !important; margin: 0 !important; }
+.ui-dock .dock-header .dock-tabs { display: inline-flex !important; align-items: center !important; justify-content: center !important; gap: var(--gap-s) !important; margin: 0 !important; }
+.ui-dock .dock-header .dock-tab { height: var(--ctl-h) !important; display: inline-flex !important; align-items: center !important; }
+
+/* значки згортання: малюємо CSS-фігурами, тож вони точно по центру (текстові символи ⌄ − › зміщені шрифтом) */
+.widget-action, .dock-toggle { font-size: 0 !important; line-height: 0 !important; position: relative; }
+.dock-toggle { position: relative; }
+.ui-dock .dock-header .dock-toggle { position: absolute !important; }
+.widget-action::before, .dock-toggle::before { content: ""; position: absolute; left: 50%; top: 50%; box-sizing: border-box; }
+.widget-collapse::before { width: 10px; height: 2px; border-radius: 1px; background: currentColor; transform: translate(-50%, -50%); }
+.ui-widget-left.is-collapsed .widget-collapse::before, .ui-widget-right.is-collapsed .widget-collapse::before {
+  width: 7px; height: 7px; border-radius: 0; background: none; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; }
+.ui-widget-left.is-collapsed .widget-collapse::before { transform: translate(-68%, -50%) rotate(-45deg); }
+.ui-widget-right.is-collapsed .widget-collapse::before { transform: translate(-32%, -50%) rotate(135deg); }
+.dock-toggle::before { width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translate(-50%, -72%) rotate(45deg); }
+.dock-toggle[aria-expanded="false"]::before { transform: translate(-50%, -28%) rotate(-135deg); }
+
+/* рядок «Курсор · Сітка · Сонце в зеніті» не залазить на лінійку масштабу: праворуч лишається місце під неї */
+body.page-moon .globe-status { max-width: calc(100vw - var(--scene-left) - var(--scene-right) - 28px - 170px) !important; white-space: normal !important; }
 
 @media (prefers-reduced-motion: reduce) { #starfield { transition: none; } }

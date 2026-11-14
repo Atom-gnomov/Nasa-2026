@@ -27,7 +27,8 @@ def test_size_and_spacing_tokens_are_defined_once():
 
 
 def test_controls_use_the_tokens_not_literal_sizes():
-    block = CSS[CSS.index("Єдина шкала розмірів"):]
+    # розміри елементів керування — до розділу вирівнювання, де малюються значки (7 px і т. ін. — геометрія іконок)
+    block = CSS[CSS.index("Єдина шкала розмірів"):CSS.index("Вирівнювання (відгук)")]
     heights = re.findall(r"(?<![-\w])height:\s*([^;!]+)", block)
     assert heights and all(h.strip() in ("var(--ctl-h)", "var(--ctl-icon)", "100%", "auto") for h in heights), heights
     assert "padding: var(--gap)" in block and "var(--gap-s)" in block
@@ -45,3 +46,17 @@ def test_no_explanatory_paragraphs_that_repeat_metrics():
         html = TEMPLATES[name]
         heading_hint = re.search(r'<header class="results-heading"><h2>[^<]+</h2><p', html)
         assert not heading_hint, f"{name}: підказка в заголовку результатів"
+
+
+def test_segmented_controls_are_flush_and_icons_are_drawn_by_css():
+    """Перемикачі без щілин між кнопками; значки згортання — CSS-фігури (текстові символи зміщені шрифтом)."""
+    assert re.search(r"\.seg,\s*\.seg\.mode-switch\s*\{\s*gap:\s*0\s*!important", CSS)
+    assert ".dock-toggle::before" in CSS and ".widget-collapse::before" in CSS
+    assert re.search(r"\.widget-action,\s*\.dock-toggle\s*\{[^}]*font-size:\s*0\s*!important", CSS)
+
+
+def test_background_credit_is_text_in_the_help_menu_not_a_link_on_the_page():
+    js = (ROOT / "app" / "static" / "js" / "starfield.js").read_text(encoding="utf-8")
+    assert 'createElement("a")' not in js and "target = " not in js, "посилання на фон прибрано зі сторінки"
+    assert ".help-menu-content" in js and "CC BY-NC-SA 4.0" in js, "ліцензія вимагає вказівки авторства"
+    assert "position: fixed" not in CSS[CSS.index(".help-menu-content .sky-credit"):][:200]

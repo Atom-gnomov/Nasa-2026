@@ -11,7 +11,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { anisotropy, createScene, hasWebGL, NO_WEBGL_MESSAGE } from "./three/scene.js";
 import { mountQualitySelect, qualitySettings } from "./three/quality.js";
 import { getState, setState, subscribe } from "./state.js";
-import { flightFact, flightUrl, needsReload, splitExtras } from "./flight.js";
+import { AUTO_OPTIONS, choiceFact, flightFact, flightUrl, needsReload, splitExtras } from "./flight.js";
 
 const DEG = Math.PI / 180;
 const EPS = 23.4392911 * DEG; // нахил екліптики J2000 (IAU)
@@ -336,15 +336,27 @@ async function main() {
     new THREE.MeshBasicMaterial({ color: 0xff7a45, wireframe: true, transparent: true, opacity: 0.35 }));
   const rocketMesh = new THREE.Mesh(new THREE.ConeGeometry(0.35, 1, 12), new THREE.MeshBasicMaterial({ color: 0xffffff }));
   const landerMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.9, 0.7, 8), new THREE.MeshBasicMaterial({ color: 0xff7a45 }));
-  scene.add(flightLine, flightHead, moonAtArrival, rocketMesh, landerMesh);
-  for (const o of [flightLine, flightHead, moonAtArrival, rocketMesh, landerMesh]) o.visible = false;
+  // Траса площини відльоту на Землі (оптимальна точка старту, П-12): точки на ній потрапляють у площину одразу
+  const groundTrack = new THREE.Line(new THREE.BufferGeometry(),
+    new THREE.LineBasicMaterial({ color: 0xffd34d, transparent: true, opacity: 0.85 }));
+  scene.add(flightLine, flightHead, moonAtArrival, rocketMesh, landerMesh, groundTrack);
+  for (const o of [flightLine, flightHead, moonAtArrival, rocketMesh, landerMesh, groundTrack]) o.visible = false;
   const UP = new THREE.Vector3(0, 1, 0);
   let flight = null; // splitExtras(...) останньої відповіді
   let flightReq = null; // { siteId, ms, lat, lon } останнього запиту
   let flightLoading = false;
   const flightSelect = $("system-flight");
+  if (flightSelect) {
+    const auto = document.createElement("optgroup");
+    auto.label = "Звідки летіти — оптимально";
+    auto.append(...AUTO_OPTIONS.map((o) => new Option(o.label, o.value)));
+    flightSelect.append(auto);
+  }
   fetch("/api/launch-sites").then((r) => r.json()).then((list) => {
-    flightSelect?.append(...list.map((s) => new Option(`${s.name.split(" (")[0]} (${s.lat.toFixed(1)}°)`, s.id)));
+    const group = document.createElement("optgroup");
+    group.label = "Космодром";
+    group.append(...list.map((s) => new Option(`${s.name.split(" (")[0]} (${s.lat.toFixed(1)}°)`, s.id)));
+    flightSelect?.append(group);
   }).catch(() => {});
 
   async function loadFlight(ms, force = false) {
@@ -368,7 +380,14 @@ async function main() {
     for (const o of [flightLine, flightHead, moonAtArrival]) o.visible = Boolean(t);
     rocketMesh.visible = Boolean(flight?.rocket);
     landerMesh.visible = Boolean(flight?.lander);
+    groundTrack.visible = Boolean(flight?.groundTrack);
     if (!flight) return;
+    if (flight.groundTrack) {
+      // [широта, довгота] → ITRS → сцена; трохи над поверхнею, щоб лінію не ховала текстура
+      const pts = flight.groundTrack.points_latlon.map(([la, lo]) => lay.earth.pos.clone()
+        .addScaledVector(new THREE.Vector3(...apply3(eM.r, unitLatLon(la, lo))).normalize(), lay.earth.r * 1.004));
+      groundTrack.geometry.setFromPoints(pts);
+    }
     // Масштаб той самий, що в орбіти Місяця: траєкторія закінчується там, де буде Місяць у момент прибуття
     const kMoon = lay.moon.pos.distanceTo(lay.earth.pos) / toScene(state.moon_km).length();
     if (t) {
@@ -770,7 +789,9 @@ async function main() {
     if (playing) f.datetime = isoUtc(simMs).replace("T", " ");
     f.point = facts.point ?? "не вибрано (клік по Місяцю)";
     f.dsn = facts.dsn;
-    f.flight = flightFact(flight ? [flight.rocket, flight.trajectory, flight.lander].filter(Boolean) : []);
+    const flightExtras = flight ? Object.values(flight).filter(Boolean) : [];
+    f.flight = flightFact(flightExtras);
+    f.flight_choice = choiceFact(flightExtras);
     for (const [k, v] of Object.entries(f)) setFact(k, v);
   }
 

@@ -170,6 +170,38 @@ paths:
               schema: {$ref: "#/components/schemas/HorizonMask"}
         "400": {$ref: "#/components/responses/BadRequest"}
 
+  /terrain:
+    get:
+      tags: [point]
+      x-status: implemented
+      summary: Ділянка рельєфу навколо точки з DEM LOLA — поверхня для виду «з поверхні»
+      description: |
+        Квадратна сітка висот `n × n` зі стороною `2·radius_km` у місцевих осях точки: рядок `i` росте на північ,
+        стовпець `j` — на схід; центр сітки — сама точка (`n` непарне). На самому полюсі «північ» — напрямок на
+        меридіан `lon` (grid north, docs/MATH.md, §5). Вузол (схід, північ) = точка дотичної площини, спроєктована
+        на сферу 1737,4 км по радіусу; висоти — **відносно висоти самої точки** (`h − ground_height_m`, метри).
+        Кривину Місяця рахує клієнт: положення вузла = (R + h)·(e, n, R)/√(e² + n² + R²) відносно центра Місяця.
+        Радіус і крок за замовчуванням — за роздільністю найдетальнішого DEM у точці (20 м біля південного полюса,
+        до 1,9 км у глобальному LDEM_16); без завантажених DEM — гладка сфера (`source: flat`, усі висоти 0).
+      parameters:
+        - $ref: "#/components/parameters/lat"
+        - $ref: "#/components/parameters/lon"
+        - name: radius_km
+          in: query
+          description: Половина сторони ділянки, км; за замовчуванням — за роздільністю DEM (5…60)
+          schema: {type: number, minimum: 0.5, maximum: 100}
+        - name: n
+          in: query
+          description: Вузлів на сторону (непарне); за замовчуванням — крок сітки ≈ роздільності DEM, не більше 301
+          schema: {type: integer, minimum: 9, maximum: 401}
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/TerrainPatch"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+
   /timeline:
     get:
       tags: [period]
@@ -677,6 +709,33 @@ components:
         sky_view_fraction: {type: number, minimum: 0, maximum: 1.2, description: Частка відкритого неба відносно півсфери}
         max_elevation_deg: {type: number, description: Найвища точка горизонту}
         gcr_dose_usv_per_day: {type: number, description: "Оцінка дози ГКП: 1369 мкЗв/добу (Chang'e 4 LND, Zhang et al. 2020) × частка відкритого неба (docs/MATH.md, §12)"}
+
+    TerrainPatch:
+      type: object
+      description: Сітка висот навколо точки (див. `GET /terrain`)
+      required: [lat, lon, radius_km, n, spacing_m, ground_height_m, source, resolution_m, sources, heights_b64,
+                 encoding, min_height_m, max_height_m, missing_fraction]
+      properties:
+        lat: {type: number}
+        lon: {type: number, minimum: -180, maximum: 180}
+        radius_km: {type: number, description: Половина сторони ділянки}
+        n: {type: integer, description: Вузлів на сторону (непарне); центр — вузол (n−1)/2}
+        spacing_m: {type: number, description: Крок сітки по сходу й півночі, м}
+        ground_height_m: {type: number, description: "Висота точки над сферою 1737,4 км за DEM; 0 для flat"}
+        source: {type: string, description: "id DEM у центрі сітки або flat (гладка сфера)", examples: [ldem_875s_20m, flat]}
+        resolution_m: {type: number, description: Роздільність цього DEM, м/піксель; 0 для flat}
+        sources: {type: array, items: {type: string}, description: id усіх DEM, з яких узято вузли сітки}
+        heights_b64:
+          type: string
+          description: "n·n значень float32 (little-endian) у base64: h(i, j) − ground_height_m, м; рядок за рядком, i — на північ, j — на схід"
+        encoding: {type: string, enum: [float32-le-base64]}
+        min_height_m: {type: number, description: Найнижча висота ділянки відносно точки}
+        max_height_m: {type: number, description: Найвища висота ділянки відносно точки}
+        missing_fraction:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Частка вузлів поза покриттям DEM; їхні висоти замінено на 0 (рівень точки)
 
     Track:
       type: object

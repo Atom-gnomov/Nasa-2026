@@ -52,6 +52,9 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.4 syst
 .surface-host { height: 52vh; min-height: 320px; position: relative; overflow: hidden; }
 .surface-host canvas { display: block; cursor: grab; }
 .surface-flat { width: 100%; height: 300px; display: block; border: 1px solid var(--border); border-radius: 8px; }
+.surface-pano { width: 100%; height: 440px; display: block; border: 1px solid var(--border); border-radius: 8px; background: #000; cursor: grab; touch-action: none; }
+.surface-pano:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.surface-toolbar button:disabled { opacity: 0.4; cursor: default; }
 .surface-labels { position: absolute; inset: 0; pointer-events: none; }
 .surface-label { position: absolute; left: 0; top: 0; margin: -18px 0 0 6px; font-size: 12px; white-space: nowrap; text-shadow: 0 0 3px #000, 0 0 3px #000; }
 .surface-label.compass { color: #c9ced8; margin: 0 0 0 -10px; }

@@ -50,12 +50,13 @@ test("події: кроків до зміни видимості й підпи�
   assert.equal(s.eventText("Землі", [false, false, true], 0, 24), "під горизонтом, до сходу Землі 2.0 доби");
 });
 
-test("межі розгортки: горизонт 0° і рельєф у межах, глибоко під горизонтом не розширює шкалу", () => {
+test("межі розгортки: від −10°, горизонт 0° і рельєф у межах, глибоко під горизонтом шкалу не розтягує", () => {
   const pole = s.panoramaRange({ elevations_deg: [9.6, 0.5, -0.2] }, { sun: [-1.5, 1.6], earth: [-6.8, 6.9] });
   assert.deepEqual(pole, { min: -10, max: 10, step: 5 });
   const equator = s.panoramaRange({ elevations_deg: [0.4, 1.2] }, { sun: [-76, 88], earth: [59, 60] });
-  assert.equal(equator.min, -30, "Сонце на −76° не тягне шкалу до −90°");
-  assert.equal(equator.max, 90);
+  assert.deepEqual(equator, { min: -10, max: 90, step: 30 }, "Сонце на −76° не тягне шкалу до −90°");
+  const night = s.panoramaRange({ elevations_deg: [0.3] }, { sun: [-29, -40], earth: [51, 40] });
+  assert.deepEqual(night, { min: -10, max: 60, step: 30 }, "скріншот: Сонце під горизонтом більше не дає −30°");
 });
 
 test("сторони світу: 8 підписів; на самому полюсі — від меридіана 0°", () => {

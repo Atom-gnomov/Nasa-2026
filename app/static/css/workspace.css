@@ -951,3 +951,14 @@ body.page-system .ui-scene-widget.is-expanded {
   body.page-system[data-expanded="left"] > .ui-dock,
   body.page-system[data-expanded="right"] > .ui-dock { display: none; }
 }
+
+/* На вузьких телефонах 43px-кнопка протилежного віджета теж має
+   власне місце: мінімум 20px проміжку, навіть за ширини 320px. */
+@media (max-width: 480px) {
+  body.page-moon .ui-scene-widget:not(.is-collapsed):not(.is-expanded),
+  body.page-system .ui-scene-widget:not(.is-collapsed):not(.is-expanded),
+  body.page-moon #metrics-overlay.ui-scene-widget:not(.is-collapsed):not(.is-expanded),
+  body.page-system .system-info.ui-scene-widget:not(.is-collapsed):not(.is-expanded) {
+    width: min(275px, calc(100vw - 92px));
+  }
+}

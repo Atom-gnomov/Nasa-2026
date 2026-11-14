@@ -186,7 +186,7 @@ let currentVisibleStates = {};
 let refreshSceneClearance = () => {};
 function normalPanelWidth() {
   const width = window.innerWidth;
-  return width <= 760 ? Math.min(275, Math.max(80, width - 68)) : Math.min(340, Math.max(285, width * 0.23));
+  return width <= 480 ? Math.min(275, Math.max(80, width - 92)) : width <= 760 ? Math.min(275, Math.max(80, width - 68)) : Math.min(340, Math.max(285, width * 0.23));
 }
 function visibleStates() {
   if (page !== "moon" && page !== "system") return normalizeWidgetStates(states, Object.keys(widgets));

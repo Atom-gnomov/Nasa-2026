@@ -47,3 +47,12 @@ test("expanded and manually collapsed widget states are respected on narrow scre
   assert.deepEqual(fitSideWidgets({ left: "expanded", right: "collapsed" }, 390, 275), { left: "expanded", right: "collapsed" });
   assert.deepEqual(fitSideWidgets({ left: "collapsed", right: "normal" }, 390, 275), { left: "collapsed", right: "normal" });
 });
+
+test("320px phones reserve space for a collapsed 43px edge control", () => {
+  const viewport = 320;
+  const panel = Math.min(275, viewport - 92);
+  const drawn = fitSideWidgets({left:"normal", right:"normal"}, viewport, panel, "left");
+  assert.equal(drawn.right, "collapsed");
+  // Left margin 13; right pill width 43 and right margin 13; >=20px gap.
+  assert.ok(viewport - 13 - 43 - (13 + panel) >= 20);
+});

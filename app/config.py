@@ -48,6 +48,8 @@ class TestConfig(Config):
     TESTING = True
     # Модульні тести не залежать від завантажених DEM (гладка сфера); рельєф перевіряє
     # tests/test_dem_validation.py, вмикаючи справжній DEM_DIR явно.
+    # Кеш даних теж порожній: тести не бачать локально зібраних 3D-ресурсів і текстур глобуса
+    CACHE_DIR = BASE_DIR.parent / "tests" / "_no_cache"
     DEM_DIR = BASE_DIR.parent / "tests" / "_no_dem"
     TEMP_DIR = BASE_DIR.parent / "tests" / "_no_temp"
     # Тести ніколи не ходять у справжній ШІ-сервіс, навіть якщо в середовищі розробника є ключ

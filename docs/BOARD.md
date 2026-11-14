@@ -104,8 +104,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Чорнобог
 
-- **Зараз:** G9 → M7 — 3D: траєкторія старт → Місяць, ракета й модуль (П-5); орієнтація Місяця з PCK DE440 (опція); на рев'ю: B8 #54, F7 #57
-- **Гілка:** `chornobog/G9-trajectory-3d`, далі `chornobog/M7-pck-orientation`
+- **Зараз:** — (на рев'ю: B8 #54, F7 #57, G9 #62, M7 #63)
+- **Гілка:** —
 
 ---
 
@@ -164,3 +164,5 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 - B8 — `GET /api/launch-window`: оцінка у % для кожної дати старту — гілка `chornobog/B8-launch-window`, PR #54
 - F7 — Вкладка «Вікно запуску»: шкала дат з оцінкою у %, найкраща дата, клік — у календар — гілка `chornobog/F7-launch-window-ui`, PR #57
 - I7 (виправлення) — запуск і автопідготовка даних під Windows: перевірка процесу через WinAPI, UTF-8 виводу скриптів (`app/services/bootstrap.py`) — гілка `chornobog/fix-bootstrap-windows`, PR #58
+- G9 — 3D: траєкторія старт → Місяць, ракета й модуль (`/api/scene` extras, «Політ із» у 3D-виді) — гілка `chornobog/G9-trajectory-3d`, PR #62
+- M7 — Орієнтація Місяця з ядер NAIF DE440 (PCK) як опція, `tools/download_kernels.py` — гілка `chornobog/M7-pck-orientation`, PR #63

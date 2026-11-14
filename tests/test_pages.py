@@ -42,7 +42,9 @@ def test_system_unknown_mode_falls_back(client):
 
 def test_system_page_has_controls(client):
     html = client.get("/system/earth-moon").get_data(as_text=True)
-    for marker in ('data-focus="moonview"', 'id="system-scale"', 'id="system-play"', "system-facts", "system_view.js", "charts.js"):
+    markers = ('data-focus="moonview"', 'id="system-scale"', 'id="system-play"', "system-facts", "system_view.js",
+               "charts.js")
+    for marker in markers:
         assert marker in html
 
 

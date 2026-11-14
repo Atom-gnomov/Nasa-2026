@@ -84,8 +84,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Велес
 
-- **Зараз:** —
-- **Гілка:** —
+- **Зараз:** D4 — таблиці корисного навантаження з джерел NASA (BVAD, NASA-STD-3001, SST State of the Art, CLPS/OIG) замість тимчасових коефіцієнтів `payload.py`; далі D8
+- **Гілка:** `veles/D4-payload-tables`
 
 ### Ярило
 

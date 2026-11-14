@@ -1,11 +1,11 @@
 [
-  {"id": "kourou", "name": "Куру (Гвіанський космічний центр)", "lat": 5.236, "lon": -52.775, "kind": "spaceport", "country": "Франція / ЄКА", "verified": false},
-  {"id": "alcantara", "name": "Алкантара", "lat": -2.373, "lon": -44.396, "kind": "spaceport", "country": "Бразилія", "verified": false},
-  {"id": "sriharikota", "name": "Шрихарикота (Сатіш Дхаван)", "lat": 13.720, "lon": 80.230, "kind": "spaceport", "country": "Індія", "verified": false},
-  {"id": "wenchang", "name": "Веньчан", "lat": 19.614, "lon": 110.951, "kind": "spaceport", "country": "Китай", "verified": false},
-  {"id": "cape-canaveral", "name": "Мис Канаверал / KSC", "lat": 28.573, "lon": -80.649, "kind": "spaceport", "country": "США", "verified": false},
-  {"id": "tanegashima", "name": "Танеґасіма", "lat": 30.400, "lon": 130.970, "kind": "spaceport", "country": "Японія", "verified": false},
-  {"id": "baikonur", "name": "Байконур", "lat": 45.965, "lon": 63.305, "kind": "spaceport", "country": "Казахстан / Росія", "verified": false},
-  {"id": "vostochny", "name": "Восточний", "lat": 51.884, "lon": 128.333, "kind": "spaceport", "country": "Росія", "verified": false},
+  {"id": "kourou", "name": "Куру (Гвіанський космічний центр, ELA-4)", "lat": 5.2646, "lon": -52.7922, "kind": "spaceport", "country": "Франція / ЄКА", "note": "Ariane 6 User's Manual, Issue 2 Rev. 0 (2021), §6.2.3.2: «5°26’46’’ North (TBC), 52°79’22’’ West (TBC)» — записано як десяткові градуси (52°79’ у градусах-мінутах неможливе), тобто 5,2646° пн., 52,7922° зх.; у джерелі позначено TBC, тому verified: false.", "verified": false},
+  {"id": "alcantara", "name": "Алкантара", "lat": -2.373, "lon": -44.396, "kind": "spaceport", "country": "Бразилія", "note": "Офіційного джерела з точними координатами не знайдено (звірка D2, 2026-11-13); значення наближене.", "verified": false},
+  {"id": "sriharikota", "name": "Шрихарикота (Сатіш Дхаван)", "lat": 13.72, "lon": 80.23, "kind": "spaceport", "country": "Індія", "note": "Офіційного джерела з точними координатами не знайдено (звірка D2, 2026-11-13); значення наближене.", "verified": false},
+  {"id": "wenchang", "name": "Веньчан", "lat": 19.614, "lon": 110.951, "kind": "spaceport", "country": "Китай", "note": "Офіційного джерела з точними координатами не знайдено (звірка D2, 2026-11-13); значення наближене.", "verified": false},
+  {"id": "cape-canaveral", "name": "Мис Канаверал / KSC", "lat": 28.573, "lon": -80.649, "kind": "spaceport", "country": "США", "note": "Офіційного джерела з точними координатами не знайдено (звірка D2, 2026-11-13); значення наближене.", "verified": false},
+  {"id": "tanegashima", "name": "Танеґасіма", "lat": 30.4, "lon": 130.97, "kind": "spaceport", "country": "Японія", "note": "Офіційного джерела з точними координатами не знайдено (звірка D2, 2026-11-13); значення наближене.", "verified": false},
+  {"id": "baikonur", "name": "Байконур", "lat": 45.965, "lon": 63.305, "kind": "spaceport", "country": "Казахстан / Росія", "note": "Офіційного джерела з точними координатами не знайдено (звірка D2, 2026-11-13); значення наближене.", "verified": false},
+  {"id": "vostochny", "name": "Восточний", "lat": 51.884, "lon": 128.333, "kind": "spaceport", "country": "Росія", "note": "Офіційного джерела з точними координатами не знайдено (звірка D2, 2026-11-13); значення наближене.", "verified": false},
   {"id": "equatorial-sea-platform", "name": "Морська платформа на екваторі", "lat": 0.0, "lon": -154.0, "kind": "sea_platform", "note": "Приклад нестандартного місця; координати умовні", "verified": false}
 ]

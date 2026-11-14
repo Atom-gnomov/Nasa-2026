@@ -1780,6 +1780,15 @@ components:
             місця не має — тоді екватор). Система без місткості на НОО відхиляється (400).
         launch_lat: {type: number, minimum: -90, maximum: 90, description: Широта старту, градуси}
         longest_night_h: {type: number, minimum: 0, description: "Найдовша ніч точки, год (з /metrics); під неї підбираються акумулятори"}
+        parameters_basis:
+          type: string
+          enum: [model, sourced]
+          default: model
+          description: |
+            Звідки коефіцієнти маси (M22). `model` — тимчасові значення моделі (поведінка за замовчуванням).
+            `sourced` — маса обладнання, витратні, маса оболонки на м³, питома потужність панелей, питома енергія й
+            глибина розряду акумуляторів беруться з таблиць NASA (D4); решта лишається тимчасовою. У відповіді —
+            `sourced_parameters`.
 
     Range2:
       type: array
@@ -1858,6 +1867,18 @@ components:
         provisional: {type: boolean, description: "true — коефіцієнти моделі тимчасові (чекають D4)"}
         launch_lat: {type: number, description: Широта старту, з якою рахувалась вартість}
         launch_site_id: {type: [string, "null"]}
+        parameters_basis: {type: string, enum: [model, sourced]}
+        sourced_parameters:
+          type: array
+          description: Параметри моделі, замінені діапазонами з першоджерел (порожньо для `model`)
+          items:
+            type: object
+            required: [id, param, value, source_range]
+            properties:
+              id: {type: string, description: Ідентифікатор у payload_tables.json}
+              param: {type: string, description: Поле PayloadParams}
+              value: {description: Число або пара (значення при розмірі 0 і 1), type: [number, array]}
+              source_range: {type: array, items: {type: number}, minItems: 2, maxItems: 2}
         profile:
           description: Профіль, застосований до запиту (лише якщо задано `mission_profile`)
           oneOf:

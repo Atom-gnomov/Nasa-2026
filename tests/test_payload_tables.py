@@ -103,3 +103,14 @@ def test_gaps_are_explicit_not_invented(params):
     assert {"structure_fraction", "margin_fraction", "ls_shield_kg"} <= gaps
     for gap in gaps:
         assert params[gap]["range"] is None and not params[gap]["facts"]
+
+
+def test_params_from_tables_maps_ranges_and_skips_the_unsuitable(data):
+    new, applied = payload.params_from_tables(data)
+    assert new.equipment_mass_kg == (10.0, 475.0)
+    assert new.consumables_kg_per_person_day == (7.77, 2.39)  # вищий рівень — менше витратних
+    assert new.battery_depth_of_discharge == pytest.approx(0.6)
+    assert 18.5 < new.panel_w_per_kg < 50.0 and 100.0 < new.battery_wh_per_kg < 265.0
+    assert new.comfort_volume_m3_per_person == payload.DEFAULT_PARAMS.comfort_volume_m3_per_person
+    assert new.structure_fraction == payload.DEFAULT_PARAMS.structure_fraction  # no_source — тимчасове
+    assert {a["id"] for a in applied} == set(payload.TABLE_RULES)

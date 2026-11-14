@@ -2,8 +2,10 @@
 // Three.js підключено через importmap у base.html.
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { qualitySettings, webglDisabledByUrl } from "./quality.js";
 
 export function hasWebGL() {
+  if (webglDisabledByUrl()) return false;
   try {
     const canvas = document.createElement("canvas");
     return Boolean(canvas.getContext("webgl2"));
@@ -30,16 +32,24 @@ export function vector3ToLatLon(v) {
   return { lat, lon };
 }
 
+export const NO_WEBGL_MESSAGE = "3D недоступне: браузер не підтримує WebGL 2.";
+
+// Анізотропна фільтрація текстур у межах режиму якості.
+export function anisotropy(renderer, quality = qualitySettings()) {
+  return Math.min(renderer.capabilities.getMaxAnisotropy(), quality.anisotropyMax);
+}
+
 // Створює сцену в контейнері host. Повертає об'єкти сцени та dispose().
 // logarithmicDepthBuffer — для сцен із відстанями, що різняться в мільйони разів (система Сонце–Земля–Місяць).
-export function createScene(host, { background = 0x000000, logarithmicDepthBuffer = false } = {}) {
+// Згладжування й щільність пікселів — з режиму якості (three/quality.js).
+export function createScene(host, { background = 0x000000, logarithmicDepthBuffer = false, quality = qualitySettings() } = {}) {
   if (!hasWebGL()) {
-    host.innerHTML = '<p class="placeholder">3D недоступне: браузер не підтримує WebGL 2</p>';
+    host.innerHTML = `<p class="placeholder">${NO_WEBGL_MESSAGE}</p>`;
     return null;
   }
   host.innerHTML = "";
-  const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  const renderer = new THREE.WebGLRenderer({ antialias: quality.antialias, logarithmicDepthBuffer });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, quality.pixelRatioMax));
   host.append(renderer.domElement);
 
   const scene = new THREE.Scene();

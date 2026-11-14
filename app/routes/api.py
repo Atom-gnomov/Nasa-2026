@@ -13,6 +13,7 @@ from app.services import events as events_service
 from app.services import meta as meta_service
 from app.services import bootstrap
 from app.services import launch_ranking as launch_ranking_service
+from app.services import launch_window as launch_window_service
 from app.services import mission as mission_service
 from app.services import terrain as terrain_service
 from app.services import timeline as timeline_service
@@ -332,7 +333,25 @@ def search():
 
 @bp.get("/launch-window")
 def launch_window():
-    return _not_implemented("/api/launch-window")
+    """Оцінка у % для кожної дати старту: /api/launch-window?launch_site=..&lat=..&lon=..&start=..&end=.."""
+    site_id = request.args.get("launch_site")
+    if not site_id:
+        return _error(400, "Параметр launch_site обов'язковий (id з /api/launch-sites)")
+    lat = _parse_float("lat", -90, 90)
+    lon = _parse_float("lon", -180, 360)
+    if not request.args.get("start") or not request.args.get("end"):
+        return _error(400, "Параметри start і end обов'язкові")
+    start, end = _parse_datetime(request.args["start"]), _parse_datetime(request.args["end"])
+    try:
+        priorities = launch_window_service.parse_priorities(request.args.get("priorities"))
+        return jsonify(launch_window_service.launch_window(
+            site_id, lat, lon, start, end, request.args.get("trajectory", "direct"), priorities))
+    except launch_window_service.LaunchSiteNotFound as exc:
+        return _error(404, str(exc))
+    except ValueError as exc:
+        return _error(400, str(exc))
+    except RuntimeError as exc:  # немає ефемерид
+        return _error(503, str(exc))
 
 
 @bp.post("/advice")

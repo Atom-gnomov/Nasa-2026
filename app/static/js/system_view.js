@@ -411,7 +411,9 @@ async function main() {
     const st = stateAt(traj, sim.elapsed);
     if (st.done && sim.on) stopSim();
     const kMoon = lay.moon.pos.distanceTo(lay.earth.pos) / toScene(state.moon_km).length();
-    const pos = lay.earth.pos.clone().addScaledVector(toScene(st.pos), kMoon);
+    let pos = lay.earth.pos.clone().addScaledVector(toScene(st.pos), kMoon);
+    const rel = pos.clone().sub(lay.earth.pos);
+    if (rel.length() < lay.earth.r * 1.04) pos = lay.earth.pos.clone().addScaledVector(rel.normalize(), lay.earth.r * 1.04);
     const dir = dirScene(st.dir);
     const h = lay.earth.r * 0.3;
     simRocket.scale.set(h, h, h);
@@ -447,7 +449,19 @@ async function main() {
     // Масштаб той самий, що в орбіти Місяця: траєкторія закінчується там, де буде Місяць у момент прибуття
     const kMoon = lay.moon.pos.distanceTo(lay.earth.pos) / toScene(state.moon_km).length();
     if (t) {
-      setLine(flightLine, t.points_km.map((p) => toScene(p)), lay.earth.pos, kMoon);
+      // G15: лінія починається з конуса ракети; точки дуги, що в схематичному масштабі потрапляють усередину збільшеної
+      // Землі, виносимо радіально на її поверхню — інакше початок дуги ховається під глобусом
+      const surface = lay.earth.r * 1.04;
+      const outside = (v) => {
+        const rel = v.clone().sub(lay.earth.pos);
+        return rel.length() < surface ? lay.earth.pos.clone().addScaledVector(rel.normalize(), surface) : v;
+      };
+      const arc = t.points_km.map((p) => outside(lay.earth.pos.clone().addScaledVector(toScene(p), kMoon)));
+      if (flight.rocket) {
+        const up = new THREE.Vector3(...apply3(eM.r, flight.rocket.unit_itrs)).normalize();
+        arc.unshift(lay.earth.pos.clone().addScaledVector(up, lay.earth.r + lay.earth.r * 0.3));
+      }
+      setLine(flightLine, arc, new THREE.Vector3(), 1);
       const arrival = lay.earth.pos.clone().addScaledVector(toScene(t.moon_at_arrival_km), kMoon);
       moonAtArrival.position.copy(arrival);
       moonAtArrival.scale.setScalar(lay.moon.r * 1.02);

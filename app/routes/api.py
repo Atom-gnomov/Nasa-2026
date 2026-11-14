@@ -10,6 +10,7 @@ from app.services import advice as advice_service
 from app.services import search as search_service
 from app.services import events as events_service
 from app.services import meta as meta_service
+from app.services import terrain as terrain_service
 from app.services import timeline as timeline_service
 
 bp = Blueprint("api", __name__)
@@ -139,6 +140,25 @@ def horizon_mask():
     lon = _parse_float("lon", -180, 360)
     height_m = _parse_optional_float("height", 0.0, 0.0, 1000.0)
     return jsonify(timeline_service.horizon_mask(lat, lon, height_m))
+
+
+@bp.get("/terrain")
+def terrain():
+    """Ділянка рельєфу навколо точки з DEM LOLA: /api/terrain?lat=-89.67&lon=129.78&radius_km=5&n=201"""
+    lat = _parse_float("lat", -90, 90)
+    lon = _parse_float("lon", -180, 360)
+    radius_km = (_parse_float("radius_km", terrain_service.MIN_RADIUS_KM, terrain_service.MAX_RADIUS_KM)
+                 if "radius_km" in request.args else None)
+    n = None
+    if "n" in request.args:
+        try:
+            n = int(request.args["n"])
+        except ValueError:
+            abort(400, description="Параметр n має бути цілим числом")
+        lo, hi = terrain_service.MIN_N, terrain_service.MAX_N
+        if not lo <= n <= hi or n % 2 == 0:
+            abort(400, description=f"Параметр n має бути непарним у межах [{lo}, {hi}]")
+    return jsonify(terrain_service.terrain_patch(lat, lon, radius_km, n))
 
 
 @bp.get("/timeline")

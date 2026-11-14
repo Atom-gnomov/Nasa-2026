@@ -383,7 +383,7 @@
   "Зважена сума: ваги з порядку пріоритетів": "Weighted sum: weights from the order of priorities",
   "Знайти": "Search",
   "Результати": "Results",
-  "★ — недомінована точка (жодна допустима не краща за всіма факторами). Результати позначено на карті Місяця вище (зелена — найкраща, блакитні — решта). Клік по рядку вибирає місце: воно з'являється на карті й в оверлеї метрик. Оцінка — за абсолютними шкалами (docs/MATH.md, §19), тож не залежить від інших кандидатів.": "★ — non-dominated site (no feasible site is better in every factor). Results are marked on the Moon map above (green — best, blue — the rest). Clicking a row selects the site: it appears on the map and in the metrics overlay. The score uses absolute scales (docs/MATH.md, §19), so it does not depend on other candidates.",
+  "★ — недомінована точка (жодна допустима не краща за всіма факторами). Результати можна побачити на вкладці «Місяць» (зелена — найкраща, блакитні — решта). Клік по рядку вибирає місце й відкриває його на глобусі з метриками. Оцінка — за абсолютними шкалами (docs/MATH.md, §19), тож не залежить від інших кандидатів.": "★ — non-dominated site (no feasible site is better in every factor). Results can be viewed on the Moon tab (green — best, blue — the rest). Clicking a row selects the site and opens the globe with its metrics. The score uses absolute scales (docs/MATH.md, §19), so it does not depend on other candidates.",
   "Порада ШІ": "AI advice",
   "Запитати ШІ": "Ask the AI",
   "Для кого відповідь": "Who the answer is for",

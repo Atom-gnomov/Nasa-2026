@@ -23,3 +23,19 @@ test("некоректні точки відкидаються, список к�
   publishHighlights("не список");
   assert.deepEqual(getHighlights(), []);
 });
+
+test("sessionStorage зберігає позначки між сторінками", () => {
+  const old = globalThis.sessionStorage;
+  const data = new Map();
+  globalThis.sessionStorage = {
+    getItem: (k) => data.get(k) ?? null,
+    setItem: (k,v) => data.set(k,v),
+  };
+  try {
+    publishHighlights([{lat:-87, lon:11,rank:1}]);
+    assert.match(data.get("lse-search-highlights"), /-87/);
+  } finally {
+    if (old === undefined) delete globalThis.sessionStorage;
+    else globalThis.sessionStorage = old;
+  }
+});

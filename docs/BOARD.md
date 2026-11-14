@@ -84,8 +84,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Велес
 
-- **Зараз:** D8 — ціни ракет за кг на НОО (контракти NASA LSP, OIG) і статистика польотів (журнал McDowell GCAT) у каталогах D6/D7
-- **Гілка:** `veles/D8-rocket-economics`
+- **Зараз:** — (на рев'ю: D4 PR #69, D8 PR #72)
+- **Гілка:** —
 
 ### Ярило
 
@@ -142,6 +142,7 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 - F8 — Перемикач мови інтерфейсу UA / EN (`i18n.js`, словник `en.json`, 228 з 228 текстів шаблонів) — гілка `veles/F8-i18n`, PR #59
 - D6 (доопрацювання за рев'ю #36) — дослівні цитати першоджерел до статусів Pegasus XL і Ariane 64 — гілка `veles/D6-source-quotes`, PR #60
 - D4 — Таблиці корисного навантаження з першоджерел NASA (23 параметри, 25 цитат; модель не змінено, порівняння з тимчасовими коефіцієнтами в PR) — гілка `veles/D4-payload-tables`, PR #69
+- D8 — Економіка ракет: польоти за GCAT (12 ракет/систем, as_of 2026-11-13), ціна за кг на НОО з контрактів NASA (Falcon 9, Falcon Heavy), вартість SLS (OIG) — гілка `veles/D8-rocket-economics`, PR #72
 
 ### Ярило
 

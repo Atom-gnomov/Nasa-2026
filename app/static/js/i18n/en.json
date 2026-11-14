@@ -507,7 +507,10 @@
     "Оберіть параметри ліворуч і запустіть розрахунок.": "Choose parameters on the left and run the calculation.",
     "Змініть параметри ліворуч, щоб оновити розрахунок.": "Change parameters on the left to update the calculation.",
     "Результати з’являться після натискання «Знайти».": "Results will appear after you press Search.",
-    "Налаштування огляду": "View controls"
+    "Налаштування огляду": "View controls",
+    "Перейти до вмісту": "Skip to content",
+    "Задавайте параметри у лівій панелі та переглядайте результати в центрі. Панелі можна згортати та розгортати.": "Set parameters in the left panel and view results in the center. Panels can collapse or expand.",
+    "ШІ-поради розміщено праворуч від результатів підбору.": "AI advice is displayed to the right of selection results."
   },
   "phrases": {
     "млн": "M",

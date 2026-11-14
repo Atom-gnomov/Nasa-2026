@@ -616,3 +616,197 @@ body.page-moon #surface #surface-status { max-height: 4.8em; overflow: hidden; }
 body.page-search #search .results-heading { margin: 0 0 8px; }
 body.page-search #search .results-heading h2 { margin: 0; }
 body.page-mission .mission-result .results-heading h2 { margin: 0; }
+
+/* Єдина візуальна мова всіх шести сторінок — спільні токени форм та результатів. */
+:root {
+  --ui-panel-solid: #182439;
+  --ui-panel-soft: rgba(24, 36, 57, .82);
+  --ui-input: #111b2b;
+  --ui-fg-subtle: #a9bacf;
+  --ui-line-soft: rgba(164, 183, 211, .16);
+  --ui-radius: 13px;
+  --ui-focus: rgba(245, 185, 66, .32);
+}
+.skip-link {
+  position: fixed; z-index: 200; left: 12px; top: -80px;
+  padding: 9px 15px; border-radius: 9px; background: var(--accent);
+  color: #121a27; text-decoration: none; font-weight: 650;
+}
+.skip-link:focus { top: 10px; }
+#site-header .tabs [aria-current="page"] { box-shadow: inset 0 -2px 0 rgba(15,20,30,.35); }
+#view button, #view select, #view input, .ui-dock button, .ui-dock select, .header-actions button {
+  font-family: inherit;
+}
+#view select, #view input[type="number"], #view input[type="text"], #view input[type="datetime-local"],
+.ui-dock select, .ui-dock input[type="number"] {
+  background: var(--ui-input);
+  border: 1px solid rgba(143, 164, 194, .36);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 7px 9px;
+  min-height: 35px;
+  max-width: 100%;
+  color-scheme: dark;
+}
+#view select:focus-visible, #view input:focus-visible, .ui-dock select:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--ui-focus);
+}
+#view button:disabled, .ui-dock button:disabled { opacity: .5; cursor: not-allowed; }
+#view .muted, #view .small.muted, .ui-widget .muted { color: var(--ui-fg-subtle); }
+#view fieldset:not(.coords), .ui-widget fieldset:not(.coords) {
+  border: 1px solid var(--ui-line-soft);
+  border-radius: 11px;
+  min-width: 0;
+}
+#view fieldset legend { padding: 0 6px; color: #c8d8ec; font-size: 13px; font-weight: 600; }
+#view label { min-width: 0; }
+.ui-widget .widget-body {
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+.ui-widget .widget-header {
+  background: linear-gradient(100deg, rgba(255,255,255,.042), rgba(255,255,255,0));
+}
+.ui-widget .widget-title { letter-spacing: -.012em; }
+.ui-widget.is-expanded .widget-title { font-size: 17px; }
+.ui-widget.is-expanded .widget-body { padding: clamp(15px, 2vw, 27px); }
+.ui-widget .widget-body > h2:not(:first-child) {
+  padding-top: 12px; border-top: 1px solid var(--ui-line-soft);
+}
+.ui-widget .widget-body canvas { max-width: 100%; }
+.ui-widget .widget-body .temp-chart { height: 170px; }
+.ui-widget .widget-body .timeline-chart { height: 210px; }
+.ui-widget.is-expanded .widget-body .temp-chart { height: 210px; }
+.ui-widget.is-expanded .widget-body .timeline-chart { height: 250px; }
+.ui-widget .widget-body .compare-table,
+.ui-widget .widget-body .results-table { max-width: 100%; }
+.ui-widget .widget-body .compare-table td { overflow-wrap: anywhere; }
+body.page-moon .ui-scene-widget .widget-body > .compare { width: 100%; min-width: 0; }
+body.page-system .system-info .widget-body > h2:first-child { display: none; }
+body.page-system .system-info .widget-body dt { line-height: 1.35; }
+body.page-system .system-info .widget-body dd { overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+body.page-system .system-graph .timeline-chart { height: 195px; }
+body.page-system .system-graph h3 { color: #d8e5f6; }
+body.page-moon #metrics-overlay .widget-body details, body.page-system .system-point-metrics details {
+  border-top: 1px solid var(--ui-line-soft);
+  padding-top: 7px; margin-top: 7px;
+}
+body.page-moon #metrics-overlay .widget-body summary, body.page-system #metrics-overlay summary {
+  color: var(--accent); font-weight: 650; cursor: pointer;
+}
+body.page-moon #metrics-overlay .widget-body dt, body.page-system #metrics-overlay dt { line-height: 1.35; }
+body.page-moon #metrics-overlay .widget-body dd, body.page-system #metrics-overlay dd { overflow-wrap: anywhere; }
+
+/* Єдині центральні області аналітики: не картка форми, а повноцінне робоче поле. */
+body.page-search #search .search-results, body.page-mission .mission-result,
+body.page-launch .lw-results, body.page-plan .lw-results {
+  background: linear-gradient(145deg, rgba(27, 40, 61, .92), rgba(16, 24, 39, .90));
+  border: 1px solid var(--glass-stroke);
+  box-shadow: 0 14px 32px rgba(0,0,0,.14);
+  border-radius: var(--ui-radius);
+  padding: clamp(16px, 1.5vw, 25px);
+}
+body.page-search #search .search-results { gap: 12px; }
+body.page-mission .mission-result { display: grid; gap: 12px; align-content: start; }
+body.page-launch .lw-results, body.page-plan .lw-results { align-content: start; }
+body:not(.page-moon):not(.page-system) #view > section { max-width: 1920px; margin-left: auto; margin-right: auto; }
+body:not(.page-moon):not(.page-system) #view .table-scroll {
+  width: 100%; max-width: 100%; overflow: auto;
+  border: 1px solid var(--ui-line-soft);
+  border-radius: 10px;
+  background: rgba(10, 17, 29, .48);
+  scrollbar-width: thin;
+}
+body:not(.page-moon):not(.page-system) #view .results-table {
+  border-collapse: separate; border-spacing: 0;
+  min-width: 100%; color: #dbe6f5;
+}
+body:not(.page-moon):not(.page-system) #view .results-table thead th {
+  position: sticky; top: 0; z-index: 1;
+  background: #202f45; color: #c3d2e5;
+  border-bottom: 1px solid var(--ui-line-soft);
+  padding: 11px 12px; font-weight: 650;
+}
+body:not(.page-moon):not(.page-system) #view .results-table tbody td {
+  padding: 9px 12px;
+  border-top: 1px solid var(--ui-line-soft);
+  line-height: 1.4;
+}
+body:not(.page-moon):not(.page-system) #view .results-table tbody tr:hover,
+body:not(.page-moon):not(.page-system) #view .results-table tbody tr:focus-visible {
+  background: rgba(245,185,66,.075);
+  outline-offset: -2px;
+}
+body:not(.page-moon):not(.page-system) #view .compare-note {
+  border-color: rgba(245,185,66,.20);
+  background: rgba(245,185,66,.08);
+  padding: 12px;
+  line-height: 1.5;
+}
+body.page-search #search .ui-widget-left, body.page-search #search .ui-widget-right,
+body.page-mission .mission-form, body.page-launch .lw-controls, body.page-plan .lw-controls { background: var(--ui-panel-soft); }
+body.page-search #search .search-form .widget-body,
+body.page-mission .mission-form .widget-body,
+body.page-launch .lw-controls .widget-body, body.page-plan .lw-controls .widget-body { gap: 13px; }
+body.page-search #search .widget-body .priorities { margin: 4px 0; }
+body.page-search #search .widget-body .prio {
+  background: rgba(12, 20, 32, .65); border-color: var(--ui-line-soft);
+  border-radius: 9px; padding: 9px;
+}
+body.page-search #search .widget-body .prio:hover { border-color: rgba(245,185,66,.4); }
+body.page-search #search #s-advice { border-color: var(--glass-stroke); }
+body.page-search #search #s-advice .widget-body { display: grid; gap: 13px; align-content: start; }
+body.page-search #search #s-advice .widget-body .advice-controls { display: grid; grid-template-columns: 1fr; gap: 9px; }
+body.page-search #search #s-advice .widget-body #s-advice-question { width: 100%; }
+body.page-search #search #s-advice .widget-body #s-advice-out {
+  padding: 12px; border-radius: 10px; background: rgba(11, 19, 32, .62); border: 1px solid var(--ui-line-soft);
+}
+body.page-search #search #s-advice .widget-body #s-advice-status { margin: 0; }
+body.page-mission #m-result { grid-template-columns: minmax(160px, max-content) minmax(0,1fr); }
+body.page-mission #m-result dd { overflow-wrap: anywhere; font-weight: 600; font-variant-numeric: tabular-nums; }
+body.page-mission .fill-bar { height: 10px; border-radius: 10px; }
+body.page-mission .mission-result details { padding: 11px; background: rgba(9, 18, 30, .4); border: 1px solid var(--ui-line-soft); border-radius: 10px; }
+body.page-mission .mission-result summary { color: #d4e1f1; cursor: pointer; }
+body.page-launch .lw-scale {
+  background: rgba(10,17,29,.54); padding: 12px;
+  border: 1px solid var(--ui-line-soft); border-radius: 11px;
+  min-height: 185px; height: 206px;
+}
+body.page-launch .lw-fill { border-radius: 4px 4px 0 0; }
+body.page-launch .lw-bar.best .lw-fill { box-shadow: 0 0 0 1px rgba(245,185,66,.6), 0 0 18px rgba(245,185,66,.22); }
+body.page-launch .lw-bar:hover, body.page-launch .lw-bar:focus-visible { background: rgba(255,255,255,.04); }
+body.page-plan #plan-actions { margin: 4px 0 0; }
+body.page-plan #plan-flight { background: var(--accent); color: #111a28; border: 0; border-radius: 8px; padding: 9px 12px; cursor: pointer; font-weight: 650; }
+body.page-plan #plan-table td:nth-child(4) { white-space: normal; }
+
+/* Нижні інструменти в обох 3D-сценах: однакова форма й поведінка. */
+.ui-dock { border-color: var(--glass-stroke); }
+.ui-dock .dock-content { overscroll-behavior: contain; }
+.ui-dock label { color: #c0cfe1; }
+.ui-dock .seg { border-color: rgba(166,185,211,.24); }
+.ui-dock .seg a:hover:not(.active), .ui-dock .seg button:hover:not(.active) { color: var(--text); background: rgba(255,255,255,.075); }
+.ui-dock input[type="range"], .ui-widget input[type="range"] { accent-color: var(--accent); }
+.ui-dock .dock-header { background: rgba(255,255,255,.03); }
+body.page-moon #surface .ui-surface-dock .surface-toolbar { color: #c0cfe1; }
+
+/* Селектори адаптивності розташовані після базових правил і не перекривають їх. */
+@media (max-width: 1100px) {
+  body.page-mission #m-result { grid-template-columns: minmax(0,1fr); }
+  body.page-mission #m-result dd { margin: -3px 0 9px; }
+  body.page-search #search .ui-widget .widget-body { padding: 12px; }
+}
+@media (max-width: 760px) {
+  .results-heading { flex-direction: column; align-items: start; }
+  body:not(.page-moon):not(.page-system) #view { padding: 12px; }
+  body:not(.page-moon):not(.page-system) #view .ui-widget.is-collapsed {
+    width: 100%; min-height: 44px; height: 44px;
+  }
+  body.page-search #search .ui-widget, body.page-mission .mission-form,
+  body.page-launch .lw-controls, body.page-plan .lw-controls { max-height: none; }
+  body.page-mission #m-result { grid-template-columns: 1fr auto; }
+  body.page-moon #surface .ui-surface-dock { bottom: 8px; left: 8px; right: 8px; width: calc(100% - 16px); max-height: min(45vh, 320px); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .ui-widget, .ui-dock { background: #172337; backdrop-filter: none; -webkit-backdrop-filter: none; }
+}

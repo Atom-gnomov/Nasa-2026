@@ -17,15 +17,16 @@
   </script>
 </head>
 <body class="page-{{ active_tab }}">
+  <a href="#view" class="skip-link">Перейти до вмісту</a>
   <header class="topbar" id="site-header">
     <a class="brand" href="{{ url_for('pages.moon') }}" aria-label="Lunar Site Explorer"><span class="brand-mark" aria-hidden="true">☾</span><span class="logo">Lunar Site Explorer</span></a>
     <nav class="tabs" aria-label="Навігація вкладок">
-      <a href="{{ url_for('pages.moon') }}" class="{{ 'active' if active_tab == 'moon' }}">Місяць</a>
-      <a href="{{ url_for('pages.system') }}" class="{{ 'active' if active_tab == 'system' }}">Система</a>
-      <a href="{{ url_for('pages.search') }}" class="{{ 'active' if active_tab == 'search' }}">Підбір</a>
-      <a href="{{ url_for('pages.mission') }}" class="{{ 'active' if active_tab == 'mission' }}">Місія</a>
-      <a href="{{ url_for('pages.plan') }}" class="{{ 'active' if active_tab == 'plan' }}">План місії</a>
-      <a href="{{ url_for('pages.launch_window') }}" class="{{ 'active' if active_tab == 'launch' }}">Вікно запуску</a>
+      <a href="{{ url_for('pages.moon') }}" class="{{ 'active' if active_tab == 'moon' }}" {% if active_tab == 'moon' %}aria-current="page"{% endif %}>Місяць</a>
+      <a href="{{ url_for('pages.system') }}" class="{{ 'active' if active_tab == 'system' }}" {% if active_tab == 'system' %}aria-current="page"{% endif %}>Система</a>
+      <a href="{{ url_for('pages.search') }}" class="{{ 'active' if active_tab == 'search' }}" {% if active_tab == 'search' %}aria-current="page"{% endif %}>Підбір</a>
+      <a href="{{ url_for('pages.mission') }}" class="{{ 'active' if active_tab == 'mission' }}" {% if active_tab == 'mission' %}aria-current="page"{% endif %}>Місія</a>
+      <a href="{{ url_for('pages.plan') }}" class="{{ 'active' if active_tab == 'plan' }}" {% if active_tab == 'plan' %}aria-current="page"{% endif %}>План місії</a>
+      <a href="{{ url_for('pages.launch_window') }}" class="{{ 'active' if active_tab == 'launch' }}" {% if active_tab == 'launch' %}aria-current="page"{% endif %}>Вікно запуску</a>
     </nav>
     {# Календар — спільний для всіх вкладок (модуль static/js/calendar.js) #}
     <div class="calendar">
@@ -52,8 +53,13 @@
         <summary class="header-icon" title="Підказки" aria-label="Підказки">?</summary>
         <div class="help-menu-content">
           <strong>Підказки</strong>
+          {% if active_tab in ['moon', 'system'] %}
           <p>На карті обирайте місце ліворуч, переглядайте метрики праворуч. Панелі можна згортати та розгортати до половини екрана.</p>
           <p>Керування картою розташоване знизу. Зміна дати у хедері впливає на всі вкладки.</p>
+          {% else %}
+          <p>Задавайте параметри у лівій панелі та переглядайте результати в центрі. Панелі можна згортати та розгортати.</p>
+          {% if active_tab == 'search' %}<p>ШІ-поради розміщено праворуч від результатів підбору.</p>{% endif %}
+          {% endif %}
         </div>
       </details>
     </div>

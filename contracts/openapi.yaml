@@ -1249,6 +1249,18 @@ components:
           uniqueItems: true
           items: {$ref: "#/components/schemas/RankFactor"}
         mode: {type: string, enum: [weighted, maximin], default: weighted}
+        mission_profile:
+          type: string
+          enum: [uncrewed, crewed]
+          description: |
+            Профіль місії (M17): початкові значення пріоритетів і вимог. Явні `priorities` і окремі поля
+            `requirements` переважають профіль; без `mission_profile` поведінка не змінюється.
+            Пороги профілю — з опублікованих джерел (`app/data/mission_thresholds.json`).
+        crew:
+          type: integer
+          minimum: 0
+          maximum: 6
+          description: Кількість людей; лише разом із `mission_profile` (безпілотна — 0, пілотована — від 1).
         requirements:
           type: object
           additionalProperties: false
@@ -1370,6 +1382,45 @@ components:
           oneOf:
             - {$ref: "#/components/schemas/RankComparison"}
             - {type: "null"}
+        profile:
+          description: Профіль, застосований до запиту (лише якщо задано `mission_profile`)
+          oneOf:
+            - {$ref: "#/components/schemas/MissionProfile"}
+            - {type: "null"}
+
+    ProfileLimit:
+      type: object
+      required: [quantity, comparison, value, unit, kind, id]
+      additionalProperties: false
+      properties:
+        quantity: {type: string}
+        comparison: {type: [string, "null"], enum: ["<", "<=", ">", ">=", null]}
+        value: {type: [number, "null"]}
+        unit: {type: [string, "null"]}
+        kind: {type: string, enum: [requirement, screening]}
+        id: {type: string, description: "id порогу в mission_thresholds.json або override"}
+        scope: {type: string}
+
+    MissionProfile:
+      type: object
+      required: [profile, crew, priorities, limits, categories, from_profile]
+      additionalProperties: false
+      properties:
+        profile: {type: string, enum: [uncrewed, crewed]}
+        crew: {type: integer}
+        priorities: {type: array, items: {$ref: "#/components/schemas/RankFactor"}}
+        limits:
+          type: object
+          additionalProperties: {$ref: "#/components/schemas/ProfileLimit"}
+        categories:
+          type: object
+          properties:
+            life_support: {type: boolean}
+            comfort: {type: boolean}
+        from_profile:
+          type: array
+          items: {type: string}
+          description: Значення, які задав профіль, а не користувач (для підсвічування в інтерфейсі)
 
     Vec3Unit:
       type: array

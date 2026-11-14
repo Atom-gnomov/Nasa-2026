@@ -189,3 +189,26 @@ button.primary:disabled { opacity: 0.6; cursor: progress; }
 .mission-limits, .mission-parts { margin-top: 10px; }
 .mission-limits ul, .mission-parts ul { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 3px; }
 @media (max-width: 800px) { .mission-layout { grid-template-columns: 1fr; } }
+/* Вікно запуску (launch_window.js, F7) */
+.lw-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 16px; align-items: start; }
+.lw-controls { display: grid; gap: 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.lw-controls h2 { margin: 0; }
+.lw-controls { min-width: 0; }
+.lw-controls label { display: grid; gap: 4px; color: var(--muted); min-width: 0; }
+.lw-controls select { width: 100%; min-width: 0; }
+.lw-priorities { border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; }
+.lw-priorities ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.lw-priorities button { padding: 0 6px; }
+.lw-note { font-size: 12px; margin: 0; }
+.lw-results { min-width: 0; display: grid; gap: 10px; }
+.lw-scale { display: flex; gap: 3px; align-items: flex-end; height: 180px; overflow-x: auto; padding-bottom: 4px; }
+.lw-bar { flex: 1 0 22px; height: 100%; position: relative; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; background: none; border: 0; padding: 0; color: var(--muted); font: 11px/1.2 system-ui, sans-serif; cursor: pointer; }
+.lw-fill { width: 100%; height: var(--h); min-height: 2px; background: #4b5a78; border-radius: 3px 3px 0 0; }
+.lw-bar.sunlit .lw-fill { background: #7d8fb5; }
+.lw-bar.best .lw-fill { background: var(--accent); }
+.lw-bar.best { color: var(--accent); font-weight: 600; }
+.lw-bar:hover .lw-fill, .lw-bar:focus .lw-fill { outline: 1px solid var(--text); }
+.lw-pct { order: -1; margin-bottom: 2px; }
+.lw-date { margin-top: 3px; writing-mode: vertical-rl; transform: rotate(180deg); }
+.results-table tr.best td { color: var(--accent); }
+@media (max-width: 900px) { .lw-layout { grid-template-columns: 1fr; } }

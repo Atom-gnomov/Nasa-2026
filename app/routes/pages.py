@@ -30,6 +30,12 @@ def search():
     return redirect(url_for("pages.moon", **request.args) + "#search")  # параметри (дата, місце, lang) зберігаються
 
 
+@bp.get("/launch-window")
+def launch_window():
+    """Вкладка «Вікно запуску»: шкала дат старту з оцінкою у %, найкраща дата виділена (F7)."""
+    return render_template("launch_window.html", active_tab="launch")
+
+
 @bp.get("/system")
 @bp.get("/system/<mode>")
 def system(mode: str = "earth-moon"):

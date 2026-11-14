@@ -109,8 +109,8 @@ def data_prepare():
 
 @bp.get("/launch-systems")
 def list_launch_systems():
-    """Системи запуску (ракета + спосіб старту) з каталогу D6 у стислому вигляді."""
-    return jsonify([launch_system.from_catalog(row).to_dict() for row in catalogs.load_launch_systems()])
+    """Єдиний каталог засобів запуску: системи D6 і ракети D7 у стислому вигляді (поле `catalog`)."""
+    return jsonify([launch_system.from_catalog(row, cat).to_dict() for cat, row in catalogs.load_vehicles()])
 
 
 @bp.get("/launch-sites")

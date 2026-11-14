@@ -185,3 +185,54 @@ def test_invalid_profile_requests(client, body):
     res = post(client, body)
     assert res.status_code == 400, res.get_json()
     assert_valid(api_validator("Error"), res.get_json())
+
+
+# ---------- B19: єдиний каталог засобів запуску (D6 + D7) ----------
+def test_launch_systems_list_contains_both_catalogs(client):
+    data = client.get("/api/launch-systems").get_json()
+    for item in data:
+        assert_valid(api_validator("LaunchSystem"), item)
+    ids = [i["id"] for i in data]
+    assert len(ids) == len(set(ids))  # ідентифікатори унікальні в єдиному каталозі
+    assert {"launch_systems", "rockets"} == {i["catalog"] for i in data}
+    assert {"falcon-9", "starship", "sls-block-1", "ariane-64", "pegasus-xl"} <= set(ids)
+    sls = next(i for i in data if i["id"] == "sls-block-1")
+    assert sls["capacity_leo_kg"] is None and sls["capacity_tli_kg"] == 27000 and sls["capacity_basis"] == "tli"
+    starship = next(i for i in data if i["id"] == "starship")
+    assert starship["status"] == "in_testing" and starship["verified_by_flight"] is False
+
+
+def test_mission_accepts_a_rocket_from_d7_catalog(client):
+    data = post(client, {"crew": 2, "days": 10, "launch_system_id": "falcon-heavy"}).get_json()
+    assert_valid(api_validator("MissionResponse"), data)
+    ls = data["launch_system"]
+    assert ls["system"]["catalog"] == "rockets" and ls["rocket"]["capacity_basis"] == "leo"
+    assert ls["rocket"]["capacity_leo_kg"] == 63800.0
+    assert data["launch_site_id"] == "cape-canaveral"  # місце старту — з каталогу ракети
+
+
+def test_tli_only_rocket_is_converted_to_equivalent_leo_capacity(client):
+    """SLS має лише місткість на TLI (27 т): її переведено на НОО множником розгінного блока; заповненість узгоджена."""
+    data = post(client, {"crew": 2, "days": 10, "launch_system_id": "sls-block-1"}).get_json()
+    ls = data["launch_system"]
+    assert ls["rocket"]["capacity_basis"] == "tli"
+    assert ls["rocket"]["capacity_leo_kg"] > 27000  # еквівалент на НОО більший за масу після TLI
+    assert ls["fit"]["utilization"] == pytest.approx(data["cost"]["utilization"])
+    assert ls["fit"]["utilization"] == pytest.approx(data["cost"]["mass_leo_kg"] / ls["rocket"]["capacity_leo_kg"])
+
+
+def test_tli_equivalent_capacity_does_not_depend_on_the_trajectory_choice(client):
+    """Множник розгінного блока (Δv TLI) однаковий для прямої й економної траєкторії; відрізняється лише посадка."""
+    direct = post(client, {"launch_system_id": "sls-block-1", "trajectory": "direct"}).get_json()
+    slow = post(client, {"launch_system_id": "sls-block-1", "trajectory": "low_energy"}).get_json()
+    assert slow["launch_system"]["rocket"]["capacity_leo_kg"] == pytest.approx(
+        direct["launch_system"]["rocket"]["capacity_leo_kg"])
+    assert slow["cost"]["mass_leo_kg"] < direct["cost"]["mass_leo_kg"]  # економна легша на НОО
+
+
+def test_design_target_rocket_is_marked_in_the_listing_and_still_calculable(client):
+    listing = {i["id"]: i for i in client.get("/api/launch-systems").get_json()}
+    lm10 = listing["long-march-10"]
+    assert lm10["status"] == "design_target" and lm10["verified_by_flight"] is False
+    data = post(client, {"launch_system_id": "long-march-10"}).get_json()
+    assert data["launch_system"]["system"]["verified_by_flight"] is False  # проєктну ціль не видаємо за підтверджену

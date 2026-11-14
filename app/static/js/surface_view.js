@@ -11,7 +11,7 @@
 import * as THREE from "three";
 import { createScene, hasWebGL } from "./three/scene.js";
 import { bindSky, meToSurface, mul3, setSkyTime } from "./starfield.js";
-import { TILE_METERS, regolithTexture, sampleMoonTint } from "./regolith.js";
+import { GROUND_LAYERS, createGroundMaterial, layerTexture, regolithLayer, sampleMoonTint } from "./regolith.js";
 import { qualitySettings } from "./three/quality.js";
 import { onLangChange, t } from "./i18n.js";
 import { getState, setState, subscribe } from "./state.js";
@@ -108,8 +108,8 @@ function patchMesh(patch, unit) {
   const pos = new Float32Array(n * n * 3), col = new Float32Array(n * n * 3), uv = new Float32Array(n * n * 2), idx = [];
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) { // одна плитка текстури = TILE_METERS на ґрунті; сітка поверхні з кроком s (м)
-      uv[(i * n + j) * 2] = (j * s) / TILE_METERS;
-      uv[(i * n + j) * 2 + 1] = (i * s) / TILE_METERS;
+      uv[(i * n + j) * 2] = j * s; // метри на ґрунті: схід, північ (шейдер ґрунту сам ділить на розмір плитки)
+      uv[(i * n + j) * 2 + 1] = i * s;
     }
   }
   const inside = (i, j) => Math.hypot((j - c) * s, (i - c) * s) <= rmax;
@@ -123,13 +123,11 @@ function patchMesh(patch, unit) {
   const geom = new THREE.BufferGeometry();
   const posAttr = new THREE.BufferAttribute(pos, 3), colAttr = new THREE.BufferAttribute(col, 3);
   geom.setAttribute("position", posAttr);
-  geom.setAttribute("color", colAttr);
+  geom.setAttribute("aLight", colAttr);
   geom.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
   geom.setIndex(new THREE.BufferAttribute(Uint32Array.from(idx), 1));
-  groundTexture ??= regolithTexture(THREE);
-  const mesh = new THREE.Mesh(geom, new THREE.MeshBasicMaterial({
-    vertexColors: true, side: THREE.DoubleSide, map: groundTexture, color: new THREE.Color(...groundTint),
-  }));
+  groundTextures ??= GROUND_LAYERS.map((spec) => layerTexture(THREE, regolithLayer(spec)));
+  const mesh = new THREE.Mesh(geom, createGroundMaterial(THREE, { sun: groundSun, tint: groundTint, unit, textures: groundTextures }));
   mesh.frustumCulled = false;
   return {
     mesh,
@@ -173,9 +171,11 @@ function pathLine(az, el, rgb) {
 
 // Точка спостереження для орієнтації зоряного неба (задає load())
 const skySite = { lat: 0, lon: 0 };
-// Ґрунт: відтінок з реальної карти Місяця в точці (задає load()) і тайлова текстура реголіту (regolith.js)
+// Ґрунт (regolith.js): відтінок з реальної карти Місяця в точці (задає load()), текстури мікрорельєфу (створюються раз)
+// і напрям на Сонце в осях сцени — спільний для всіх матеріалів ґрунту, оновлюється разом з повзунком часу
 let groundTint = [1, 1, 1];
-let groundTexture = null;
+let groundTextures = null;
+const groundSun = new THREE.Vector3(0, 1, 0);
 
 function create3D(host, labelsEl) {
   const ctx = createScene(host);
@@ -253,6 +253,7 @@ function create3D(host, labelsEl) {
 
   function setMoment(series, i) {
     sun.position.copy(toVec3(series.sunAz[i], series.sun[i], R_BODY));
+    groundSun.copy(toVec3(series.sunAz[i], series.sun[i], 1)); // мікрорельєф ґрунту освітлюється тим самим Сонцем
     earth.position.copy(toVec3(series.earthAz[i], series.earth[i], R_BODY));
     const g = earthCanvas.getContext("2d");
     g.clearRect(0, 0, 128, 128);

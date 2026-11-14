@@ -60,3 +60,17 @@ def test_background_credit_is_text_in_the_help_menu_not_a_link_on_the_page():
     assert 'createElement("a")' not in js and "target = " not in js, "посилання на фон прибрано зі сторінки"
     assert ".help-menu-content" in js and "CC BY-NC-SA 4.0" in js, "ліцензія вимагає вказівки авторства"
     assert "position: fixed" not in CSS[CSS.index(".help-menu-content .sky-credit"):][:200]
+
+
+def test_globe_status_is_only_the_cursor_coordinates_centred_above_the_dock():
+    moon = TEMPLATES["moon.html"]
+    assert 'id="globe-cursor"' in moon and 'id="globe-grid-label"' not in moon and 'id="globe-sun"' not in moon
+    js = (ROOT / "app" / "static" / "js" / "globe_view.js").read_text(encoding="utf-8")
+    assert "Курсор: ${fmtLat(hit.lat, 4)}, ${fmtLon(hit.lon, 4)}" in js
+    assert "висота ${" not in js, "висота й температура не дописуються до рядка курсора"
+    assert re.search(r"\.globe-status\s*\{[^}]*left:\s*50%[^}]*translateX\(-50%\)", CSS)
+
+
+def test_back_button_is_styled_like_the_other_dock_buttons():
+    block = CSS[CSS.index(".ui-surface-dock .surface-back"):][:600]
+    assert "position: static" in block and "var(--cg-fill)" in block and "font-weight: 500" in block

@@ -6,7 +6,7 @@
 //   • південний полюс: окремі детальні ділянки з LOLA LDEM_80S_80M і LDEM_875S_20M (PDS) у їхній рідній
 //     полярній стереографічній проєкції (dsmap_polar.cat) + маски горизонту для тіней від рельєфу;
 //   • Сонце: підсонячна точка з /api/system (JPL DE440, орієнтація Місяця IAU 2015);
-//   • висота під курсором: /api/elevation (найдетальніший DEM LOLA, білінійно).
+//   • під глобусом — лише координати курсора (висоту дає /api/elevation у «Метриках»).
 // Позиція вершини — зважена сума трьох видів (куля, карта, полюс), тому перемикання — плавна анімація.
 import * as THREE from "three";
 import { anisotropy, createScene, hasWebGL, NO_WEBGL_MESSAGE } from "./three/scene.js";
@@ -911,35 +911,10 @@ async function main() {
   }
 
   const cursorEl = $("globe-cursor");
-  let elevTimer = null;
-  let elevAbort = null;
+  // Під глобусом — лише координати курсора (висота, температура й сітка — у «Метриках» і налаштуваннях)
   renderer.domElement.addEventListener("pointermove", (ev) => {
     const hit = pick(...eventNdc(ev));
-    clearTimeout(elevTimer);
-    if (!hit) { cursorEl.textContent = "Курсор: —"; return; }
-    const where = `${fmtLat(hit.lat, 4)}, ${fmtLon(hit.lon, 4)}`;
-    cursorEl.textContent = `Курсор: ${where} · висота …`;
-    elevTimer = setTimeout(async () => {
-      elevAbort?.abort();
-      elevAbort = new AbortController();
-      try {
-        const q = new URLSearchParams({ lat: hit.lat.toFixed(5), lon: hit.lon.toFixed(5) });
-        const res = await fetch(`/api/elevation?${q}`, { signal: elevAbort.signal });
-        const e = await res.json();
-        let text = res.ok
-          ? `Курсор: ${where} · висота ${e.height_m.toFixed(0)} м (LOLA ${e.source.id.toUpperCase()}, ${fmtDist(e.source.resolution_m)}/пікс.)`
-          : `Курсор: ${where} · висота: ${e.detail}`;
-        if (layer === "temp") {
-          q.set("datetime", getState().datetime);
-          const tr = await fetch(`/api/temperature?${q}`, { signal: elevAbort.signal });
-          const t = await tr.json();
-          text += tr.ok ? ` · ${describeTemperature(t)}` : ` · температура: ${t.detail}`;
-        }
-        cursorEl.textContent = text;
-      } catch (err) {
-        if (err.name !== "AbortError") cursorEl.textContent = `Курсор: ${where}`;
-      }
-    }, 120);
+    cursorEl.textContent = hit ? `Курсор: ${fmtLat(hit.lat, 4)}, ${fmtLon(hit.lon, 4)}` : "Курсор: —";
   });
 
   let downAt = null;
@@ -1240,7 +1215,6 @@ async function main() {
     const center = pick(0, 0);
     const step = gridStepSel.value === "auto" ? autoGridStep() : Number(gridStepSel.value);
     shared.uGridStep.value = step;
-    $("globe-grid-label").textContent = shared.uGridOn.value > 0.5 ? `Сітка: ${step}°` : "";
     shared.uLight.value.copy(lightLocal).applyQuaternion(camera.quaternion);
 
     updateMarkers();

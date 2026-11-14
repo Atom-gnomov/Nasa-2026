@@ -236,4 +236,21 @@ body.page-moon .globe-status { max-width: calc(100vw - var(--scene-left) - var(-
 #overlay-sun:empty { display: none; }
 .ui-widget .widget-body > #overlay-sun { margin-top: 4px !important; }
 
+/* рядок «Курсор: …» — рівно по центру над нижнім віджетом */
+body.page-moon .globe-status {
+  left: 50% !important; right: auto !important; transform: translateX(-50%) !important;
+  width: fit-content !important; max-width: min(520px, calc(100vw - 48px)) !important; text-align: center !important;
+  padding: 6px var(--gap) !important; display: flex !important; justify-content: center !important;
+}
+
+body.page-moon.surface-active .globe-status, body.ui-focus .globe-status { display: none !important; } /* у виді з поверхні курсора глобуса немає */
+
+/* «← Глобус»: така сама кнопка, як решта у віджеті — тієї ж висоти й на тій самій осі, без акценту */
+body.page-moon #surface .ui-surface-dock .surface-back {
+  position: static !important; transform: none !important; inset: auto !important; margin: 0 !important;
+  background: var(--cg-fill) !important; color: var(--cg-ink) !important; border: 1px solid var(--cg-line-soft) !important;
+  font-weight: 500 !important; box-shadow: none !important; backdrop-filter: none !important;
+}
+body.page-moon #surface .ui-surface-dock .surface-back:hover { background: var(--cg-fill-strong) !important; }
+
 @media (prefers-reduced-motion: reduce) { #starfield { transition: none; } }

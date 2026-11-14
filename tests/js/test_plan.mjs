@@ -65,3 +65,11 @@ test("статус вимог: виконано / порушено / м'які /
   assert.match(plan.requirementsText(response.plans[0].requirements), /^виконано · м'які: Земля видна · не перевірено: Нахил/);
   assert.match(plan.requirementsText(response.plans[1].requirements), /порушено: Нахил, ° 12 замість 10/);
 });
+
+test("запит: опції ракет передаються лише коли відрізняються від типових", () => {
+  const base = plan.buildPlanRequest(plan.DEFAULT_FORM, state);
+  assert.ok(!("include_design_targets" in base) && !("allow_multiple_launches" in base));
+  const body = plan.buildPlanRequest({ ...plan.DEFAULT_FORM, includeDesign: false, multiLaunch: true }, state);
+  assert.equal(body.include_design_targets, false);
+  assert.equal(body.allow_multiple_launches, true);
+});

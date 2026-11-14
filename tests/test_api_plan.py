@@ -110,3 +110,9 @@ def test_surface_period_can_stay_as_requested_and_follows_trajectory(client):
     slow = plan(client, trajectories=["low_energy"]).get_json()
     assert slow["surface_period"]["assumed_flight_days"] == 105.0
     assert plan(client, surface_after_arrival="yes").status_code == 400
+
+
+def test_plan_launch_options_are_passed_through(client):
+    data = plan(client, include_design_targets=False, allow_multiple_launches=True).get_json()
+    lead = data["plans"][0]["launch"]
+    assert lead["vehicle"]["status"] != "design_target"

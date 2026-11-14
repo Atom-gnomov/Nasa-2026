@@ -10,6 +10,7 @@ from app.services import advice as advice_service
 from app.services import search as search_service
 from app.services import events as events_service
 from app.services import meta as meta_service
+from app.services import mission as mission_service
 from app.services import terrain as terrain_service
 from app.services import timeline as timeline_service
 
@@ -339,6 +340,18 @@ def rank():
         return _error(400, str(exc))
     except RuntimeError as exc:
         return _error(503, str(exc))
+
+
+@bp.post("/mission")
+def mission():
+    """Маса, вартість і ризик місії (docs/MATH.md, §20); коефіцієнти тимчасові."""
+    body = request.get_json(silent=True)
+    try:
+        return jsonify(mission_service.compute(body if body is not None else {}))
+    except mission_service.LaunchSiteNotFound as exc:
+        return _error(404, str(exc))
+    except ValueError as exc:  # включно з mission_service.MissionError і помилками ядра
+        return _error(400, str(exc))
 
 
 @bp.errorhandler(HTTPException)

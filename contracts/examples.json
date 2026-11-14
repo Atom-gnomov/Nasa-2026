@@ -878,5 +878,99 @@
       "energy": 0.6111,
       "radiation": 0.1111
     }
+  },
+  "MissionRequest": {
+    "crew": 2,
+    "days": 14,
+    "sizes": {
+      "equipment": "basic",
+      "life_support": "basic",
+      "comfort": "min"
+    },
+    "trajectory": "direct",
+    "launch_site_id": "kourou",
+    "longest_night_h": 300
+  },
+  "MissionResponse": {
+    "cost": {
+      "flight_time_days": [
+        3.0,
+        5.0
+      ],
+      "lander_usd": [
+        311541666.6667,
+        934625000.0
+      ],
+      "launch_usd": [
+        83042137.9827,
+        207605344.9568
+      ],
+      "launches": 3,
+      "mass_leo_kg": 41495.9039,
+      "mass_moon_kg": 7770.1667,
+      "mass_ratio": 5.3404,
+      "payload_usd": [
+        80840000.0,
+        323360000.0
+      ],
+      "site_factor": 1.0006,
+      "total_usd": [
+        475423804.6494,
+        1465590344.9568
+      ],
+      "trajectory": "direct",
+      "utilization": 2.3712
+    },
+    "launch_lat": 5.2646,
+    "launch_site_id": "kourou",
+    "payload": {
+      "battery_kg": 3616.6667,
+      "crew": 2,
+      "days": 14.0,
+      "heat_w": 1446.6667,
+      "masses_kg": {
+        "comfort": 174.0,
+        "equipment": 520.0,
+        "life_support": 845.3333,
+        "margin": 1295.0278,
+        "power_system": 3640.7778,
+        "structure": 1295.0278
+      },
+      "panel_kg": 24.1111,
+      "payload_kg": 1539.3333,
+      "power_w": 1446.6667,
+      "sizes": {
+        "comfort": 0.0,
+        "equipment": 0.3333,
+        "life_support": 0.3333
+      },
+      "total_kg": 7770.1667,
+      "total_range_kg": [
+        5827.625,
+        10489.725
+      ]
+    },
+    "provisional": true,
+    "risk": {
+      "band": "very_high",
+      "band_label": "дуже високий",
+      "crew_band": "high",
+      "crew_band_label": "високий",
+      "launches": 3,
+      "p_crew_loss": 0.2214,
+      "p_crew_loss_range": [
+        0.1107,
+        0.4428
+      ],
+      "p_landing": 0.4542,
+      "p_launch": 0.0775,
+      "p_systems": 0.0189,
+      "p_total": 0.5109,
+      "p_total_range": [
+        0.2555,
+        1.0
+      ],
+      "p_transit": 0.01
+    }
   }
 }

@@ -104,8 +104,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Чорнобог
 
-- **Зараз:** — (ланцюжок M10 → M19 → D7 → M20 → B15 на рев'ю: PR #44, #45, #49, #51, #53; зливати в цьому порядку)
-- **Гілка:** —
+- **Зараз:** B8 → F7 — вікно запуску: `GET /api/launch-window` і екран зі шкалою дат у %
+- **Гілка:** `chornobog/B8-launch-window`, далі `chornobog/F7-launch-window-ui`
 
 ---
 

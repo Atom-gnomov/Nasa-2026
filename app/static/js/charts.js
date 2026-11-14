@@ -5,6 +5,7 @@
 // рельєфу LOLA (horizon_source у відповіді).
 import { SYNODIC_MONTH_DAYS } from "./calendar.js";
 import { subscribe } from "./state.js";
+import { onLangChange, t as tr } from "./i18n.js";
 
 const HOUR_MS = 3_600_000;
 export const PERIOD_H = SYNODIC_MONTH_DAYS * 24;
@@ -135,13 +136,13 @@ export function drawTimeline(canvas, series, cursor = null) {
     g.stroke();
   }
   g.lineWidth = 1;
-  g.fillStyle = "rgb(245,185,66)"; g.fillText("— Сонце", pad.l + 4, 11);
-  g.fillStyle = "rgb(90,169,255)"; g.fillText("— Земля", pad.l + 60, 11);
+  g.fillStyle = "rgb(245,185,66)"; g.fillText(`— ${tr("Сонце")}`, pad.l + 4, 11);
+  g.fillStyle = "rgb(90,169,255)"; g.fillText(`— ${tr("Земля")}`, pad.l + 60, 11);
 
   // Смуги видимості: яскравість = частка диска над маскою; DSN — хоча б одна станція
   BANDS.forEach((b, k) => {
     const y = plotB + 6 + k * (bandH + bandGap);
-    g.fillStyle = muted; g.fillText(b.label, 2, y + bandH);
+    g.fillStyle = muted; g.fillText(tr(b.label), 2, y + bandH);
     for (let i = 0; i < n - 1; i++) {
       const v = b.key === "comm" ? (series.comm[i].length ? 1 : 0) : series[b.key][i];
       if (v <= 0) continue;
@@ -163,7 +164,13 @@ const canvas = typeof document === "undefined" ? null : document.getElementById(
 if (canvas) {
   const summary = document.getElementById("timeline-summary");
   const out = document.getElementById("timeline-readout");
-  let series = null, frame = null, key = null, abort = null, timer = null;
+  let series = null, frame = null, key = null, abort = null, timer = null, lastSummary = null;
+  // Підсумок — речення-шаблон з підстановкою (перекладається разом з мовою)
+  function renderSummary() {
+    if (!lastSummary) return;
+    const terrain = lastSummary.source === "flat" ? tr("гладка сфера") : `LOLA ${lastSummary.source.toUpperCase()}`;
+    summary.textContent = tr("Від {from} на 29,53 доби: Сонце {sun} % часу, зв'язок DSN {comm} %. Рельєф: {terrain}.", { ...lastSummary, terrain });
+  }
   const redraw = (cursor = null) => { if (series) frame = drawTimeline(canvas, series, cursor); };
 
   async function load({ lat, lon, datetime }) {
@@ -189,8 +196,8 @@ if (canvas) {
       series = timelineSeries(t);
       redraw();
       const s = t.summary;
-      summary.textContent = `Від ${dayMonth(series.t[0])} на 29,53 доби: Сонце ${Math.round(s.sun_fraction * 100)} % часу, ` +
-        `зв'язок DSN ${Math.round(s.comm_fraction * 100)} %. Рельєф: ${t.horizon_source === "flat" ? "гладка сфера" : "LOLA " + t.horizon_source.toUpperCase()}.`;
+      lastSummary = { from: dayMonth(series.t[0]), sun: Math.round(s.sun_fraction * 100), comm: Math.round(s.comm_fraction * 100), source: t.horizon_source };
+      renderSummary();
       out.textContent = "Наведіть курсор на графік — момент і значення.";
     } catch (err) {
       if (err.name === "AbortError") return;
@@ -209,4 +216,5 @@ if (canvas) {
   canvas.addEventListener("mouseleave", () => redraw());
   new ResizeObserver(() => redraw()).observe(canvas);
   subscribe((st) => { clearTimeout(timer); timer = setTimeout(() => load(st), 300); });
+  onLangChange(() => { renderSummary(); redraw(); });
 }

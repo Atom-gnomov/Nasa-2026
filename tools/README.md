@@ -8,5 +8,6 @@
 - `download_kernels.py` — завантаження ефемерид SPICE (DE440, PCK Місяця) у `data_cache/`.
 - `build_horizon_masks.py` — маски горизонту для точок з DEM LOLA (див. `docs/RESOURCES.md`, розділ 2).
 - `build_illumination_grid.py` — сітка «години Сонця / години зв'язку» для підбору локацій (друга черга).
+- `i18n_missing.py` — які українські тексти інтерфейсу ще не мають англійського перекладу (`app/static/js/i18n/en.json`); `--js` додає літерали JS.
 
 Великі файли (`*.bsp`, `*.tif`) не комітимо — лише скрипти.

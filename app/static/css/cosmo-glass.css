@@ -253,4 +253,13 @@ body.page-moon #surface .ui-surface-dock .surface-back {
 }
 body.page-moon #surface .ui-surface-dock .surface-back:hover { background: var(--cg-fill-strong) !important; }
 
+/* випадні списки: системне меню <select> біле, а текст у нас світлий — пункти зливалися з тлом. Робимо меню темним,
+   з світлим текстом, для всіх списків (і поля дати/числа — темна тема їхніх спливаючих вікон) */
+:root { color-scheme: dark; }
+select, input[type="datetime-local"], input[type="number"], input[type="date"], input[type="time"] { color-scheme: dark; }
+select option, select optgroup { background-color: #161a24 !important; color: #f6f8fb !important; }
+select optgroup { color: #aeb8cc !important; font-weight: 600; font-style: normal; }
+select option:disabled, select option[value=""] { color: #8c97ad !important; }
+select option:checked { background-color: #2a3346 !important; }
+
 @media (prefers-reduced-motion: reduce) { #starfield { transition: none; } }

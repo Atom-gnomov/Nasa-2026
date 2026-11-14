@@ -74,3 +74,10 @@ def test_globe_status_is_only_the_cursor_coordinates_centred_above_the_dock():
 def test_back_button_is_styled_like_the_other_dock_buttons():
     block = CSS[CSS.index(".ui-surface-dock .surface-back"):][:600]
     assert "position: static" in block and "var(--cg-fill)" in block and "font-weight: 500" in block
+
+
+def test_select_dropdown_menus_are_dark_with_light_text():
+    """Системне меню <select> біле: світлий текст пунктів зникав. Меню має бути темним для всіх списків."""
+    assert re.search(r"select option,\s*select optgroup\s*\{[^}]*background-color:\s*#[0-9a-f]{6}\s*!important", CSS)
+    assert re.search(r"select option,\s*select optgroup\s*\{[^}]*color:\s*#f6f8fb\s*!important", CSS)
+    assert re.search(r":root\s*\{\s*color-scheme:\s*dark", CSS)

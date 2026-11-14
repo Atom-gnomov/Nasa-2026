@@ -79,7 +79,7 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 - **Зараз:** —
 - **Гілка:** —
-- **Зараз (агент Claude):** — (B17, I8 на рев'ю: PR #55, #56)
+- **Зараз (агент Claude):** — (B15, B17, I8, виправлення I7 злито в `main`: PR #53, #55, #56, #58); вільний для нових задач
 - **Гілка (агент Claude):** `perun/B17-mission-profile`, далі `perun/I8-docs-env`
 
 ### Велес

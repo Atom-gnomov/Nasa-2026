@@ -1,6 +1,6 @@
 // Спільна оболонка робочого простору. DOM/ID існуючих модулів НЕ замінюємо:
 // переміщуємо наявні вузли до фіксованих віджетів, зберігаючи обробники та canvas.
-import { expandedWidget, normalizeWidgetStates, widgetTransition } from "./workspace_state.js";
+import { expandedWidget, fitSideWidgets, normalizeWidgetStates, widgetTransition } from "./workspace_state.js";
 
 const page = document.body.className.match(/page-(moon|system|search|mission|launch|plan)/)?.[1];
 const widgets = {};
@@ -103,7 +103,10 @@ function initMoon() {
         b.classList.toggle("active", active);
         b.setAttribute("aria-pressed", String(active));
       }
-      requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
+      requestAnimationFrame(() => {
+        updateSceneClearance();
+        window.dispatchEvent(new Event("resize"));
+      });
     });
     modes.append(button);
   }
@@ -178,20 +181,37 @@ function initAnalytics() {
 }
 
 let states = {};
+let preferredSide = "left";
+let currentVisibleStates = {};
+let refreshSceneClearance = () => {};
+function normalPanelWidth() {
+  const width = window.innerWidth;
+  return width <= 760 ? Math.min(275, Math.max(80, width - 68)) : Math.min(340, Math.max(285, width * 0.23));
+}
+function visibleStates() {
+  if (page !== "moon" && page !== "system") return normalizeWidgetStates(states, Object.keys(widgets));
+  return fitSideWidgets(states, window.innerWidth, normalPanelWidth(), preferredSide);
+}
+function updateSceneClearance() { refreshSceneClearance(); }
 function readState() {
   const present = Object.keys(widgets);
   let saved = {};
   try { saved = JSON.parse(sessionStorage.getItem("lse-ui-widgets:" + page) ?? "{}"); } catch { /* приватний режим */ }
+  try {
+    const side = sessionStorage.getItem("lse-ui-preferred:" + page);
+    if (side === "left" || side === "right") preferredSide = side;
+  } catch { /* приватний режим */ }
   return normalizeWidgetStates(saved, present);
 }
 
 function paint() {
-  const expanded = expandedWidget(states);
+  currentVisibleStates = visibleStates();
+  const expanded = expandedWidget(currentVisibleStates);
   root.dataset.expanded = expanded || "none";
-  root.dataset.leftState = states.left ?? "normal";
-  root.dataset.rightState = states.right ?? "normal";
+  root.dataset.leftState = currentVisibleStates.left ?? "normal";
+  root.dataset.rightState = currentVisibleStates.right ?? "normal";
   for (const [side, widget] of Object.entries(widgets)) {
-    const mode = states[side];
+    const mode = currentVisibleStates[side];
     widget.target.classList.toggle("is-collapsed", mode === "collapsed");
     widget.target.classList.toggle("is-expanded", mode === "expanded");
     widget.target.dataset.state = mode;
@@ -212,9 +232,52 @@ function paint() {
 }
 
 function updateState(side, action) {
-  states = widgetTransition(states, side, action, Object.keys(widgets));
+  // A temporarily auto-collapsed panel can be opened by the user:
+  // it becomes the preferred side and the opposite panel closes.
+  states = widgetTransition(currentVisibleStates, side, action, Object.keys(widgets));
+  preferredSide = side;
   paint();
-  try { sessionStorage.setItem("lse-ui-widgets:" + page, JSON.stringify(states)); } catch { /* приватний режим */ }
+  try {
+    sessionStorage.setItem("lse-ui-widgets:" + page, JSON.stringify(states));
+    sessionStorage.setItem("lse-ui-preferred:" + page, preferredSide);
+  } catch { /* приватний режим */ }
+}
+
+// Measure the REAL height of the dock, including after it wraps to more lines.
+ // Side widgets end above that dock instead of covering it.
+function initSceneGeometry() {
+  if (page !== "moon" && page !== "system") return;
+  const mainDock = document.querySelector("body > .ui-dock");
+  const surfaceDock = document.querySelector("#surface .ui-surface-dock");
+  const update = () => {
+    const dock = root.classList.contains("surface-active") ? surfaceDock : mainDock;
+    const rect = dock?.getBoundingClientRect();
+    const clearance = rect && rect.height ? Math.max(70, Math.ceil(window.innerHeight - rect.top + 12)) : 98;
+    root.style.setProperty("--scene-dock-space", clearance + "px");
+  };
+  refreshSceneClearance = update;
+  if (typeof ResizeObserver !== "undefined") {
+    const observer = new ResizeObserver(() => requestAnimationFrame(update));
+    if (mainDock) observer.observe(mainDock);
+    if (surfaceDock) observer.observe(surfaceDock);
+  }
+  // paint() emits a synthetic resize for the renderers; avoid an event loop.
+  window.addEventListener("resize", (event) => {
+    if (!event.isTrusted) return;
+    paint();
+    requestAnimationFrame(update);
+  }, { passive: true });
+  requestAnimationFrame(update);
+}
+
+function initHeaderNavigation() {
+  const strip = document.getElementById("header-middle");
+  const active = strip?.querySelector(".tabs [aria-current='page']");
+  if (!strip || !active) return;
+  const stripBox = strip.getBoundingClientRect();
+  const activeBox = active.getBoundingClientRect();
+  if (activeBox.right > stripBox.right) strip.scrollLeft += activeBox.right - stripBox.right + 10;
+  else if (activeBox.left < stripBox.left) strip.scrollLeft -= stripBox.left - activeBox.left + 10;
 }
 
 function initFullscreen() {
@@ -261,3 +324,5 @@ if (page === "search") initSearch();
 if (["mission", "launch", "plan"].includes(page)) initAnalytics();
 states = readState();
 paint();
+initSceneGeometry();
+initHeaderNavigation();

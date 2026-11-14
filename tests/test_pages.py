@@ -97,3 +97,11 @@ def test_scene_pages_preserve_both_canvas_and_controls(client):
     system = client.get("/system").get_data(as_text=True)
     assert 'id="surface"' in moon and 'id="moon-globe"' in moon
     assert 'id="system-view"' in system and 'id="system-sim-controls"' in system
+
+def test_header_navigation_is_one_scrollable_strip(client):
+    for page in ("/moon", "/system", "/search", "/mission", "/plan", "/launch-window"):
+        html = client.get(page).get_data(as_text=True)
+        assert 'id="header-middle"' in html
+        assert 'class="header-actions"' in html
+        assert html.index('class="brand"') < html.index('id="header-middle"') < html.index('class="header-actions"')
+        assert html.count('class="cal-step-short"') == 6

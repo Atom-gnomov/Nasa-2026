@@ -819,3 +819,135 @@ body.page-search .search-results:has(#s-table:not([hidden])) .results-heading p,
 body.page-launch .lw-results:has(#lw-table:not([hidden])) .results-heading p,
 body.page-plan .lw-results:has(#plan-table:not([hidden])) .results-heading p,
 body.page-mission .mission-result:has(#m-result:not([hidden])) .results-heading p { display: none; }
+
+/* Адаптивний хедер: ОДИН рядок на будь-якій ширині. Прокручується лише
+   центральна зона (вкладки + дата); логотип та праві кнопки залишаються видимими. */
+#site-header.topbar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: clamp(6px, .7vw, 13px);
+  padding: 7px clamp(7px, 1vw, 16px);
+  min-height: 58px;
+  width: 100%;
+}
+#site-header .brand {
+  flex: 0 0 auto;
+  width: auto;
+  white-space: nowrap;
+  min-width: 0;
+  gap: 7px;
+}
+#site-header .brand-mark { width: 33px; height: 33px; font-size: 24px; border-radius: 10px; }
+#site-header .brand .logo { font-size: 13px; }
+#site-header .header-middle {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  gap: clamp(5px, .6vw, 11px);
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(147,162,183,.32) transparent;
+  overscroll-behavior-x: contain;
+}
+#site-header .header-middle .tabs {
+  order: 0;
+  display: flex;
+  flex: 0 0 auto;
+  min-width: max-content;
+  max-width: none;
+  flex-wrap: nowrap;
+  overflow: visible;
+  gap: 1px;
+}
+#site-header .header-middle .tabs a { font-size: 12px; padding: 8px 7px; }
+#site-header .header-middle .calendar {
+  order: 0;
+  display: flex;
+  flex: 0 0 auto;
+  width: auto;
+  min-width: max-content;
+  max-width: none;
+  margin: 0;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  gap: 4px;
+}
+#site-header .header-middle .calendar > label { flex: 0 0 auto; font-size: 11px; }
+#site-header .header-middle .calendar .cal-steps { display: flex; flex-wrap: nowrap; white-space: nowrap; }
+#site-header .header-middle .cal-steps button {
+  white-space: nowrap;
+  font-size: 11px;
+  padding: 5px 6px;
+}
+#site-header .header-middle #calendar-input {
+  flex: 0 0 159px;
+  min-width: 159px;
+  width: 159px;
+  max-width: 159px;
+  min-height: 33px;
+  padding: 4px 5px;
+  font-size: 12px;
+}
+#site-header .cal-step-short { display: none; }
+#site-header .header-actions {
+  order: 0;
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  gap: 5px;
+  margin: 0;
+  align-items: center;
+}
+#site-header .header-actions .lang-switch { flex: 0 0 auto; }
+#site-header .header-actions .lang-switch button { padding: 6px 7px; font-size: 11px; }
+#site-header .header-actions .header-icon { width: 33px; height: 33px; }
+@media (max-width: 1660px) {
+  #site-header .cal-step-full { display: none; }
+  #site-header .cal-step-short { display: inline; }
+}
+@media (max-width: 1000px) {
+  #site-header.topbar { gap: 6px; padding: 7px; }
+  #site-header .brand .logo { font-size: 11px; }
+  #site-header .brand-mark { width: 30px; height: 30px; }
+  #site-header .header-actions .header-icon { width: 30px; height: 30px; font-size: 16px; }
+  #site-header .header-actions .lang-switch button { padding: 5px; }
+}
+@media (max-width: 480px) {
+  #site-header .brand { gap: 3px; }
+  #site-header .brand .logo { max-width: 93px; font-size: 10px; line-height: 1.15; white-space: normal; }
+  #site-header .brand-mark { width: 27px; height: 27px; font-size: 21px; }
+  #site-header .header-actions { gap: 2px; }
+  #site-header .header-actions .header-icon { width: 27px; height: 30px; }
+}
+#site-header .header-middle:focus-visible { outline: 1px solid var(--accent); outline-offset: -2px; border-radius: 4px; }
+
+/* Висоту бокових панелей визначає фактичний нижній док. Зміна висоти
+   дока (перенос рядків, дата, збільшення шрифту, згортання) не дає перетину. */
+body.page-moon .ui-scene-widget:not(.is-collapsed):not(.is-expanded),
+body.page-system .ui-scene-widget:not(.is-collapsed):not(.is-expanded),
+body.page-moon #metrics-overlay.ui-scene-widget:not(.is-collapsed):not(.is-expanded),
+body.page-system .system-info.ui-scene-widget:not(.is-collapsed):not(.is-expanded) {
+  bottom: var(--scene-dock-space, 98px);
+}
+body.page-moon .ui-scene-widget.is-expanded,
+body.page-system .ui-scene-widget.is-expanded {
+  bottom: 0;
+}
+
+/* Вузькі екрани: при розгортанні займаємо все робоче поле,
+   згорнуту протилежну панель не кладемо поверх відкритої. */
+@media (max-width: 760px) {
+  body.page-moon[data-expanded="left"] .ui-widget-right.is-collapsed,
+  body.page-moon[data-expanded="right"] .ui-widget-left.is-collapsed,
+  body.page-system[data-expanded="left"] .ui-widget-right.is-collapsed,
+  body.page-system[data-expanded="right"] .ui-widget-left.is-collapsed { display: none; }
+  body.page-moon[data-expanded="left"] > .ui-dock,
+  body.page-moon[data-expanded="right"] > .ui-dock,
+  body.page-system[data-expanded="left"] > .ui-dock,
+  body.page-system[data-expanded="right"] > .ui-dock { display: none; }
+}

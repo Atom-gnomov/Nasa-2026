@@ -28,3 +28,17 @@ export function widgetTransition(raw, side, action, present = SIDES) {
 }
 
 export const expandedWidget = (states) => SIDES.find((side) => states?.[side] === "expanded") ?? "";
+
+/**
+ * Keep both panels open whenever they fit. When the viewport becomes too
+ * narrow, collapse only the opposite panel in the *rendered* state; the
+ * caller's saved preference is not mutated and returns on wider screens.
+ */
+export function fitSideWidgets(raw, viewportWidth, panelWidth, preferredSide = "left", gap = 50) {
+  const next = normalizeWidgetStates(raw);
+  const width = Number(viewportWidth), panel = Number(panelWidth);
+  if (!Number.isFinite(width) || !Number.isFinite(panel) || width >= panel * 2 + gap ||
+      expandedWidget(next) || next.left === "collapsed" || next.right === "collapsed") return next;
+  next[preferredSide === "right" ? "left" : "right"] = "collapsed";
+  return next;
+}

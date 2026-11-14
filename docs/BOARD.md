@@ -84,8 +84,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Велес
 
-- **Зараз:** G6 — режими якості й 2D-заглушка без WebGL; F5 — графіки таймлайну (кут Сонця/Землі, вікна зв'язку)
-- **Гілка:** `veles/G6-quality-2d`, `veles/F5-timeline-charts`
+- **Зараз:** —
+- **Гілка:** —
 
 ### Ярило
 
@@ -134,6 +134,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 - F4 — Порівняння двох місць (`compare.js`) — гілка `veles/F4-compare`, PR #19
 - D2 — Станції DSN за 810-005 модуль 301 Rev. P, примітки до місць старту — гілка `veles/D2-dsn-launch-sites`, PR #29
 - D5 — Пороги профілів місії з першоджерел (`mission_thresholds.json`) — гілка `veles/D5-profile-sources`, PR #30
+- G6 — Режими якості 3D «низька / висока» і 2D-заглушка без WebGL — гілка `veles/G6-quality-2d`, PR #31
+- F5 — Графіки таймлайну: Сонце, Земля й зв'язок DSN за місячну добу — гілка `veles/F5-timeline-charts`, PR #32
 
 ### Ярило
 

@@ -740,7 +740,7 @@ async function main() {
     scene.add(pts);
     return pts;
   };
-  const sitePoints = makePoints(9, 0xdfe6ff);
+  const sitePoints = makePoints(9, 0xb8bfcc); // історичні місця: сірі
   const resultPoints = makePoints(11, 0x4fc3f7); // результати підбору (вкладка «Підбір» на цій же сторінці)
   const resultBest = makePoints(19, 0x7bed9f); // найкращий результат
   const selectedPoint = makePoints(15, 0xf5b942);
@@ -830,6 +830,33 @@ async function main() {
   camera.position.copy(globeCameraFor(-40, 0, 3.0));
   configureControls("globe");
 
+  // Центрування на вибраній точці: з вкладки «Підбір», зі списку місць, за координатами.
+  // Камера в globe-виді має вісь «вгору» Y, тому біля полюса не доводимо до самої осі (<= 85°).
+  let centered = null;
+  function centerOnSelected(instant) {
+    const { lat, lon } = getState();
+    if (lat === null || lon === null || !Number.isFinite(lat) || !Number.isFinite(lon)) return;
+    if (centered && centered.lat === lat && centered.lon === lon) return;
+    if (view !== "globe" || (anim && !instant)) return;
+    centered = { lat, lon };
+    const camLat = Math.max(-85, Math.min(85, lat));
+    const dist = Math.min(camera.position.distanceTo(controls.target) || 3, 2.2);
+    const camTo = globeCameraFor(camLat, lon, dist);
+    if (instant) {
+      camera.position.copy(camTo);
+      controls.target.set(0, 0, 0);
+      camera.lookAt(controls.target);
+      return;
+    }
+    anim = {
+      from: [...w], to: [...w], camFrom: camera.position.clone(), camTo,
+      tgtFrom: controls.target.clone(), t0: performance.now(), dur: 900,
+    };
+    controls.enabled = false;
+  }
+  centerOnSelected(true);
+  subscribe(() => centerOnSelected(false));
+
   // ---------- Сонце на дату (JPL DE440) ----------
   let lastDatetime = null;
   let sysAbort = null;
@@ -916,7 +943,11 @@ async function main() {
   renderer.domElement.addEventListener("pointerup", (ev) => {
     if (!downAt || Math.hypot(ev.clientX - downAt[0], ev.clientY - downAt[1]) > 4) return;
     const hit = pick(...eventNdc(ev));
-    if (hit) setState({ site: null, lat: Number(hit.lat.toFixed(5)), lon: Number(hit.lon.toFixed(5)) });
+    if (hit) {
+      const lat = Number(hit.lat.toFixed(5)), lon = Number(hit.lon.toFixed(5));
+      centered = { lat, lon }; // клік по глобусу камеру не рухає
+      setState({ site: null, lat, lon });
+    }
   });
 
   // ---------- Кадр ----------

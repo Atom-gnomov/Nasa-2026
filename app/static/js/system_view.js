@@ -11,7 +11,10 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { anisotropy, createScene, hasWebGL, NO_WEBGL_MESSAGE } from "./three/scene.js";
 import { mountQualitySelect, qualitySettings } from "./three/quality.js";
 import { getState, setState, subscribe } from "./state.js";
-import { AUTO_OPTIONS, choiceFact, flightFact, flightUrl, needsReload, splitExtras, stateAt, telemetryRows } from "./flight.js";
+import {
+  AUTO_OPTIONS, DESCENT_REAL_S, choiceFact, descentRows, descentState, flightFact, flightUrl, interpSystem, needsReload,
+  remapNearMoon, sampleTimes, splitExtras, stateAt, telemetryRows,
+} from "./flight.js";
 import { t } from "./i18n.js";
 
 const DEG = Math.PI / 180;
@@ -343,9 +346,21 @@ async function main() {
   // Симуляція польоту (G12): ракета на дузі й вектор швидкості
   const simRocket = new THREE.Mesh(new THREE.ConeGeometry(0.35, 1, 12), new THREE.MeshBasicMaterial({ color: 0xffe14d }));
   const velArrow = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(), 1, 0x4dd2ff, 0.3, 0.15);
+  // Полум'я двигуна на спуску й кільце-«пил» при торканні
+  const flame = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.9, 12),
+    new THREE.MeshBasicMaterial({ color: 0xff9a3c, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }));
+  flame.rotation.x = Math.PI;
+  flame.position.y = -0.95;
+  flame.visible = false;
+  simRocket.add(flame);
+  const landRing = new THREE.Mesh(new THREE.RingGeometry(0.85, 1, 48),
+    new THREE.MeshBasicMaterial({ color: 0x7bed9f, transparent: true, side: THREE.DoubleSide, depthWrite: false }));
+  landRing.visible = false;
+  scene.add(landRing);
   scene.add(flightLine, flightHead, moonAtArrival, rocketMesh, landerMesh, groundTrack, simRocket, velArrow);
   for (const o of [flightLine, flightHead, moonAtArrival, rocketMesh, landerMesh, groundTrack, simRocket, velArrow]) o.visible = false;
-  const sim = { on: false, elapsed: 0, traj: null }; // elapsed — секунди польоту від відльоту
+  // elapsed — секунди польоту від відльоту; phase: cruise (переліт) → descent (спуск) → landed (посадка)
+  const sim = { on: false, elapsed: 0, traj: null, phase: "cruise", desc: 0, u0: null, samples: null, t0: 0, landedT: 0, loading: false };
   const UP = new THREE.Vector3(0, 1, 0);
   let flight = null; // splitExtras(...) останньої відповіді
   let flightReq = null; // { siteId, ms, lat, lon } останнього запиту
@@ -386,49 +401,124 @@ async function main() {
     sim.on = false;
     if (simButton) simButton.textContent = "Симуляція";
   }
-  simButton?.addEventListener("click", () => {
+  function resetSim(traj) {
+    sim.traj = traj; sim.elapsed = 0; sim.phase = "cruise"; sim.desc = 0; sim.u0 = null; sim.samples = null; sim.landedT = 0;
+    stopSim();
+  }
+  // Відліки стану системи (щогодини від відльоту до прибуття) — Місяць і Сонце рухаються плавно, без запитів у кадрі
+  async function prepareSamples(traj) {
+    const t0 = Date.parse(traj.departure_utc);
+    const times = sampleTimes(t0, traj.times_s[traj.times_s.length - 1]);
+    const samples = [];
+    for (let i = 0; i < times.length; i += 20) {
+      const chunk = await Promise.all(times.slice(i, i + 20).map((ms) => fetchSystem(ms).then((st) => ({ ms, state: st }))));
+      samples.push(...chunk);
+    }
+    return { t0, samples };
+  }
+  simButton?.addEventListener("click", async () => {
     if (sim.on) { stopSim(); return; }
-    const t = flight?.trajectory;
-    if (!stateAt(t, 0)) return;
-    if (sim.elapsed >= t.times_s[t.times_s.length - 1]) sim.elapsed = 0;
+    if (sim.loading) return;
+    const traj = flight?.trajectory;
+    if (!stateAt(traj, 0)) return;
+    if (sim.phase === "landed") resetSim(traj); // повтор після посадки — з початку
+    if (!sim.samples) {
+      sim.loading = true;
+      simButton.disabled = true;
+      simButton.textContent = "…";
+      try { Object.assign(sim, await prepareSamples(traj)); } catch { sim.samples = null; sim.t0 = Date.parse(traj.departure_utc); }
+      sim.loading = false;
+      simButton.disabled = false;
+      if (flight?.trajectory !== traj) { simButton.textContent = "Симуляція"; return; } // політ змінили, поки вантажили
+    }
     sim.on = true;
     simButton.textContent = "Стоп";
-    playing = false; // час сцени заморожуємо: летить лише ракета
+    playing = false; // час сцени веде симуляція
     $("system-play").textContent = "▶";
   });
 
-  function updateSim(lay, dtS) {
+  const easeInOut = (x) => (x < 0.5 ? 2 * x * x : 1 - ((-2 * x + 2) ** 2) / 2);
+
+  function updateSim(lay, dtS, mM) {
     const traj = flight?.trajectory;
-    if (sim.traj !== traj) { sim.traj = traj; sim.elapsed = 0; stopSim(); } // інший політ — починаємо спочатку
+    if (sim.traj !== traj) resetSim(traj); // інший політ — починаємо спочатку
     const ok = Boolean(traj && stateAt(traj, 0));
-    if (simButton) simButton.disabled = !ok;
+    if (simButton && !sim.loading) simButton.disabled = !ok;
     if (!ok && sim.on) stopSim();
-    const show = ok && (sim.on || sim.elapsed > 0);
-    simRocket.visible = velArrow.visible = Boolean(show);
+    const show = ok && (sim.on || sim.elapsed > 0 || sim.phase !== "cruise");
+    simRocket.visible = Boolean(show);
+    velArrow.visible = Boolean(show) && sim.phase === "cruise";
+    flame.visible = Boolean(show) && sim.phase === "descent";
+    landRing.visible = Boolean(show) && sim.phase === "landed";
     if (telemetry) telemetry.hidden = !show;
     if (!show) return;
-    if (sim.on) sim.elapsed += dtS * Number($("system-sim-speed").value);
+
+    const total = traj.times_s[traj.times_s.length - 1];
+    if (sim.on && sim.phase === "cruise") sim.elapsed = Math.min(total, sim.elapsed + dtS * Number($("system-sim-speed").value));
+    if (sim.on && sim.phase === "descent") sim.desc = Math.min(1, sim.desc + dtS / DESCENT_REAL_S);
+
+    // Переліт: положення на дузі (інерціальна геоцентрична) у масштабі сцени
     const st = stateAt(traj, sim.elapsed);
-    if (st.done && sim.on) stopSim();
     const kMoon = lay.moon.pos.distanceTo(lay.earth.pos) / toScene(state.moon_km).length();
     let pos = lay.earth.pos.clone().addScaledVector(toScene(st.pos), kMoon);
-    const rel = pos.clone().sub(lay.earth.pos);
-    if (rel.length() < lay.earth.r * 1.04) pos = lay.earth.pos.clone().addScaledVector(rel.normalize(), lay.earth.r * 1.04);
-    const dir = dirScene(st.dir);
-    const h = lay.earth.r * 0.3;
+    const fromEarth = pos.clone().sub(lay.earth.pos);
+    if (fromEarth.length() < lay.earth.r * 1.04) pos = lay.earth.pos.clone().addScaledVector(fromEarth.normalize(), lay.earth.r * 1.04);
+    // Біля Місяця дуга йде в його центр — підводимо ракету лише до висоти орбіти, щоб не летіти крізь кулю
+    const rel = pos.clone().sub(lay.moon.pos);
+    const s = rel.length();
+    const dirV = dirScene(st.dir);
+    const u = s > lay.moon.r * 1e-4 ? rel.clone().normalize() : dirV.clone().negate();
+    if (s < lay.moon.r * 7) pos = lay.moon.pos.clone().addScaledVector(u, remapNearMoon(s, lay.moon.r));
+    let h = lay.earth.r * 0.3;
+    let nose = dirV;
+
+    if (sim.phase === "cruise" && sim.elapsed >= total) {
+      // Прибуття: починаємо спуск і наводимо камеру на Місяць
+      sim.phase = "descent"; sim.desc = 0; sim.u0 = u.clone();
+      setFocus("moon", true);
+    }
+    let rows = null;
+    if (sim.phase !== "cruise") {
+      const site = flight?.lander ? new THREE.Vector3(...apply3(mM.r, flight.lander.unit_me)).normalize() : sim.u0;
+      const d = descentState(sim.desc);
+      const dirU = sim.u0.clone().applyQuaternion(new THREE.Quaternion().slerp(
+        new THREE.Quaternion().setFromUnitVectors(sim.u0, site), easeInOut(d.p))).normalize();
+      const hDesc = lay.moon.r * 0.14;
+      h = THREE.MathUtils.lerp(h, hDesc, Math.min(1, d.p * 6)); // ракета «стискається» до масштабу Місяця
+      const rOrbit = lay.moon.r * 1.35, rSurface = lay.moon.r + h * 0.5;
+      pos = lay.moon.pos.clone().addScaledVector(dirU, THREE.MathUtils.lerp(rOrbit, rSurface, d.e));
+      // Орієнтація: вздовж швидкості біля прильоту, носом від поверхні при посадці
+      nose = dirV.clone().applyQuaternion(new THREE.Quaternion().slerp(new THREE.Quaternion().setFromUnitVectors(dirV, dirU), easeInOut(d.p))).normalize();
+      if (sim.phase === "descent") {
+        const flick = 0.75 + 0.25 * Math.sin(performance.now() / 45);
+        flame.scale.set(1, (1 - 0.7 * d.p) * flick * 1.3, 1);
+        if (d.landed) { sim.phase = "landed"; sim.landedT = 0; stopSim(); }
+      }
+      if (sim.phase === "landed") {
+        sim.landedT += dtS;
+        const k = (sim.landedT % 3) / 3;
+        landRing.position.copy(lay.moon.pos).addScaledVector(dirU, lay.moon.r * 1.002);
+        landRing.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dirU);
+        landRing.scale.setScalar(lay.moon.r * (0.02 + 0.2 * k));
+        landRing.material.opacity = 0.85 * (1 - k);
+        pos = lay.moon.pos.clone().addScaledVector(dirU, rSurface);
+        nose = dirU;
+      }
+      rows = descentRows(sim.phase === "landed" ? 1 : sim.desc, flight?.lander ? `${fmtLat(flight.lander.lat)}, ${fmtLon(flight.lander.lon)}` : null);
+    }
     simRocket.scale.set(h, h, h);
     simRocket.position.copy(pos);
-    simRocket.quaternion.setFromUnitVectors(UP, dir);
+    simRocket.quaternion.setFromUnitVectors(UP, nose);
     velArrow.position.copy(pos);
-    velArrow.setDirection(dir);
+    velArrow.setDirection(dirV);
     velArrow.setLength(lay.earth.r * 2.5, lay.earth.r * 0.7, lay.earth.r * 0.35);
-    const rows = telemetryRows(st);
+    rows ??= telemetryRows(st);
     const dl = $("flight-telemetry-rows");
     dl.replaceChildren(...rows.flatMap(([name, value]) => {
       const dt = document.createElement("dt");
       dt.textContent = t(name);
       const dd = document.createElement("dd");
-      dd.textContent = value;
+      dd.textContent = t(value);
       return [dt, dd];
     }));
   }
@@ -629,6 +719,18 @@ async function main() {
       if (!orbitLoading && !(Math.abs(simMs - orbitMs) < 12 * 3600000)) loadOrbits(simMs, 0);
       loadFlight(simMs); // сам вирішує, чи час відійшов достатньо (needsReload)
     }
+    const simTraj = flight?.trajectory;
+    if (simTraj && sim.traj === simTraj && (sim.on || sim.phase !== "cruise")) {
+      // Симуляція польоту: час сцени йде разом з ракетою (після прибуття завмирає) — Місяць, Земля й Сонце рухаються.
+      simMs = sim.t0 + sim.elapsed * 1000;
+      if (sim.samples) {
+        const interp = interpSystem(sim.samples, simMs);
+        if (interp) { state = interp; stateMs = Date.parse(interp.datetime); }
+      } else {
+        if (!fetching && now - lastFetch > 70) loadState(simMs);
+        if (!orbitLoading && !(Math.abs(simMs - orbitMs) < 12 * 3600000)) loadOrbits(simMs, 0);
+      }
+    }
     if (!state) { renderer.render(scene, camera); return; }
 
     // Розкладка з плавним переходом між режимами/масштабами
@@ -660,7 +762,7 @@ async function main() {
     updateOrbits(lay);
     const facts = updatePointAndStations(lay, earthRot, eM, mM, sunFromMoonKm);
     updateFlight(lay, eM, mM);
-    updateSim(lay, dt / 1000);
+    updateSim(lay, dt / 1000, mM);
     updateCamera(lay, now);
     controls.update();
     updateLabels(lay);
@@ -857,7 +959,7 @@ async function main() {
 
   function updateFacts(facts) {
     const f = { ...systemFacts(state), ...(orbitData ? orbitFacts(orbitData) : {}) };
-    if (playing) f.datetime = isoUtc(simMs).replace("T", " ");
+    if (playing || sim.on || sim.phase !== "cruise") f.datetime = isoUtc(simMs).replace("T", " ");
     f.point = facts.point ?? "не вибрано (клік по Місяцю)";
     f.dsn = facts.dsn;
     const flightExtras = flight ? Object.values(flight).filter(Boolean) : [];

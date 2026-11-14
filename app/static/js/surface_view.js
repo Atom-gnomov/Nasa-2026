@@ -294,8 +294,7 @@ function createPanorama(canvas) {
     const { W, H, scale, ppd } = geometry();
     const g = canvas.getContext("2d");
     g.setTransform(1, 0, 0, 1, 0, 0);
-    g.fillStyle = "#000";
-    g.fillRect(0, 0, W, H);
+    g.clearRect(0, 0, W, H); // небо прозоре: видно зоряне тло сторінки
     const xOf = (az) => W / 2 + wrap180(az - view.az) * ppd;
     const yOf = (el) => H / 2 - (el - view.el) * ppd;
 
@@ -385,8 +384,7 @@ function drawUnwrapped(canvas, mask, series, i, lat) {
   canvas.height = Math.round(h * dpr);
   const g = canvas.getContext("2d");
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  g.fillStyle = "#000";
-  g.fillRect(0, 0, w, h);
+  g.clearRect(0, 0, w, h);
   g.font = "11px system-ui";
   const pad = { l: 34, r: 8, t: 8, b: 18 };
   const { min, max, step } = panoramaRange(mask, series);

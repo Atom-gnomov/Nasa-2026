@@ -1,5 +1,5 @@
-{# Підбір точок: вимоги, пріоритети, результати й порада ШІ (static/js/search.js). Підключається на вкладці «Місяць»,
-   бо результати показуються на глобусі цієї ж сторінки (static/js/highlights.js → globe_view.js). #}
+{# Самостійна вкладка підбору: ліва форма, центральні результати, правий віджет ШІ.
+   Позначки точок зберігаються в sessionStorage (highlights.js) для переходу на глобус Місяця. #}
 <section id="search" class="search-layout" aria-label="Підбір точок">
   <div class="side-panel search-form">
     <h2>Вимоги</h2>
@@ -46,8 +46,8 @@
     <button type="button" id="s-run" class="primary">Знайти</button>
   </div>
 
-  <div class="search-results">
-    <h2>Результати</h2>
+  <div class="search-results workspace-results">
+    <header class="results-heading"><h2>Результати</h2><p class="muted small">Результати з’являться після натискання «Знайти».</p></header>
     <p id="s-status" class="globe-warn" role="status" hidden></p>
     <p id="s-note" class="muted small"></p>
     <p id="s-compare" class="compare-note" hidden></p>
@@ -71,7 +71,7 @@
       <p id="s-advice-status" class="globe-warn" role="status" hidden></p>
       <div id="s-advice-out" hidden></div>
     </section>
-    <p class="muted small">★ — недомінована точка (жодна допустима не краща за всіма факторами). Результати позначено на карті Місяця вище (зелена — найкраща, блакитні — решта). Клік по рядку вибирає місце: воно з'являється на карті й в оверлеї метрик. Оцінка — за абсолютними шкалами (docs/MATH.md, §19), тож не залежить від інших кандидатів.</p>
+    <p class="muted small">★ — недомінована точка (жодна допустима не краща за всіма факторами). Результати можна побачити на вкладці «Місяць» (зелена — найкраща, блакитні — решта). Клік по рядку вибирає місце й відкриває його на глобусі з метриками. Оцінка — за абсолютними шкалами (docs/MATH.md, §19), тож не залежить від інших кандидатів.</p>
     {# TODO: місце старту / вартість / ризик у результатах — після моделі запусків #}
   </div>
 </section>

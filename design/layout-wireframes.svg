@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1450" viewBox="0 0 1500 1450" role="img" aria-label="Схеми повноекранного інтерфейсу Lunar Site Explorer: звичайний, розгорнутий і аналітичний вигляди">
+<style>
+  .bg{fill:#0b1019}.head{fill:#273347;stroke:#53657d;stroke-width:2}.panel{fill:#263c54;fill-opacity:.9;stroke:#90a8c0;stroke-opacity:.55;stroke-width:2}.scene{fill:#0b1626;stroke:#546c87;stroke-width:2}.accent{fill:#f5b942}.text{font:21px system-ui,sans-serif;fill:#eff3fa}.small{font:16px system-ui,sans-serif;fill:#a7bad0}.section{font:700 27px system-ui,sans-serif;fill:#f5b942}.line{stroke:#7590ab;stroke-width:2;fill:none}.moon{fill:#ccd0d7;stroke:#e7e8ed;stroke-width:2}.crater{fill:none;stroke:#818895;stroke-opacity:.7;stroke-width:3}
+</style>
+<rect class="bg" width="1500" height="1450"/>
+<text class="section" x="70" y="52">01 — Звичайний режим / карта повного розміру</text>
+<g transform="translate(55 82)">
+  <rect class="scene" width="1390" height="374" rx="16"/>
+  <rect class="head" width="1390" height="62" rx="11"/>
+  <text class="text" x="20" y="39">☾ Lunar Site Explorer</text>
+  <text class="small" x="330" y="38">Місяць  |  Система  |  Підбір  |  Місія  |  Вікно запуску</text>
+  <text class="small" x="1010" y="38">← Дата UTC →   UA  ⛶  ?</text>
+  <circle class="moon" cx="694" cy="212" r="115"/>
+  <circle class="crater" cx="650" cy="167" r="28"/>
+  <circle class="crater" cx="755" cy="245" r="42"/>
+  <circle class="crater" cx="684" cy="273" r="21"/>
+  <rect class="panel" x="16" y="79" width="300" height="228" rx="13"/>
+  <text class="text" x="35" y="113">Вибір / графіки</text>
+  <text class="small" x="35" y="146">Каталог · координати</text>
+  <path class="line" d="M35 260 L78 235 112 246 149 190 192 205 253 158"/>
+  <rect class="panel" x="1075" y="79" width="299" height="228" rx="13"/>
+  <text class="text" x="1095" y="113">Метрики</text>
+  <text class="small" x="1095" y="152">Висота     −2804 м</text>
+  <text class="small" x="1095" y="180">Сонце        −32°</text>
+  <text class="small" x="1095" y="208">Земля         47°</text>
+  <text class="small" x="1095" y="236">Зв'язок    100 %</text>
+  <rect class="panel" x="370" y="314" width="650" height="43" rx="11"/>
+  <text class="small" x="394" y="342">Куля · Карта · Полюс · Шари · Сітка · Рельєф · ⚙</text>
+</g>
+<text class="section" x="70" y="521">02 — Розгорнутий лівий віджет / реальне зменшення 3D-сцени</text>
+<g transform="translate(55 547)">
+  <rect class="scene" width="1390" height="360" rx="16"/>
+  <rect class="head" width="1390" height="62" rx="11"/>
+  <text class="text" x="20" y="40">☾ Lunar Site Explorer</text>
+  <text class="small" x="330" y="40">Вкладки · Дата UTC · Інструменти</text>
+  <rect class="panel" x="0" y="63" width="695" height="297" rx="0"/>
+  <text class="text" x="24" y="100">Віджет: 50 % робочого поля</text>
+  <text class="small" x="24" y="140">Координати, графіки, власний скрол</text>
+  <path class="line" d="M35 305 L88 265 138 280 202 202 261 229 350 168 495 187 630 136"/>
+  <rect x="695" y="63" width="695" height="297" fill="#0b1626"/>
+  <circle class="moon" cx="1050" cy="205" r="106"/>
+  <circle class="crater" cx="1030" cy="173" r="34"/>
+  <circle class="crater" cx="1095" cy="238" r="24"/>
+  <rect class="panel" x="1330" y="81" width="43" height="43" rx="11"/>
+  <text class="text" x="1343" y="110">‹</text>
+  <rect class="panel" x="820" y="308" width="466" height="39" rx="10"/>
+  <text class="small" x="839" y="334">Інструменти карти</text>
+  <path class="line" d="M695 63V359"/>
+</g>
+<text class="section" x="70" y="979">03 — Підбір / аналітична вкладка без карти</text>
+<g transform="translate(55 1006)">
+  <rect class="scene" width="1390" height="342" rx="16"/>
+  <rect class="head" width="1390" height="62" rx="11"/>
+  <text class="text" x="20" y="40">☾ Lunar Site Explorer</text>
+  <text class="small" x="333" y="40">Підбір — активна вкладка       ← Дата UTC →      UA ⛶ ?</text>
+  <rect class="panel" x="16" y="80" width="300" height="245" rx="12"/>
+  <text class="text" x="32" y="117">Критерії підбору</text>
+  <text class="small" x="32" y="158">Область · Період</text>
+  <text class="small" x="32" y="189">Сонце · DSN</text>
+  <text class="small" x="32" y="221">Пріоритети</text>
+  <rect class="accent" x="34" y="251" width="130" height="37" rx="8"/>
+  <text x="48" y="277" style="font:700 16px system-ui;fill:#16202c">Знайти</text>
+  <rect class="panel" x="334" y="80" width="700" height="245" rx="12"/>
+  <text class="text" x="355" y="117">Результати: рейтинг і таблиця</text>
+  <path class="line" d="M355 161H1004 M355 203H1004 M355 246H1004 M355 289H1004"/>
+  <rect class="panel" x="1052" y="80" width="322" height="245" rx="12"/>
+  <text class="text" x="1070" y="117">ШІ-поради</text>
+  <text class="small" x="1070" y="161">Пояснення результатів</text>
+  <text class="small" x="1070" y="195">Рекомендації щодо</text>
+  <text class="small" x="1070" y="220">критеріїв і компромісів</text>
+</g>
+<text class="small" x="70" y="1406">У «Місії», «Вікні запуску» й «Плані місії» правого віджета немає — центр розширюється.</text>
+</svg>

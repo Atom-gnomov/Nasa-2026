@@ -122,6 +122,19 @@ function initSystem() {
   if (flight) left.append(flight);
   const point = element("p", "muted small", "Оберіть об'єкт або параметри польоту. Місце посадки можна вибрати на Місяці.");
   left.append(point);
+  // Пере-використовуємо наявний графік /api/timeline для вибраної точки.
+  // Цей canvas створюється до завантаження charts.js з system.html.
+  const graph = element("section", "system-graph");
+  graph.append(element("h3", "", "Сонце, Земля й зв'язок за місячну добу"));
+  const chart = element("canvas", "timeline-chart");
+  chart.id = "timeline-chart";
+  chart.setAttribute("aria-label", "Кут Сонця й Землі над горизонтом і вікна зв'язку DSN за місячну добу");
+  const summary = element("p", "muted small", "Виберіть місце на Місяці");
+  summary.id = "timeline-summary";
+  const readout = element("p", "muted small");
+  readout.id = "timeline-readout";
+  graph.append(chart, summary, readout);
+  left.append(graph);
   prepareWidget(left, "left", "Вибір об'єкта та польоту", { scene: true });
   const right = layout.querySelector(".system-info");
   const rightBody = prepareWidget(right, "right", "Метрики системи", { scene: true });

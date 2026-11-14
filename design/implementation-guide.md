@@ -16,6 +16,7 @@
 | `app/static/js/workspace_state.js` | Чиста модель переходів станів; без DOM; тести в Node |
 | `app/static/js/workspace_ui.js` | Переносить **існуючі** DOM-вузли у віджети, не змінюючи їхні ID; додає collapse/expand, керування сценою і fullscreen; sessionStorage |
 | `app/templates/moon.html` | Залишає глобус без вбудованого підбору; вибір та графіки зберігаються |
+| `app/templates/system.html` | Підключає вже існуючий `charts.js`; `workspace_ui.js` створює ліворуч canvas таймлайну Сонця/Землі/DSN для вибраного місця |
 | `app/templates/search.html`, `app/routes/pages.py` | `GET /search` — самостійна аналітична сторінка |
 | `app/templates/_search.html` | Оновлений текст про перехід результатів на глобус |
 | `app/static/js/search.js`, `app/static/js/highlights.js` | Підбір переходить на `/moon` з вибраною точкою; координати результатів зберігаються у sessionStorage |

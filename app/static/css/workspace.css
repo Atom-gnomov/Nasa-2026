@@ -552,3 +552,9 @@ body.page-moon #surface .surface-back:hover { background: rgba(43,61,84,.95); }
   body.page-search[data-expanded="left"] #search.search-layout { grid-template-columns: minmax(0,1fr) minmax(0,1fr) 43px; }
   body.page-search[data-expanded="right"] #search.search-layout { grid-template-columns: 43px minmax(0,1fr) minmax(0,1fr); }
 }
+
+/* Сонце / Земля / DSN за місячну добу — графік у лівому віджеті «Системи». */
+body.page-system .system-graph { border-top: 1px solid var(--glass-stroke); padding-top: 12px; min-width: 0; }
+body.page-system .system-graph h3 { margin: 0 0 8px; font-size: 13px; }
+body.page-system .system-graph .timeline-chart { width: 100%; height: 175px; }
+body.page-system .system-graph p { margin: 6px 0 0; font-size: 11px; }

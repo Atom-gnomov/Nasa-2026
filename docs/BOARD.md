@@ -104,8 +104,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Чорнобог
 
-- **Зараз:** — (на рев'ю: B15 #53, B8 #54, F7 #57)
-- **Гілка:** —
+- **Зараз:** виправлення Windows у `app/services/bootstrap.py` (I7): перевірка живого процесу (`os.kill(pid, 0)` → WinError 87) і кодування журналу; на рев'ю: B15 #53, B8 #54, F7 #57
+- **Гілка:** `chornobog/fix-bootstrap-windows`
 
 ---
 

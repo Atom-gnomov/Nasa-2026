@@ -1373,3 +1373,9 @@ body.page-moon #surface .ui-surface-dock .dock-header {
     max-height: calc(100dvh - var(--header-h) - 16px);
   }
 }
+
+/* Category tabs replace the redundant long dock heading, avoiding an
+   unnecessary horizontally scrolling row on 1366–1440px screens. */
+body.page-moon > .ui-tabbed-dock .dock-title,
+body.page-system > .ui-tabbed-dock .dock-title,
+body.page-moon #surface .ui-surface-dock .dock-title { display:none; }

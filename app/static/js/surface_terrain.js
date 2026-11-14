@@ -151,6 +151,20 @@ export function earthPhase(sunAz, sunEl, earthAz, earthEl) {
   return { fraction: (1 - cosEps) / 2, bearing, elongation: Math.acos(cosEps) / DEG };
 }
 
+// ---------- Фотометрія реголіту (G13) ----------
+// Місячний реголіт не ламбертів: майже не темніє до краю диска й має пік протидії, коли Сонце за спиною спостерігача.
+// Модель «Місяць–Ламберт» (McEwen 1991) з піком протидії Hapke: f = 2L·μ0/(μ0+μ) + (1−L)·μ0, помножене на
+// S(g) = 1 + B0 / (1 + tan(g/2)/h). μ0 = cos кута падіння, μ = cos кута виходу, g — фазовий кут.
+// При μ0 = μ = 1 і g ≫ h результат 1, тож яскравість порівнянна з законом Ламберта; тінь (μ0 = 0) дає 0.
+export const PHOTOMETRY = { L: 0.8, B0: 0.5, h: 0.06 };
+export function lunarReflectance(mu0, mu, cosG, m = PHOTOMETRY) {
+  if (!(mu0 > 0)) return 0;
+  const mue = Math.max(mu, 1e-3);
+  const base = 2 * m.L * mu0 / (mu0 + mue) + (1 - m.L) * mu0;
+  const g = Math.acos(Math.max(-1, Math.min(1, cosG)));
+  return base * (1 + m.B0 / (1 + Math.tan(g / 2) / m.h));
+}
+
 // ---------- Панорама ----------
 // Яскравість пікселя: ambient (земне сяйво, умовне) + частка освітлення. Один сірий канал — реголіт без кольору.
 export function shadeGray(light, ambient = 0.03, fill = 1) {
@@ -163,7 +177,8 @@ const rgba = (g) => (0xff000000 | (g << 16) | (g << 8) | g) >>> 0;
 // Алгоритм «карта висот»: для кожного стовпця промінь іде від близького до далекого; піксель малюється
 // лише коли точка поверхні вища за все, що вже намальовано ближче, — кожен піксель пишеться один раз.
 export function renderTerrain(p, light, o) {
-  const { pixels, width: W, height: H, viewAz, viewEl, fov, eye = 2, exag = 1, mask = null, ambient = 0.03, fill = null, rings = null } = o;
+  const { pixels, width: W, height: H, viewAz, viewEl, fov, eye = 2, exag = 1, mask = null, ambient = 0.03, fill = null, rings = null, photometry = null } = o;
+  const sunV = photometry ? skyVector(photometry.sunAz, photometry.sunEl) : null;
   const ppd = W / fov, cy = H / 2, R = R_MOON_M;
   pixels.fill(0);
   const steps = p ? terrainSteps(p) : null;
@@ -193,7 +208,12 @@ export function renderTerrain(p, light, o) {
         if (yi < 0) yi = 0;
         if (yi >= ymin) continue;
         const jj = Math.round(p.c + e / p.s), ii = Math.round(p.c + nn / p.s);
-        const col = rgba(shadeGray(light ? light[ii * p.n + jj] : 0, ambient, fill ? fill[ii * p.n + jj] : 1));
+        let lit = light ? light[ii * p.n + jj] : 0;
+        if (sunV && lit > 0) { // G13: фотометрія реголіту замість закону Ламберта
+          const r = skyVector(az, el);
+          lit = lunarReflectance(lit, Math.sin(Math.max(-el, 0) * DEG) + 0.04, -(sunV[0] * r[0] + sunV[1] * r[1] + sunV[2] * r[2]));
+        }
+        const col = rgba(shadeGray(lit, ambient, fill ? fill[ii * p.n + jj] : 1));
         for (let y = yi; y < ymin; y++) pixels[y * W + x] = col;
         if (pendingRing) {
           pixels[yi * W + x] = RING;

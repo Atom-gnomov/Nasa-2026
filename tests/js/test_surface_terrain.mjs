@@ -189,3 +189,37 @@ test("кільця дальності: на ґрунті з'являється �
   const none = frame(360, 180);
   assert.equal(t.renderTerrain(p, light, { ...none, viewAz: 0, viewEl: 0, fov: 90 }).ringRows.length, 0);
 });
+
+// ---------- G13: фотометрія реголіту ----------
+test("відбиття реголіту: тінь — 0, при нормальному падінні ≈ закон Ламберта, пік протидії при g → 0", () => {
+  assert.equal(t.lunarReflectance(0, 1, 0), 0);
+  const noSurge = { ...t.PHOTOMETRY, B0: 0 };
+  assert.ok(Math.abs(t.lunarReflectance(1, 1, 0.0, noSurge) - 1) < 1e-9); // μ0 = μ = 1, без піку
+  const opposition = t.lunarReflectance(0.8, 0.5, 1); // Сонце за спиною (g = 0)
+  const quadrature = t.lunarReflectance(0.8, 0.5, 0);  // g = 90°
+  assert.ok(opposition > quadrature * 1.3, `${opposition} vs ${quadrature}`);
+});
+
+test("відбиття реголіту: майже не темніє до краю диска, на відміну від Ламберта (μ0 → 0 лишається внесок μ0)", () => {
+  const noSurge = { ...t.PHOTOMETRY, B0: 0 };
+  const lambertRatio = 0.2 / 0.8; // Ламберт: відношення яскравості при μ0 = 0,2 і 0,8
+  const ratio = t.lunarReflectance(0.2, 0.3, 0, noSurge) / t.lunarReflectance(0.8, 0.3, 0, noSurge);
+  assert.ok(ratio > lambertRatio, `${ratio} має бути більшим за ${lambertRatio}`);
+});
+
+test("renderTerrain: без photometry результат той самий, що раніше; з нею — змінюється лише освітлені пікселі", () => {
+  const p = patch(41, 5);
+  const light = new Float32Array(p.n * p.n).fill(0.6);
+  const mk = () => ({ pixels: new Uint32Array(80 * 40), width: 80, height: 40, viewAz: 0, viewEl: -5, fov: 60, eye: 2 });
+  const a = mk(), b = mk(), c = mk();
+  t.renderTerrain(p, light, a);
+  t.renderTerrain(p, light, { ...b, photometry: null });
+  t.renderTerrain(p, light, { ...c, photometry: { sunAz: 180, sunEl: 30 } });
+  assert.deepEqual(a.pixels, b.pixels);
+  assert.notDeepEqual(a.pixels, c.pixels);
+  const dark = new Float32Array(p.n * p.n); // тінь: фотометрія нічого не додає
+  const d = mk(), e = mk();
+  t.renderTerrain(p, dark, d);
+  t.renderTerrain(p, dark, { ...e, photometry: { sunAz: 180, sunEl: 30 } });
+  assert.deepEqual(d.pixels, e.pixels);
+});

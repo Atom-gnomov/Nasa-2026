@@ -27,8 +27,10 @@
             "quantity": {
               "type": "string",
               "pattern": "^[a-z0-9_]+$",
-              "description": "capacity_leo_kg, capacity_sso_kg, capacity_polar_kg, capacity_gto_kg, drop_altitude_m, carrier_aircraft, launch_position, flights, last_flight…"
+              "description": "capacity_leo_kg, capacity_sso_kg, capacity_polar_kg, capacity_gto_kg, drop_altitude_m, carrier_aircraft, launch_position, flights, last_flight…; D8: flights_total / flights_failed (статистика польотів, з as_of), price_usd_per_kg_leo_min / price_usd_per_kg_leo_max"
             },
+            "as_of": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$", "description": "Дата, станом на яку пораховано значення, що змінюється з часом (кількість польотів)"},
+            "derivation": {"type": "string", "description": "Як значення обчислено з цитованого джерела"},
             "value": {"type": ["number", "string"]},
             "unit": {"type": "string"},
             "as_published": {"type": "string", "description": "Значення так, як у джерелі (одиниці автора), коли воно перераховане в SI"},
@@ -48,7 +50,13 @@
             "quote": {"type": "string", "minLength": 10, "description": "Дослівна цитата, що підтверджує значення"},
             "note": {"type": "string"}
           },
-          "dependentRequired": {"as_published": ["unit"]}
+          "dependentRequired": {"as_published": ["unit"]},
+          "allOf": [
+            {"if": {"properties": {"quantity": {"enum": ["flights_total", "flights_failed"]}}, "required": ["quantity"]},
+             "then": {"properties": {"value": {"type": "integer", "minimum": 0}, "unit": {"const": "flights"}}, "required": ["as_of", "unit"]}},
+            {"if": {"properties": {"quantity": {"enum": ["price_usd_per_kg_leo_min", "price_usd_per_kg_leo_max"]}}, "required": ["quantity"]},
+             "then": {"properties": {"value": {"type": "number", "exclusiveMinimum": 0}, "unit": {"const": "USD/kg"}}, "required": ["unit"]}}
+          ]
         }
       }
     }

@@ -1,6 +1,6 @@
 """HTML-сторінки (вкладки інтерфейсу)."""
 
-from flask import Blueprint, current_app, redirect, render_template, send_from_directory, url_for
+from flask import Blueprint, current_app, redirect, render_template, request, send_from_directory, url_for
 
 bp = Blueprint("pages", __name__)
 
@@ -21,7 +21,7 @@ def moon():
 @bp.get("/search")
 def search():
     """«Підбір» живе на сторінці «Місяць» під глобусом (результати позначаються на карті): стара адреса веде туди."""
-    return redirect(url_for("pages.moon") + "#search")
+    return redirect(url_for("pages.moon", **request.args) + "#search")  # параметри (дата, місце, lang) зберігаються
 
 
 @bp.get("/system")

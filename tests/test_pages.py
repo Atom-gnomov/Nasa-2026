@@ -52,3 +52,14 @@ def test_system_assets_served_from_cache_dir(app, tmp_path):
     client = app.test_client()
     assert client.get("/assets/system/system.json").get_json() == {"version": 2}
     assert client.get("/assets/system/missing.glb").status_code == 404
+
+
+def test_search_redirect_keeps_query_parameters(client):
+    """Стара адреса /search веде на «Місяць» і зберігає дату, місце й мову (раніше ?lang=en губився)."""
+    res = client.get("/search?lang=en&datetime=2027-07-01T00:00Z&lat=-85&lon=0")
+    assert res.status_code == 302
+    location = res.headers["Location"]
+    assert location.startswith("/moon?") and location.endswith("#search")
+    for part in ("lang=en", "datetime=2027-07-01T00:00Z", "lat=-85", "lon=0"):
+        assert part in location
+    assert client.get("/search").headers["Location"] == "/moon#search"

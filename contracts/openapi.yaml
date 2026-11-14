@@ -573,6 +573,34 @@ paths:
         "404": {$ref: "#/components/responses/NotFound"}
         "503": {$ref: "#/components/responses/Unavailable"}
 
+  /plan:
+    post:
+      tags: [planning]
+      x-status: implemented
+      summary: Повний план місії одним викликом — місце посадки, старт, ракета, траєкторія, маршрут
+      description: |
+        Оркеструє `/search` (місця посадки за вимогами, M23) → `/mission` (маса корисного навантаження) →
+        `/launch-ranking` (майданчик, ракета, траєкторія для кожного місця) → `/mission` для лідера (повна місія).
+        **Автовибір.** Лідер — оптимум серед місць, що виконують усі жорсткі вимоги; якщо таких немає
+        (`hard_requirements_met: false`), то місця з найменшою кількістю порушень, із поясненням `explanation`.
+        Невідомі вимоги (`unchecked`) і м'які попередження (`warnings`) лише позначаються. Сітка кандидатів і бюджет
+        часу — як у `/search`. Підсумкова оцінка плану — добуток оцінки місця й оцінки запуску (у відсотках).
+        `route` придатний для анімації польоту (G12). Коефіцієнти вартості й ризику тимчасові (`provisional`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/PlanRequest"}
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PlanResponse"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "503": {$ref: "#/components/responses/Unavailable"}
+
   /launch-window:
     get:
       tags: [planning]
@@ -2211,6 +2239,92 @@ components:
           description: Оцінки факторів 0…1 («більше — краще») для факторів із пріоритетів
           additionalProperties: {type: number, minimum: 0, maximum: 1}
         provisional_fields: {type: array, items: {type: string}}
+
+    PlanRequest:
+      type: object
+      required: [start, end]
+      additionalProperties: false
+      description: |
+        Поля вибору місця — як у SearchRequest (регіон, сітка, вимоги, профіль місії, пріоритети місця),
+        поля запуску — як у LaunchRankingRequest, склад місії — як у MissionRequest.
+      properties:
+        start: {type: string, format: date-time}
+        end: {type: string, format: date-time}
+        departure: {type: string, format: date-time, description: Момент старту TLI; без нього — start}
+        region: {type: object}
+        include_catalog: {type: boolean}
+        grid_step_deg: {type: number}
+        max_candidates: {type: integer}
+        step_h: {type: number}
+        height_m: {type: number}
+        priorities: {type: array, items: {type: string}, description: Пріоритети вибору місця посадки}
+        mode: {type: string, enum: [weighted, maximin]}
+        params: {type: object}
+        min_sun_hours: {type: number, minimum: 0}
+        min_comm_hours: {type: number, minimum: 0}
+        max_slope_deg: {type: number, minimum: 0, maximum: 90}
+        min_earth_fraction: {type: number, minimum: 0, maximum: 1}
+        min_sun_fraction: {type: number, minimum: 0, maximum: 1}
+        mission_profile: {type: string, enum: [uncrewed, crewed]}
+        crew: {type: integer, minimum: 0}
+        days: {type: number, minimum: 0}
+        sizes: {type: object}
+        earth_target: {type: object}
+        vehicle: {type: string, default: any, description: "any (автовибір ракети) або id з /launch-systems"}
+        trajectories: {type: array, items: {$ref: "#/components/schemas/Trajectory"}}
+        launch_priorities: {type: array, items: {$ref: "#/components/schemas/LaunchFactor"}}
+        launch_mode: {type: string, enum: [weighted, maximin]}
+        include_design_targets: {type: boolean, default: true}
+        allow_multiple_launches: {type: boolean, default: false}
+        landing_candidates: {type: integer, minimum: 1, maximum: 10, default: 3, description: Скільки найкращих місць комбінувати із запусками}
+        limit: {type: integer, minimum: 1, maximum: 20, default: 5, description: Скільки планів повернути}
+
+    PlanResponse:
+      type: object
+      required: [provisional, period, departure_utc, grid, landing_evaluated, hard_requirements_met, auto_selected,
+                 plans, explanation, notes]
+      properties:
+        provisional: {const: true}
+        period: {type: object}
+        departure_utc: {type: string, format: date-time}
+        grid: {type: object}
+        landing_evaluated: {type: integer, minimum: 0}
+        hard_requirements_met: {type: boolean, description: Чи є хоч одне місце, що виконує всі жорсткі вимоги}
+        auto_selected: {type: [integer, "null"], description: Ранг обраного автоматично плану}
+        plans:
+          type: array
+          items:
+            type: object
+            required: [rank, score_pct, landing, requirements, mass_moon_kg, launch, route, mission]
+            properties:
+              rank: {type: integer, minimum: 1}
+              score_pct: {type: number}
+              landing: {type: object}
+              requirements:
+                type: object
+                required: [feasible, violations, warnings, unchecked]
+                properties:
+                  feasible: {type: boolean}
+                  violations: {type: array, items: {$ref: "#/components/schemas/RankViolation"}}
+                  warnings: {type: array, items: {$ref: "#/components/schemas/RankWarning"}}
+                  unchecked: {type: array, items: {type: string}}
+              mass_moon_kg: {type: number}
+              launch:
+                oneOf:
+                  - {$ref: "#/components/schemas/LaunchRankingOption"}
+                  - {type: "null"}
+              launch_explanation: {type: [string, "null"]}
+              route:
+                oneOf:
+                  - type: object
+                    required: [launch_site, moon_site, trajectory, departure_utc, arrival_utc, duration_days]
+                  - {type: "null"}
+              mission:
+                oneOf:
+                  - {$ref: "#/components/schemas/MissionResponse"}
+                  - {type: "null"}
+        explanation: {type: string}
+        notes: {type: array, items: {type: string}}
 
     LaunchRankingResponse:
       type: object

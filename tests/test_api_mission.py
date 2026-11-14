@@ -144,3 +144,43 @@ def test_invalid_launch_system(client, body, status):
     res = post(client, body)
     assert res.status_code == status, res.get_json()
     assert_valid(api_validator("Error"), res.get_json())
+
+
+# ---------- B17: профіль місії ----------
+def test_without_profile_response_has_no_profile(client):
+    assert post(client, {}).get_json()["profile"] is None
+
+
+def test_uncrewed_profile_forces_zero_crew_and_matches_contract(client):
+    data = post(client, {"mission_profile": "uncrewed"}).get_json()
+    assert_valid(api_validator("MissionResponse"), data)
+    assert data["profile"]["profile"] == "uncrewed" and data["payload"]["crew"] == 0
+    assert data["risk"]["p_crew_loss"] is None
+
+
+def test_crewed_profile_defaults_crew_and_marks_it_as_profile_choice(client):
+    data = post(client, {"mission_profile": "crewed", "days": 10}).get_json()
+    assert_valid(api_validator("MissionResponse"), data)
+    assert data["payload"]["crew"] == data["profile"]["crew"] >= 1
+    assert "crew" in data["profile"]["from_profile"]
+    assert data["risk"]["p_crew_loss"] is not None
+
+
+def test_explicit_crew_wins_over_profile_default(client):
+    data = post(client, {"mission_profile": "crewed", "crew": 4, "days": 10}).get_json()
+    assert data["payload"]["crew"] == 4 and "crew" not in data["profile"]["from_profile"]
+    same = post(client, {"crew": 4, "days": 10}).get_json()
+    assert data["cost"]["total_usd"] == same["cost"]["total_usd"]  # профіль не змінює розрахунок, лише перевіряє вхід
+
+
+@pytest.mark.parametrize("body", [
+    {"mission_profile": "robot"},
+    {"mission_profile": "uncrewed", "crew": 2},
+    {"mission_profile": "crewed", "crew": 0},
+    {"mission_profile": "crewed", "crew": 7},
+    {"mission_profile": "crewed", "crew": True},
+])
+def test_invalid_profile_requests(client, body):
+    res = post(client, body)
+    assert res.status_code == 400, res.get_json()
+    assert_valid(api_validator("Error"), res.get_json())

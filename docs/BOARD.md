@@ -84,8 +84,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Велес
 
-- **Зараз:** —
-- **Гілка:** —
+- **Зараз:** G6 — режими якості й 2D-заглушка без WebGL; F5 — графіки таймлайну (кут Сонця/Землі, вікна зв'язку)
+- **Гілка:** `veles/G6-quality-2d`, `veles/F5-timeline-charts`
 
 ### Ярило
 

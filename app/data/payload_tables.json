@@ -1,0 +1,691 @@
+{
+ "version": 1,
+ "description": "Параметри корисного навантаження з першоджерел NASA (задача D4): діапазони з цитатами. status: sourced — діапазон прямо з джерел; derived — обчислено з наведених фактів (див. derivation); no_source — числа в джерелах не знайдено, модель лишається тимчасовою. model_value — тимчасове значення в app/core (для порівняння), range — що кажуть джерела.",
+ "parameters": [
+  {
+   "id": "food_kg_per_person_day",
+   "category": "life_support",
+   "unit": "kg/person/day",
+   "status": "sourced",
+   "range": [
+    1.83,
+    2.39
+   ],
+   "facts": [
+    {
+     "quantity": "food_with_packaging",
+     "value": 2.39,
+     "unit": "kg/person/day",
+     "condition": "МКС: їжа на члена екіпажу на добу разом з упаковкою (зростала з 1,83 до 2,39)",
+     "source": {
+      "title": "NASA/TP-2015-218570/REV2 Life Support Baseline Values and Assumptions Document (Ewert, Chen, Powell)",
+      "ref": "§4.4 (тверді відходи), PDF с. 97",
+      "url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf",
+      "date": "2022-02",
+      "kind": "primary"
+     },
+     "quote": "from 1. 83 kg/CM-d to 2.39 kg/CM-d (including packaging)"
+    },
+    {
+     "quantity": "food_solids_without_packaging",
+     "value": 0.8,
+     "unit": "kg/person/day",
+     "condition": "номінальна людина 82 кг; суха маса їжі без упаковки",
+     "source": {
+      "title": "NASA/TP-2015-218570/REV2 Life Support Baseline Values and Assumptions Document (Ewert, Chen, Powell)",
+      "ref": "Table 3-31, PDF с. 72",
+      "url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf",
+      "date": "2022-02",
+      "kind": "primary"
+     },
+     "quote": "Food Solids; Mass (without packaging)  kg/CM-d 0.800"
+    }
+   ]
+  },
+  {
+   "id": "oxygen_kg_per_person_day",
+   "category": "life_support",
+   "unit": "kg/person/day",
+   "status": "sourced",
+   "range": [
+    0.61,
+    1.08
+   ],
+   "facts": [
+    {
+     "quantity": "oxygen_consumed",
+     "value": 0.895,
+     "unit": "kg/person/day",
+     "condition": "номінальне споживання",
+     "source": {
+      "title": "NASA/TP-2015-218570/REV2 Life Support Baseline Values and Assumptions Document (Ewert, Chen, Powell)",
+      "ref": "Table 3-31, PDF с. 72",
+      "url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf",
+      "date": "2022-02",
+      "kind": "primary"
+     },
+     "quote": "Oxygen Consumed kg/CM-d 0.895"
+    },
+    {
+     "quantity": "oxygen_consumed_range",
+     "value": "0.61…1.08",
+     "unit": "kg/person/day",
+     "condition": "нижнє / номінальне 0,90 / верхнє 1,08",
+     "source": {
+      "title": "NASA/TP-2015-218570/REV2 Life Support Baseline Values and Assumptions Document (Ewert, Chen, Powell)",
+      "ref": "Table 4-1, PDF с. 77",
+      "url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf",
+      "date": "2022-02",
+      "kind": "primary"
+     },
+     "quote": "Oxygen Consumed kg/CM-d 0.61"
+    }
+   ]
+  },
+  {
+   "id": "water_kg_per_person_day",
+   "category": "life_support",
+   "unit": "kg/person/day",
+   "status": "sourced",
+   "range": [
+    3.2,
+    9.12
+   ],
+   "facts": [
+    {
+     "quantity": "total_water_consumption",
+     "value": "5.38 / 3.2 / 4.48 / 9.12",
+     "unit": "kg/person/day",
+     "condition": "«Total Water Consumption»: МКС 5,38 · транзитний корабель 3,2 · рання планетна база 4,48 · зріла планетна база 9,12 (11,42 — аналог Devon Island)",
+     "source": {
+      "title": "NASA/TP-2015-218570/REV2 Life Support Baseline Values and Assumptions Document (Ewert, Chen, Powell)",
+      "ref": "Table 4-20, PDF с. 86",
+      "url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf",
+      "date": "2022-02",
+      "kind": "primary"
+     },
+     "quote": "Consumption kg/CM-d 11.42 5.38 3.2 4.48 9.12"
+    },
+    {
+     "quantity": "drinking_water",
+     "value": 2.0,
+     "unit": "kg/person/day",
+     "condition": "питна вода для всіх майбутніх місій (NASA HIDH)",
+     "source": {
+      "title": "NASA/TP-2015-218570/REV2 Life Support Baseline Values and Assumptions Document (Ewert, Chen, Powell)",
+      "ref": "Table 4-20, PDF с. 86",
+      "url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf",
+      "date": "2022-02",
+      "kind": "primary"
+     },
+     "quote": "Drinking Water kg/CM-d 2.59 2.00 (2) 2.00 (2) 2.00 (2) 2.00 (2)"
+    }
+   ]
+  },
+  {
+   "id": "consumables_kg_per_person_day",
+   "category": "life_support",
+   "unit": "kg/person/day",
+   "status": "derived",
+   "range": [
+    2.39,
+    7.77
+   ],
+   "model_param": "PayloadParams.consumables_kg_per_person_day",
+   "model_value": [
+    5.0,
+    2.0
+   ],
+   "derivation": "Рівень «Мінімум» (відкритий цикл, нічого не відновлюється): їжа з упаковкою 2,39 + кисень 0,895 + вода ранньої планетної бази 4,48 = 7,77 кг/люд·добу. Рівень «Максимум» (регенерація води й кисню, ідеалізовано повна): лишається їжа 2,39. Складники — факти food_*, oxygen_*, water_*.",
+   "note": "Тимчасова пара моделі (5,0 → 2,0) лежить усередині діапазону, але нижня межа «Максимум» 2,0 менша за саму їжу (2,39).",
+   "facts": []
+  },
+  {
+   "id": "habitable_volume_m3_per_person",
+   "category": "comfort",
+   "unit": "m3/person",
+   "status": "sourced",
+   "range": [
+    25.0,
+    28.96
+   ],
+   "model_param": "PayloadParams.comfort_volume_m3_per_person",
+   "model_value": [
+    2.0,
+    12.0
+   ],
+   "note": "Тимчасові 2…12 м³ на людину значно менші за мінімум NASA для довгих місій (25 м³); для коротких перебувань (кілька діб) окремого числа в прочитаних джерелах немає.",
+   "facts": [
+    {
+     "quantity": "minimum_net_habitable_volume",
+     "value": 25.0,
+     "unit": "m3/person",
+     "as_published": "25 m3 (883 ft3)",
+     "condition": "мінімально прийнятний чистий житловий об'єм, довготривала місія (Mars DRM 5.0)",
+     "source": {
+      "title": "NASA HRP — Minimum Acceptable Net Habitable Volume for Long-Duration Exploration Missions (SME Consensus Session Report)",
+      "ref": "с. 3",
+      "url": "https://ntrs.nasa.gov/api/citations/20140016951/downloads/20140016951.pdf",
+      "date": "2014",
+      "kind": "primary"
+     },
+     "quote": "acceptable NHV of 25 m3 (883 ft3) per person",
+     "note": "«reducing the volume to accommodate a shorter mission is not recommended» (там само)."
+    },
+    {
+     "quantity": "minimum_nhv_bottom_up",
+     "value": "28.96 / 28.36",
+     "unit": "m3/person",
+     "condition": "розрахунок за функціями: екіпаж 4 / 6 осіб",
+     "source": {
+      "title": "NASA/TP-2015-218570/REV2 Life Support Baseline Values and Assumptions Document (Ewert, Chen, Powell)",
+      "ref": "§3.2, PDF с. 42",
+      "url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf",
+      "date": "2022-02",
+      "kind": "primary"
+     },
+     "quote": "Minimum Net Habitable Volume per Crew Member 28.96 28.36"
+    }
+   ]
+  },
+  {
+   "id": "habitat_kg_per_m3",
+   "category": "comfort",
+   "unit": "kg/m3",
+   "status": "sourced",
+   "range": [
+    9.16,
+    137.3
+   ],
+   "model_param": "PayloadParams.habitat_kg_per_m3",
+   "model_value": 40.0,
+   "note": "Тимчасові 40 кг/м³ — між оболонкою без захисту й захищеним модулем; захист від радіації в BVAD входить в «shielded» значення, а в моделі рахується окремо (ls_shield_kg).",
+   "facts": [
+    {
+     "quantity": "surface_shielded_volume_mass",
+     "value": "102.0 / 133.1 / 137.3",
+     "unit": "kg/m3",
+     "condition": "довга місячна місія, поверхня: нижнє / номінальне / верхнє, з радіаційним захистом",
+     "source": {
+      "title": "NASA/TP-2015-218570/REV2 Life Support Baseline Values and Assumptions Document (Ewert, Chen, Powell)",
+      "ref": "Table 3-3, PDF с. 37",
+      "url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf",
+      "date": "2022-02",
+      "kind": "primary"
+     },
+     "quote": "Shielded Volume kg/m³ 102.0 (1) 133.1 (1) 137.3 (1)"
+    },
+    {
+     "quantity": "surface_unshielded_volume_mass",
+     "value": "9.16 / 13.40",
+     "unit": "kg/m3",
+     "condition": "без захисту (наприклад, захист реголітом): номінальне / верхнє",
+     "source": {
+      "title": "NASA/TP-2015-218570/REV2 Life Support Baseline Values and Assumptions Document (Ewert, Chen, Powell)",
+      "ref": "Table 3-3, PDF с. 37",
+      "url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf",
+      "date": "2022-02",
+      "kind": "primary"
+     },
+     "quote": "Unshielded Volume kg/m³ -- 9.16 (1) 13.40 (1)"
+    },
+    {
+     "quantity": "inflatable_shell_volume_mass",
+     "value": 21.1,
+     "unit": "kg/m3",
+     "condition": "лише оболонка й каркас надувного модуля",
+     "source": {
+      "title": "NASA/TP-2015-218570/REV2 Life Support Baseline Values and Assumptions Document (Ewert, Chen, Powell)",
+      "ref": "§3.2, PDF с. 44",
+      "url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf",
+      "date": "2022-02",
+      "kind": "primary"
+     },
+     "quote": "shell and structure of the inflatable module has a volume-mass penalty of 21.1 kg/m³"
+    }
+   ]
+  },
+  {
+   "id": "solar_array_w_per_kg",
+   "category": "power",
+   "unit": "W/kg",
+   "status": "derived",
+   "range": [
+    18.5,
+    50.0
+   ],
+   "model_param": "PayloadParams.panel_w_per_kg",
+   "model_value": 60.0,
+   "derivation": "Вт/кг = 1000 / (кг/кВт): 1000/54 = 18,5; 1000/25 = 40; 1000/20 = 50.",
+   "note": "Тимчасові 60 Вт/кг вищі за оцінки BVAD для поверхні Місяця (18,5…50) і вдвічі вищі за типові ~30 Вт/кг польотів.",
+   "facts": [
+    {
+     "quantity": "deployable_pv_without_storage",
+     "value": "20 - 25",
+     "unit": "kg/kWe",
+     "condition": "«Deployable Solar Photovoltaic Cells w/o Storage», розгортана вертикальна батарея (VSAT), поверхня Місяця",
+     "source": {
+      "title": "NASA/TP-2015-218570/REV2 Life Support Baseline Values and Assumptions Document (Ewert, Chen, Powell)",
+      "ref": "Table 3-16, PDF с. 52",
+      "url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf",
+      "date": "2022-02",
+      "kind": "primary"
+     },
+     "quote": "Cells w/o Storage (21) 20 - 25",
+     "note": "1000 / 25 = 40 і 1000 / 20 = 50 Вт/кг"
+    },
+    {
+     "quantity": "lunar_equator_pv_without_storage",
+     "value": 54,
+     "unit": "kg/kWe",
+     "condition": "«Solar Power generation at Lunar Equator w/o Storage», стежні PV-панелі",
+     "source": {
+      "title": "NASA/TP-2015-218570/REV2 Life Support Baseline Values and Assumptions Document (Ewert, Chen, Powell)",
+      "ref": "Table 3-16, PDF с. 52",
+      "url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf",
+      "date": "2022-02",
+      "kind": "primary"
+     },
+     "quote": "Equator w/o Storage (15, 16) 54",
+     "note": "1000 / 54 ≈ 18,5 Вт/кг"
+    },
+    {
+     "quantity": "empirical_specific_power",
+     "value": "≈30 (1…200)",
+     "unit": "W/kg",
+     "condition": "усі місії на сонячних батареях (дані Peretz et al. 2024); максимум у наборі 200 Вт/кг",
+     "source": {
+      "title": "NASA — State-of-the-Art of Small Spacecraft Technology, 3.0 Power (видання 2024)",
+      "ref": "§3.2, рис. 3.3, PDF с. 12",
+      "url": "https://www.nasa.gov/wp-content/uploads/2025/02/3-soa-power-2024.pdf",
+      "date": "2024",
+      "kind": "primary"
+     },
+     "quote": "are strongly clustered around ~30 W/kg"
+    }
+   ]
+  },
+  {
+   "id": "battery_wh_per_kg",
+   "category": "power",
+   "unit": "Wh/kg",
+   "status": "sourced",
+   "range": [
+    100.0,
+    265.0
+   ],
+   "model_param": "PayloadParams.battery_wh_per_kg",
+   "model_value": 150.0,
+   "facts": [
+    {
+     "quantity": "li_ion_storage_with_enclosure",
+     "value": 5.9,
+     "unit": "kg/kWh",
+     "condition": "акумулятор разом з корпусом",
+     "source": {
+      "title": "NASA/TP-2015-218570/REV2 Life Support Baseline Values and Assumptions Document (Ewert, Chen, Powell)",
+      "ref": "Table 3-16, PDF с. 52",
+      "url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf",
+      "date": "2022-02",
+      "kind": "primary"
+     },
+     "quote": "Lithium Ion Battery Storage (21)  5.9 Based on commercial Li-ion battery technology including enclosure",
+     "note": "1000 / 5,9 ≈ 169 Вт·год/кг"
+    },
+    {
+     "quantity": "li_ion_cell_specific_energy",
+     "value": "100 to 150",
+     "unit": "Wh/kg",
+     "condition": "комірка Li-ion з рідким електролітом (стовпці: Вт·год/л, Вт·год/кг, °C, цикли, глибина розряду %, TRL)",
+     "source": {
+      "title": "NASA/TP-2015-218570/REV2 Life Support Baseline Values and Assumptions Document (Ewert, Chen, Powell)",
+      "ref": "Table 3-17, PDF с. 54",
+      "url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf",
+      "date": "2022-02",
+      "kind": "primary"
+     },
+     "quote": "Lithium-ion with Liquid Electrolyte 200 to 300 100 to 150 -40 to 65 1,500 60 5 to 9"
+    },
+    {
+     "quantity": "li_ion_gravimetric_energy",
+     "value": "100 – 265",
+     "unit": "Wh/kg",
+     "condition": "Li-ion для малих космічних апаратів",
+     "source": {
+      "title": "NASA — State-of-the-Art of Small Spacecraft Technology, 3.0 Power (видання 2024)",
+      "ref": "Table 3-6, PDF с. 22",
+      "url": "https://www.nasa.gov/wp-content/uploads/2025/02/3-soa-power-2024.pdf",
+      "date": "2024",
+      "kind": "primary"
+     },
+     "quote": "Gravimetric energy (Wh kg-1) 100 – 265"
+    }
+   ]
+  },
+  {
+   "id": "battery_depth_of_discharge",
+   "category": "power",
+   "unit": "fraction",
+   "status": "sourced",
+   "range": [
+    0.6,
+    0.6
+   ],
+   "model_param": "PayloadParams.battery_depth_of_discharge",
+   "model_value": 0.8,
+   "note": "Тимчасові 0,8 більші за 60 % у BVAD; з 0,6 маса акумуляторів на ту саму ніч зростає в 0,8/0,6 ≈ 1,33 раза.",
+   "facts": [
+    {
+     "quantity": "li_ion_depth_of_discharge",
+     "value": 60,
+     "unit": "%",
+     "condition": "глибина розряду за цикл для ресурсу 1 500 циклів",
+     "source": {
+      "title": "NASA/TP-2015-218570/REV2 Life Support Baseline Values and Assumptions Document (Ewert, Chen, Powell)",
+      "ref": "Table 3-17, PDF с. 54",
+      "url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf",
+      "date": "2022-02",
+      "kind": "primary"
+     },
+     "quote": "Lithium-ion with Liquid Electrolyte 200 to 300 100 to 150 -40 to 65 1,500 60 5 to 9"
+    }
+   ]
+  },
+  {
+   "id": "thermal_control_kg_per_kwth",
+   "category": "power",
+   "unit": "kg/kWth",
+   "status": "sourced",
+   "range": [
+    97.0,
+    246.0
+   ],
+   "note": "У моделі ще немає маси терморегуляції: тепло (heat_w) рахується, але радіатори не важать нічого.",
+   "facts": [
+    {
+     "quantity": "surface_thermal_control",
+     "value": "97 / 102 / 246",
+     "unit": "kg/kWth",
+     "condition": "довга місячна місія, поверхня: нижнє / номінальне / верхнє",
+     "source": {
+      "title": "NASA/TP-2015-218570/REV2 Life Support Baseline Values and Assumptions Document (Ewert, Chen, Powell)",
+      "ref": "Table 3-3, PDF с. 37",
+      "url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf",
+      "date": "2022-02",
+      "kind": "primary"
+     },
+     "quote": "Thermal Control 18 kg/kWth 97 (3) 102 (3) 246 (3)"
+    }
+   ]
+  },
+  {
+   "id": "equipment_mass_kg",
+   "category": "equipment",
+   "unit": "kg",
+   "status": "sourced",
+   "range": [
+    10.0,
+    475.0
+   ],
+   "model_param": "PayloadParams.equipment_mass_kg",
+   "model_value": [
+    30.0,
+    1500.0
+   ],
+   "note": "Верхня межа моделі 1 500 кг утричі більша за найбільший вантаж CLPS (VIPER); більші вантажі — клас посадкових апаратів HLS, їхніх мас у прочитаних джерелах немає.",
+   "facts": [
+    {
+     "quantity": "initial_clps_payloads",
+     "value": "10…15",
+     "unit": "kg",
+     "condition": "перші вантажі NASA в CLPS (ретрорефлектор, сейсмометр)",
+     "source": {
+      "title": "NASA OIG IG-24-013 — NASA's Commercial Lunar Payload Services Initiative",
+      "ref": "с. 19 (PDF с. 25)",
+      "url": "https://oig.nasa.gov/wp-content/uploads/2024/06/final-report-ig-24-013-nasas-commercial-lunar-payload-services-initiative.pdf",
+      "date": "2024-06-06",
+      "kind": "primary"
+     },
+     "quote": "estimated to weigh between 10 and 15 kg"
+    },
+    {
+     "quantity": "viper_delivered_mass",
+     "value": 475,
+     "unit": "kg",
+     "as_published": "475 kilograms",
+     "condition": "ровер VIPER, первісне замовлення; пізніше додано можливість +15 кг",
+     "source": {
+      "title": "NASA OIG IG-22-010 — NASA's Volatiles Investigating Polar Exploration Rover (VIPER) Mission",
+      "ref": "PDF с. 22",
+      "url": "https://oig.nasa.gov/wp-content/uploads/2024/02/IG-22-010.pdf",
+      "date": "2022",
+      "kind": "primary"
+     },
+     "quote": "deliver VIPER at a weight of 475 kilograms (1,047 pounds) to the lunar surface"
+    }
+   ]
+  },
+  {
+   "id": "lunar_delivery_usd_per_kg",
+   "category": "price",
+   "unit": "USD/kg",
+   "status": "sourced",
+   "range": [
+    1000000.0,
+    1200000.0
+   ],
+   "note": "Це ціна доставки (ракета + посадковий апарат) за кг корисного навантаження; у моделі відповідає Rocket.price_usd_per_kg + CostTable.lander_usd_per_kg разом, а не окремому полю.",
+   "facts": [
+    {
+     "quantity": "clps_delivery_price",
+     "value": "1.0 (2019) → 1.2 (2023)",
+     "unit": "MUSD/kg",
+     "condition": "доставка вантажу на поверхню Місяця за замовленнями CLPS 2023 р.; оцінка NASA 2019 р. — ≈ $1 млн/кг",
+     "source": {
+      "title": "NASA OIG IG-24-013 — NASA's Commercial Lunar Payload Services Initiative",
+      "ref": "с. 24 (PDF с. 30)",
+      "url": "https://oig.nasa.gov/wp-content/uploads/2024/06/final-report-ig-24-013-nasas-commercial-lunar-payload-services-initiative.pdf",
+      "date": "2024-06-06",
+      "kind": "primary"
+     },
+     "quote": "approximately $1.2 million per kg, or 20 percent more",
+     "note": "«NASA estimated that it would cost approximately $1 million to deliver each kg of mass to the lunar surface» (там само)."
+    }
+   ]
+  },
+  {
+   "id": "iss_cargo_usd_per_kg",
+   "category": "price",
+   "unit": "USD/kg",
+   "status": "sourced",
+   "range": [
+    63200.0,
+    71800.0
+   ],
+   "note": "Логістика на НОО (COTS/CRS): нижня межа вартості постачання витратних матеріалів екіпажу.",
+   "facts": [
+    {
+     "quantity": "crs_cost_per_kg",
+     "value": "63 200 / 71 800",
+     "unit": "USD/kg",
+     "condition": "доставка вантажу на МКС: CRS-1 (оцінка) / CRS-2 (прогноз OIG 2016 р.)",
+     "source": {
+      "title": "NASA OIG IG-18-016 — Audit of Commercial Resupply Services to the International Space Station",
+      "ref": "Table 3, с. 21 (PDF с. 27)",
+      "url": "https://oig.nasa.gov/wp-content/uploads/2024/02/IG-18-016.pdf",
+      "date": "2018",
+      "kind": "primary"
+     },
+     "quote": "Cost Per Kilogram $63,200 (Estimated) $71,800 (Projected)"
+    }
+   ]
+  },
+  {
+   "id": "equipment_usd_per_kg",
+   "category": "price",
+   "unit": "USD/kg",
+   "status": "derived",
+   "range": [
+    912632.0,
+    912632.0
+   ],
+   "model_param": "CostTable.equipment_usd_per_kg",
+   "model_value": [
+    100000.0,
+    400000.0
+   ],
+   "derivation": "433,5 млн $ / 475 кг ≈ 912 632 $/кг — один приклад (VIPER), включає операції й резерви, тож це оцінка зверху для наукового обладнання класу ровера.",
+   "note": "Тимчасовий діапазон моделі (0,1…0,4 млн $/кг) нижчий за приклад VIPER.",
+   "facts": [
+    {
+     "quantity": "viper_life_cycle_cost",
+     "value": 433.5,
+     "unit": "MUSD",
+     "condition": "розробка ровера, наукові прилади, операції на Місяці й резерви; БЕЗ доставки Astrobotic ($226,5 млн)",
+     "source": {
+      "title": "NASA OIG IG-22-010 — NASA's Volatiles Investigating Polar Exploration Rover (VIPER) Mission",
+      "ref": "PDF с. 4",
+      "url": "https://oig.nasa.gov/wp-content/uploads/2024/02/IG-22-010.pdf",
+      "date": "2022",
+      "kind": "primary"
+     },
+     "quote": "NASA established a VIPER project life-cycle cost estimate of $433.5 million"
+    },
+    {
+     "quantity": "viper_delivered_mass",
+     "value": 475,
+     "unit": "kg",
+     "condition": "ровер VIPER",
+     "source": {
+      "title": "NASA OIG IG-22-010 — NASA's Volatiles Investigating Polar Exploration Rover (VIPER) Mission",
+      "ref": "PDF с. 22",
+      "url": "https://oig.nasa.gov/wp-content/uploads/2024/02/IG-22-010.pdf",
+      "date": "2022",
+      "kind": "primary"
+     },
+     "quote": "deliver VIPER at a weight of 475 kilograms (1,047 pounds) to the lunar surface"
+    }
+   ]
+  },
+  {
+   "id": "ls_fixed_kg_per_person",
+   "category": "life_support",
+   "unit": "kg/person",
+   "status": "no_source",
+   "range": null,
+   "model_param": "PayloadParams.ls_fixed_kg_per_person",
+   "model_value": [
+    150.0,
+    600.0
+   ],
+   "note": "У прочитаних документах NASA (BVAD Rev2, HRP NHV, SST Power, OIG IG-24-013 / IG-22-010 / IG-18-016) числа немає; значення моделі лишається тимчасовим.",
+   "facts": []
+  },
+  {
+   "id": "ls_shield_kg",
+   "category": "life_support",
+   "unit": "kg",
+   "status": "no_source",
+   "range": null,
+   "model_param": "PayloadParams.ls_shield_kg",
+   "model_value": [
+    0.0,
+    400.0
+   ],
+   "note": "У прочитаних документах NASA (BVAD Rev2, HRP NHV, SST Power, OIG IG-24-013 / IG-22-010 / IG-18-016) числа немає; значення моделі лишається тимчасовим.",
+   "facts": []
+  },
+  {
+   "id": "ls_power_w_per_person",
+   "category": "life_support",
+   "unit": "W/person",
+   "status": "no_source",
+   "range": null,
+   "model_param": "PayloadParams.ls_power_w_per_person",
+   "model_value": [
+    300.0,
+    1000.0
+   ],
+   "note": "У прочитаних документах NASA (BVAD Rev2, HRP NHV, SST Power, OIG IG-24-013 / IG-22-010 / IG-18-016) числа немає; значення моделі лишається тимчасовим.",
+   "facts": []
+  },
+  {
+   "id": "comfort_kg_per_person_day",
+   "category": "comfort",
+   "unit": "kg/person/day",
+   "status": "no_source",
+   "range": null,
+   "model_param": "PayloadParams.comfort_kg_per_person_day",
+   "model_value": [
+    0.5,
+    2.0
+   ],
+   "note": "У прочитаних документах NASA (BVAD Rev2, HRP NHV, SST Power, OIG IG-24-013 / IG-22-010 / IG-18-016) числа немає; значення моделі лишається тимчасовим.",
+   "facts": []
+  },
+  {
+   "id": "comfort_power_w_per_person",
+   "category": "comfort",
+   "unit": "W/person",
+   "status": "no_source",
+   "range": null,
+   "model_param": "PayloadParams.comfort_power_w_per_person",
+   "model_value": [
+    50.0,
+    300.0
+   ],
+   "note": "У прочитаних документах NASA (BVAD Rev2, HRP NHV, SST Power, OIG IG-24-013 / IG-22-010 / IG-18-016) числа немає; значення моделі лишається тимчасовим.",
+   "facts": []
+  },
+  {
+   "id": "structure_fraction",
+   "category": "lander",
+   "unit": "fraction",
+   "status": "no_source",
+   "range": null,
+   "model_param": "PayloadParams.structure_fraction",
+   "model_value": 0.25,
+   "note": "У прочитаних документах NASA (BVAD Rev2, HRP NHV, SST Power, OIG IG-24-013 / IG-22-010 / IG-18-016) числа немає; значення моделі лишається тимчасовим.",
+   "facts": []
+  },
+  {
+   "id": "margin_fraction",
+   "category": "lander",
+   "unit": "fraction",
+   "status": "no_source",
+   "range": null,
+   "model_param": "PayloadParams.margin_fraction",
+   "model_value": 0.2,
+   "note": "У прочитаних документах NASA (BVAD Rev2, HRP NHV, SST Power, OIG IG-24-013 / IG-22-010 / IG-18-016) числа немає; значення моделі лишається тимчасовим. Пошук вказує, що концептуальні студії NASA беруть запас маси 15 % за AIAA S-120A, але документ NASA GRC (TM-20220013310) не завантажився — число не вписано, поки не прочитано дослівно.",
+   "facts": []
+  },
+  {
+   "id": "life_support_usd_per_kg",
+   "category": "price",
+   "unit": "USD/kg",
+   "status": "no_source",
+   "range": null,
+   "model_param": "CostTable.life_support_usd_per_kg",
+   "model_value": [
+    30000.0,
+    120000.0
+   ],
+   "note": "У прочитаних документах NASA (BVAD Rev2, HRP NHV, SST Power, OIG IG-24-013 / IG-22-010 / IG-18-016) числа немає; значення моделі лишається тимчасовим.",
+   "facts": []
+  },
+  {
+   "id": "comfort_usd_per_kg",
+   "category": "price",
+   "unit": "USD/kg",
+   "status": "no_source",
+   "range": null,
+   "model_param": "CostTable.comfort_usd_per_kg",
+   "model_value": [
+    20000.0,
+    80000.0
+   ],
+   "note": "У прочитаних документах NASA (BVAD Rev2, HRP NHV, SST Power, OIG IG-24-013 / IG-22-010 / IG-18-016) числа немає; значення моделі лишається тимчасовим.",
+   "facts": []
+  }
+ ]
+}

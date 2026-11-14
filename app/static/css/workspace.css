@@ -1029,7 +1029,7 @@ body.page-launch .workspace-results {
   gap: 5px 15px;
   min-height: 47px;
   padding: 10px var(--result-pad);
-  margin: calc(-1 * var(--result-pad)) calc(-1 * var(--result-pad)) 14px);
+  margin: calc(0px - var(--result-pad)) calc(0px - var(--result-pad)) 14px;
   border-radius: 15px 15px 0 0;
 }
 .workspace-results .results-heading h2,

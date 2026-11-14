@@ -84,8 +84,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Велес
 
-- **Зараз:** — (D4 на рев'ю, PR #69)
-- **Гілка:** —
+- **Зараз:** D8 — ціни ракет за кг на НОО (контракти NASA LSP, OIG) і статистика польотів (журнал McDowell GCAT) у каталогах D6/D7
+- **Гілка:** `veles/D8-rocket-economics`
 
 ### Ярило
 

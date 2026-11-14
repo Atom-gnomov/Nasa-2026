@@ -9,7 +9,9 @@
 //   • висота під курсором: /api/elevation (найдетальніший DEM LOLA, білінійно).
 // Позиція вершини — зважена сума трьох видів (куля, карта, полюс), тому перемикання — плавна анімація.
 import * as THREE from "three";
-import { createScene } from "./three/scene.js";
+import { anisotropy, createScene, hasWebGL, NO_WEBGL_MESSAGE } from "./three/scene.js";
+import { mountFallbackMap } from "./three/fallback2d.js";
+import { mountQualitySelect, qualitySettings } from "./three/quality.js";
 import { subscribeHighlights } from "./highlights.js";
 import { getState, setState, subscribe } from "./state.js";
 
@@ -362,10 +364,15 @@ const tileFragment = /* glsl */ `
 `;
 
 // ---------- Завантаження даних ----------
-async function loadAssets() {
+async function loadAssets(quality) {
   const metaRes = await fetch(ASSETS + "globe.json", { cache: "no-cache" });
   if (!metaRes.ok) throw new Error("no-assets");
   const meta = await metaRes.json();
+  // Режим «низька»: без детальних полярних ділянок LOLA 80/20 м — найважчих ресурсів сторінки
+  if (!quality.polarTiles && meta.polar_tiles?.length) {
+    meta.skipped_polar_tiles = meta.polar_tiles;
+    meta.polar_tiles = [];
+  }
   const url = (file) => `${ASSETS}${file}?v=${meta.version ?? 0}`;
   const loader = new THREE.TextureLoader();
   const bin = (file) => fetch(url(file)).then((r) => r.arrayBuffer());
@@ -560,6 +567,10 @@ function renderSources(meta) {
       `Південний полюс: LOLA ${t.id.toUpperCase()} ${t.product_version}, ${t.resolution_m} м/піксель, до ${Math.abs(t.edge_lat)}° пд.; тіні — маски горизонту ${t.horizon.azimuths} азимутів до ${t.horizon.max_distance_km} км`,
       t.url,
     ]),
+    ...(meta.skipped_polar_tiles?.length ? [[
+      `Детальний рельєф південного полюса (LOLA ${meta.skipped_polar_tiles.map((t) => `${t.resolution_m} м`).join(" і ")}) вимкнено в режимі якості «низька» — увімкніть «висока»`,
+      meta.skipped_polar_tiles[0].url,
+    ]] : []),
     ["Висота під курсором: найдетальніший DEM LOLA з PDS (20 м / 80 м / 474 м / 1,9 км), білінійно", "https://pds-geosciences.wustl.edu/lro/lro-l-lola-3-rdr-v1/lrolol_1xxx/data/lola_gdr/"],
     ["Сонце: JPL DE440 (skyfield), орієнтація Місяця IAU 2015 (Archinal et al. 2018), система MEAN EARTH/POLAR AXIS", "https://ssd.jpl.nasa.gov/planets/eph_export.html"],
     ["Проєкції: LOLA dsmap.cat / dsmap_polar.cat (полярна: 0° угорі, 90° сх. праворуч)", "https://pds-geosciences.wustl.edu/lro/lro-l-lola-3-rdr-v1/lrolol_1xxx/catalog/"],
@@ -578,16 +589,69 @@ function renderSources(meta) {
   }));
 }
 
+// ---------- Панель «Температура в точці» (працює й без WebGL) ----------
+// Добова крива Diviner для вибраного місця; повертає функцію оновлення за спільним станом.
+function tempPanel() {
+  const chart = $("temp-chart");
+  const chartSummary = $("temp-summary");
+  let pointKey = null;
+  let pointAbort = null;
+  return async function updateTempPanel() {
+    const { lat, lon, datetime } = getState();
+    if (!chart) return;
+    if (lat === null || lon === null) { chartSummary.textContent = "Виберіть місце на Місяці"; return; }
+    const key = `${lat}|${lon}|${datetime}`;
+    if (key === pointKey) return;
+    pointKey = key;
+    pointAbort?.abort();
+    pointAbort = new AbortController();
+    try {
+      const res = await fetch(`/api/temperature?${new URLSearchParams({ lat, lon, datetime })}`, { signal: pointAbort.signal });
+      const t = await res.json();
+      if (!res.ok) throw new Error(t.detail);
+      drawDiurnalChart(chart, t);
+      chartSummary.textContent = `${describeTemperature(t)}. Комірка Diviner 0,5° × 0,5°, місцевий час кроком 15 хв.`;
+    } catch (err) {
+      if (err.name === "AbortError") return;
+      pointKey = null;
+      chartSummary.textContent = `Температура недоступна: ${err.message}`;
+    }
+  };
+}
+
+// ---------- 2D-заглушка без WebGL (М16) ----------
+async function mainWithoutWebGL() {
+  // Керування 3D тут не діє; display, а не hidden, бо .globe-toolbar має display: flex
+  for (const bar of document.querySelectorAll(".globe-toolbar")) bar.style.display = "none";
+  let imageUrl = `${ASSETS}color.jpg`;
+  try {
+    const meta = await (await fetch(ASSETS + "globe.json", { cache: "no-cache" })).json();
+    imageUrl = `${ASSETS}${meta.color.file}?v=${meta.version ?? 0}`;
+  } catch { /* без globe.json — пробуємо типову назву */ }
+  mountFallbackMap(host, {
+    imageUrl,
+    message: `${NO_WEBGL_MESSAGE} Показано 2D-карту: клік вибирає точку; календар, метрики, температура й порівняння працюють.`,
+    setState,
+    subscribe,
+  });
+  const updateTempPanel = tempPanel();
+  let timer = null;
+  subscribe(() => { clearTimeout(timer); timer = setTimeout(updateTempPanel, 300); });
+}
+
 // ---------- Основна функція ----------
 async function main() {
+  const quality = qualitySettings();
+  mountQualitySelect($("quality-select"));
+  if (!hasWebGL()) { await mainWithoutWebGL(); return; }
   let data;
   try {
-    data = await loadAssets();
+    data = await loadAssets(quality);
   } catch {
     host.innerHTML = '<p class="placeholder">Немає даних глобуса. Запустіть <code>python tools/build_globe_textures.py</code></p>';
     return;
   }
-  const ctx = createScene(host);
+  const ctx = createScene(host, { quality });
   if (!ctx) return;
   const { scene, camera, renderer, controls } = ctx;
   camera.near = 0.00005;
@@ -595,7 +659,7 @@ async function main() {
   camera.updateProjectionMatrix();
   renderSources(data.meta);
 
-  const maxAniso = renderer.capabilities.getMaxAnisotropy();
+  const maxAniso = anisotropy(renderer, quality);
   data.color.colorSpace = THREE.SRGBColorSpace;
   for (const t of [data.color, data.slope]) {
     t.wrapS = THREE.RepeatWrapping;
@@ -1098,32 +1162,7 @@ async function main() {
   });
   tempKindSel.addEventListener("change", () => { tempKey = null; loadTemperature(); });
 
-  // Панель «Температура в точці»: добова крива Diviner для вибраного місця
-  const chart = $("temp-chart");
-  const chartSummary = $("temp-summary");
-  let pointKey = null;
-  let pointAbort = null;
-  async function updateTempPanel() {
-    const { lat, lon, datetime } = getState();
-    if (!chart) return;
-    if (lat === null || lon === null) { chartSummary.textContent = "Виберіть місце на Місяці"; return; }
-    const key = `${lat}|${lon}|${datetime}`;
-    if (key === pointKey) return;
-    pointKey = key;
-    pointAbort?.abort();
-    pointAbort = new AbortController();
-    try {
-      const res = await fetch(`/api/temperature?${new URLSearchParams({ lat, lon, datetime })}`, { signal: pointAbort.signal });
-      const t = await res.json();
-      if (!res.ok) throw new Error(t.detail);
-      drawDiurnalChart(chart, t);
-      chartSummary.textContent = `${describeTemperature(t)}. Комірка Diviner 0,5° × 0,5°, місцевий час кроком 15 хв.`;
-    } catch (err) {
-      if (err.name === "AbortError") return;
-      pointKey = null;
-      chartSummary.textContent = `Температура недоступна: ${err.message}`;
-    }
-  }
+  const updateTempPanel = tempPanel();
 
   let tempTimer = null;
   subscribe(() => {

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}План місії — Lunar Site Explorer{% endblock %}
+{% block content %}
+<section class="lw-layout">
+  <form id="plan-form" class="lw-controls" autocomplete="off">
+    <h2>План місії</h2>
+    <p class="muted lw-note">Від вимог до місця посадки — до майданчика, ракети й траєкторії. Дата старту береться з календаря.</p>
+    <fieldset class="lw-priorities">
+      <legend>Місце посадки: вимоги</legend>
+      <label>Широта від, ° <input type="number" id="plan-lat-min" value="-90" min="-90" max="90" step="1"></label>
+      <label>Широта до, ° <input type="number" id="plan-lat-max" value="-80" min="-90" max="90" step="1"></label>
+      <label>Крок сітки, ° <input type="number" id="plan-grid" value="2" min="0.25" max="30" step="0.25"></label>
+      <label>Період, діб <input type="number" id="plan-period" value="10" min="1" max="60" step="1"></label>
+      <label>Макс. нахил, ° <input type="number" id="plan-max-slope" min="0" max="90" step="1" placeholder="не обмежувати"></label>
+      <label>Мін. годин Сонця <input type="number" id="plan-min-sun-hours" min="0" step="1" placeholder="не обмежувати"></label>
+      <label>Мін. годин зв'язку <input type="number" id="plan-min-comm-hours" min="0" step="1" placeholder="не обмежувати"></label>
+      <label>Мін. частка Землі (0–1, м'яка) <input type="number" id="plan-min-earth" min="0" max="1" step="0.05" placeholder="за профілем"></label>
+      <label>Мін. частка Сонця (0–1, м'яка) <input type="number" id="plan-min-sun" min="0" max="1" step="0.05" placeholder="за профілем"></label>
+    </fieldset>
+    <fieldset class="lw-priorities">
+      <legend>Місія й ракета</legend>
+      <label>Профіль
+        <select id="plan-profile">
+          <option value="uncrewed" selected>безпілотна</option>
+          <option value="crewed">пілотована</option>
+        </select>
+      </label>
+      <label class="plan-crewed" hidden>Екіпаж, осіб <input type="number" id="plan-crew" min="1" max="6" step="1" placeholder="за профілем"></label>
+      <label class="plan-crewed" hidden>Тривалість на Місяці, діб <input type="number" id="plan-days" value="5" min="0" max="365" step="1"></label>
+      <label>Ракета
+        <select id="plan-vehicle"><option value="any" selected>підібрати автоматично</option></select>
+      </label>
+      <label>Траєкторія
+        <select id="plan-trajectory">
+          <option value="any" selected>будь-яка</option>
+          <option value="direct">пряма</option>
+          <option value="low_energy">найекономніша</option>
+        </select>
+      </label>
+    </fieldset>
+    <button type="submit" class="primary" id="plan-run">Розрахувати план</button>
+  </form>
+
+  <div class="lw-results">
+    <p id="plan-status" class="muted" role="status"></p>
+    <p id="plan-explanation" class="compare-note" hidden></p>
+    <div class="table-scroll">
+      <table class="results-table" id="plan-table" hidden>
+        <thead><tr>
+          <th>№</th><th>Місце посадки</th><th>Оцінка</th><th>Вимоги</th><th>Майданчик старту</th><th>Ракета</th>
+          <th>Траєкторія</th><th>Переліт</th><th>Вартість запуску</th><th>Ризик</th><th>Маса на Місяці</th><th></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p id="plan-actions" hidden><button type="button" id="plan-flight">Показати політ у «Системі»</button></p>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script type="module" src="{{ url_for('static', filename='js/plan.js') }}"></script>
+{% endblock %}

@@ -22,6 +22,14 @@
     </label>
     <label title="Справжній шлях тіла з DE440 за ±½ періоду (пунктир) поверх оскулюючого еліпса"><input type="checkbox" id="system-path"> Справжній шлях</label>
     <label title="Звідки летіти до вибраної точки Місяця: оптимально (паливо чи швидкість; космодроми чи будь-яка точка Землі) або з вибраного космодрому. Траєкторія, Місяць у момент прибуття, ракета, траса площини відльоту й модуль">Політ із <select id="system-flight"><option value="">— вимкнено —</option></select></label>
+    <span class="time-controls" id="system-sim-controls">
+      <button type="button" id="system-sim" disabled title="Запустити політ ракети вздовж показаної траєкторії: вектор швидкості й телеметрія">Симуляція</button>
+      <select id="system-sim-speed" aria-label="Швидкість симуляції польоту">
+        <option value="3600">1 год/с</option>
+        <option value="14400" selected>4 год/с</option>
+        <option value="43200">12 год/с</option>
+      </select>
+    </span>
     <label title="Режим якості 3D; зберігається на цьому пристрої">Якість <select id="quality-select"></select></label>
     <span class="time-controls">
       <button type="button" id="system-play" aria-label="Відтворити">▶</button>
@@ -55,6 +63,10 @@
         <dt>Орбіта Місяця (оскулююча)</dt><dd data-fact="orbit_moon">—</dd>
         <dt>Орбіта Землі (оскулююча)</dt><dd data-fact="orbit_earth">—</dd>
       </dl>
+      <div id="flight-telemetry" hidden>
+        <h2>Телеметрія польоту</h2>
+        <dl id="flight-telemetry-rows"></dl>
+      </div>
       <p class="muted small">Клік по Місяцю вибирає точку посадки (як на вкладці «Місяць»).</p>
     </aside>
   </div>

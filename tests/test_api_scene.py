@@ -126,6 +126,10 @@ def test_scene_flight_extras(client):
     assert 6500 < sum(c * c for c in first) ** 0.5 < 6600  # паркувальна орбіта 185 км
     assert sum((a - b) ** 2 for a, b in zip(last, t["moon_at_arrival_km"], strict=True)) ** 0.5 < 1.0
     assert by_kind["rocket"]["site_id"] == "kourou" and by_kind["lander"]["lat"] == -85
+    # G12: час і швидкість у кожній точці дуги для анімації польоту
+    assert len(t["times_s"]) == len(t["speeds_km_s"]) == len(t["points_km"])
+    assert t["times_s"][0] == 0 and abs(t["times_s"][-1] - t["tof_days"] * 86400) < 1
+    assert t["times_s"] == sorted(t["times_s"]) and 10.0 < t["speeds_km_s"][0] < 11.5 and t["speeds_km_s"][-1] < 1.5
 
 
 def test_scene_flight_without_point_has_no_lander_and_unknown_site_is_404(client):

@@ -2068,6 +2068,16 @@ components:
           minItems: 2
           items: {type: array, minItems: 3, maxItems: 3, items: {type: number}}
           description: "Дуга від паркувальної орбіти до центру Місяця в момент прибуття (задача двох тіл)"
+        times_s:
+          type: array
+          minItems: 2
+          items: {type: number}
+          description: "Час від відльоту до кожної точки дуги, с (рівняння Кеплера; остання точка = tof_days); для анімації польоту"
+        speeds_km_s:
+          type: array
+          minItems: 2
+          items: {type: number}
+          description: "Геоцентрична швидкість у кожній точці дуги, км/с (vis-viva)"
         departure_utc: {type: string, format: date-time}
         arrival_utc: {type: string, format: date-time}
         tof_days: {type: number}

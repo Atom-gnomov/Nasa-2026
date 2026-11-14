@@ -129,3 +129,62 @@ def test_temperature_factor_unavailable_without_diviner_data(client):
     res = search(client, priorities=["energy", "temperature"])
     assert res.status_code in (400, 503)
     assert_valid(api_validator("Error"), res.get_json())
+
+
+# ---------- M23: вимоги до місця посадки та профіль місії у /search ----------
+@pytest.fixture
+def steep_south(monkeypatch):
+    """Нахил підміняємо (DEM у тестах немає): південніше −88° — крутий (12°), решта — положиста (4°)."""
+    from app.services import ranking
+
+    monkeypatch.setattr(ranking, "slope_deg", lambda lat, lon: 12.0 if lat < -88 else 4.0)
+
+
+def test_search_hard_slope_requirement_excludes_steep_candidates(client, steep_south):
+    data = search(client, max_slope_deg=10, limit=100).get_json()
+    assert_valid(api_validator("SearchResponse"), data)
+    assert any(c["feasible"] for c in data["chains"]) and any(not c["feasible"] for c in data["chains"])
+    for chain in data["chains"]:
+        steep = chain["moon_site"]["lat"] < -88
+        assert chain["feasible"] == (not steep)
+        assert chain["summary"]["slope_deg"] == (12.0 if steep else 4.0)
+        if steep:
+            assert chain["violations"] == [{"requirement": "max_slope_deg", "value": 12.0, "required": 10.0}]
+    feasible_first = [c["feasible"] for c in data["chains"]]
+    assert feasible_first == sorted(feasible_first, reverse=True)  # допустимі перед недопустимими
+
+
+def test_search_crewed_profile_brings_its_own_requirements(client, steep_south):
+    data = search(client, mission_profile="crewed", crew=2, limit=100).get_json()
+    assert_valid(api_validator("SearchResponse"), data)
+    assert any(c["violations"] and c["violations"][0]["requirement"] == "max_slope_deg" for c in data["chains"])
+    assert all(w["requirement"] in ("min_earth_fraction", "min_sun_fraction")
+               for c in data["chains"] for w in c["warnings"])
+    assert data["priorities"][0] == "radiation"  # пріоритети профілю, бо власних не задано
+
+
+def test_search_explicit_priorities_and_slope_override_the_profile(client, steep_south):
+    data = search(client, mission_profile="crewed", crew=2, priorities=["comms", "energy"],
+                  max_slope_deg=30, limit=100).get_json()
+    assert data["priorities"] == ["comms", "energy"]
+    assert all(c["feasible"] for c in data["chains"])  # явне 30° перекрило 10° профілю
+
+
+def test_search_uncrewed_profile_adds_no_requirements(client, steep_south):
+    data = search(client, mission_profile="uncrewed", limit=100).get_json()
+    assert all(c["feasible"] and not c["violations"] and not c["warnings"] for c in data["chains"])
+    assert all("slope_deg" not in c["summary"] for c in data["chains"])
+
+
+def test_search_unknown_slope_is_unchecked_without_dem(client):
+    data = search(client, max_slope_deg=10, limit=100).get_json()
+    assert all(c["feasible"] and c["unchecked"] == ["max_slope_deg"] for c in data["chains"])
+
+
+@pytest.mark.parametrize("extra", [{"max_slope_deg": -1}, {"max_slope_deg": 91}, {"min_earth_fraction": 1.5},
+                                   {"mission_profile": "robot"}, {"mission_profile": "uncrewed", "crew": 2},
+                                   {"crew": 2}])
+def test_search_invalid_requirements_and_profiles(client, extra):
+    res = search(client, **extra)
+    assert res.status_code == 400, res.get_json()
+    assert_valid(api_validator("Error"), res.get_json())

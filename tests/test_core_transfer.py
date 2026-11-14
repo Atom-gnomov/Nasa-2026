@@ -171,3 +171,34 @@ def test_transfer_options(eph):
     assert low.dv_total_m_s == pytest.approx((direct.best.dv_total_m_s - save_max,
                                               direct.best.dv_total_m_s - save_min))
     assert low.arrival_utc[0] - dep.replace(tzinfo=timezone.utc) == timedelta(days=low.duration_days[0])
+
+
+# --- дуга переходу для 3D (G9) -------------------------------------------------------------------------------
+
+
+def test_transfer_arc_goes_from_parking_orbit_to_the_moon():
+    r_m, v_m = _circular_moon()
+    point, pts = tr.transfer_arc(r_m, v_m, 4.0, n=50)
+    assert pts.shape == (50, 3)
+    assert np.linalg.norm(pts[0]) == pytest.approx(R0, abs=1e-6)
+    assert np.linalg.norm(pts[-1] - r_m) < 1e-3  # закінчується в центрі Місяця
+    assert np.abs(pts[:, 2]).max() < 1e-6  # у площині орбіти Місяця
+    radii = np.linalg.norm(pts, axis=1)
+    assert np.all(np.diff(radii) > 0)  # від перигею відстань лише зростає
+    assert point.tof_days == 4.0
+
+
+def test_transfer_arc_matches_two_body_propagation():
+    r_m, v_m = _circular_moon()
+    point, pts = tr.transfer_arc(r_m, v_m, 4.0, n=2)
+    e1, e2, h = tr._transfer_plane(np.asarray(r_m), np.asarray(v_m))
+    r1 = tr._departure_point(point.transfer_angle_deg, R0, e1, e2)
+    v1, _ = tr.lambert(r1, r_m, 4.0 * 86400, normal=h)
+    r_end, _ = _propagate(r1, v1, 4.0 * 86400)
+    assert np.linalg.norm(r_end - pts[-1]) < 1.0
+
+
+def test_transfer_arc_rejects_too_few_points():
+    r_m, v_m = _circular_moon()
+    with pytest.raises(ValueError):
+        tr.transfer_arc(r_m, v_m, 4.0, n=1)

@@ -108,3 +108,36 @@ def test_scene_validation(client, query):
     res = client.get(f"/api/scene?{query}")
     assert res.status_code == 400
     assert_valid(api_validator("Error"), res.get_json())
+
+
+# ---------- Політ (G9, П-5) ----------
+def test_scene_flight_extras(client):
+    pytest.importorskip("naif_de440")
+    res = client.get("/api/scene?datetime=2027-07-01T00:00Z&lat=-85&lon=0&launch_site=kourou&markers=0")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert_valid(api_validator("Scene"), data)
+    by_kind = {e["kind"]: e for e in data["extras"]}
+    assert set(by_kind) == {"rocket", "trajectory", "lander"}
+    t = by_kind["trajectory"]
+    assert t["departure_utc"] == "2027-07-01T00:00:00Z" and 3.0 <= t["tof_days"] <= 5.0
+    assert 3100 < t["dv_tli_m_s"] < 3200 and t["windows_per_day"] == 2
+    first, last = t["points_km"][0], t["points_km"][-1]
+    assert 6500 < sum(c * c for c in first) ** 0.5 < 6600  # паркувальна орбіта 185 км
+    assert sum((a - b) ** 2 for a, b in zip(last, t["moon_at_arrival_km"], strict=True)) ** 0.5 < 1.0
+    assert by_kind["rocket"]["site_id"] == "kourou" and by_kind["lander"]["lat"] == -85
+
+
+def test_scene_flight_without_point_has_no_lander_and_unknown_site_is_404(client):
+    pytest.importorskip("naif_de440")
+    data = client.get("/api/scene?datetime=2027-07-01T00:00Z&launch_site=cape-canaveral&markers=0").get_json()
+    assert {e["kind"] for e in data["extras"]} == {"rocket", "trajectory"}
+    assert client.get("/api/scene?markers=0").get_json()["extras"] == []
+    res = client.get("/api/scene?launch_site=nope&markers=0")
+    assert res.status_code == 404
+    assert_valid(api_validator("Error"), res.get_json())
+
+
+def test_system_page_has_flight_control(client):
+    html = client.get("/system/earth-moon").get_data(as_text=True)
+    assert 'id="system-flight"' in html and 'data-fact="flight"' in html

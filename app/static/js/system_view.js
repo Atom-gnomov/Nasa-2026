@@ -11,6 +11,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { anisotropy, createScene, hasWebGL, NO_WEBGL_MESSAGE } from "./three/scene.js";
 import { mountQualitySelect, qualitySettings } from "./three/quality.js";
 import { getState, setState, subscribe } from "./state.js";
+import { flightFact, flightUrl, needsReload, splitExtras } from "./flight.js";
 
 const DEG = Math.PI / 180;
 const EPS = 23.4392911 * DEG; // нахил екліптики J2000 (IAU)
@@ -328,6 +329,77 @@ async function main() {
     new THREE.LineDashedMaterial({ color: 0x8fd18f, dashSize: 4, gapSize: 3 }));
   scene.add(linkLine);
 
+  // Політ (G9, П-5): траєкторія зі старту TLI в момент сцени, Місяць у момент прибуття, ракета, модуль
+  const flightLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xff7a45 }));
+  const flightHead = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.6, 12), new THREE.MeshBasicMaterial({ color: 0xff7a45 }));
+  const moonAtArrival = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 12),
+    new THREE.MeshBasicMaterial({ color: 0xff7a45, wireframe: true, transparent: true, opacity: 0.35 }));
+  const rocketMesh = new THREE.Mesh(new THREE.ConeGeometry(0.35, 1, 12), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+  const landerMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.9, 0.7, 8), new THREE.MeshBasicMaterial({ color: 0xff7a45 }));
+  scene.add(flightLine, flightHead, moonAtArrival, rocketMesh, landerMesh);
+  for (const o of [flightLine, flightHead, moonAtArrival, rocketMesh, landerMesh]) o.visible = false;
+  const UP = new THREE.Vector3(0, 1, 0);
+  let flight = null; // splitExtras(...) останньої відповіді
+  let flightReq = null; // { siteId, ms, lat, lon } останнього запиту
+  let flightLoading = false;
+  const flightSelect = $("system-flight");
+  fetch("/api/launch-sites").then((r) => r.json()).then((list) => {
+    flightSelect?.append(...list.map((s) => new Option(`${s.name.split(" (")[0]} (${s.lat.toFixed(1)}°)`, s.id)));
+  }).catch(() => {});
+
+  async function loadFlight(ms, force = false) {
+    const { lat, lon } = getState();
+    const next = { siteId: flightSelect?.value || "", ms, lat, lon };
+    if (!next.siteId) { flight = null; flightReq = next; return; }
+    if (flightLoading || (!force && !needsReload(flightReq, next))) return;
+    flightLoading = true;
+    flightReq = next;
+    try {
+      const res = await fetch(flightUrl(next.siteId, ms, lat, lon));
+      const body = await res.json();
+      flight = res.ok ? splitExtras(body.extras) : null;
+      if (!res.ok) $("system-note").textContent = `Політ: ${body.detail ?? res.status}`;
+    } catch { flight = null; } finally { flightLoading = false; }
+  }
+  flightSelect?.addEventListener("change", () => loadFlight(simMs, true));
+
+  function updateFlight(lay, eM, mM) {
+    const t = flight?.trajectory;
+    for (const o of [flightLine, flightHead, moonAtArrival]) o.visible = Boolean(t);
+    rocketMesh.visible = Boolean(flight?.rocket);
+    landerMesh.visible = Boolean(flight?.lander);
+    if (!flight) return;
+    // Масштаб той самий, що в орбіти Місяця: траєкторія закінчується там, де буде Місяць у момент прибуття
+    const kMoon = lay.moon.pos.distanceTo(lay.earth.pos) / toScene(state.moon_km).length();
+    if (t) {
+      setLine(flightLine, t.points_km.map((p) => toScene(p)), lay.earth.pos, kMoon);
+      const arrival = lay.earth.pos.clone().addScaledVector(toScene(t.moon_at_arrival_km), kMoon);
+      moonAtArrival.position.copy(arrival);
+      moonAtArrival.scale.setScalar(lay.moon.r * 1.02);
+      const n = t.points_km.length;
+      const prev = lay.earth.pos.clone().addScaledVector(toScene(t.points_km[n - 2]), kMoon);
+      const tip = lay.earth.pos.clone().addScaledVector(toScene(t.points_km[n - 1]), kMoon);
+      const dir = tip.clone().sub(prev).normalize();
+      flightHead.position.copy(arrival).addScaledVector(dir, -lay.moon.r * 1.6);
+      flightHead.quaternion.setFromUnitVectors(UP, dir);
+      flightHead.scale.setScalar(lay.moon.r * 0.5);
+    }
+    if (flight.rocket) {
+      const up = new THREE.Vector3(...apply3(eM.r, flight.rocket.unit_itrs)).normalize();
+      const h = lay.earth.r * 0.3;
+      rocketMesh.scale.set(h, h, h);
+      rocketMesh.position.copy(lay.earth.pos).addScaledVector(up, lay.earth.r + h * 0.5);
+      rocketMesh.quaternion.setFromUnitVectors(UP, up);
+    }
+    if (flight.lander) {
+      const up = new THREE.Vector3(...apply3(mM.r, flight.lander.unit_me)).normalize();
+      const h = lay.moon.r * 0.12;
+      landerMesh.scale.setScalar(h);
+      landerMesh.position.copy(lay.moon.pos).addScaledVector(up, lay.moon.r + h * 0.35);
+      landerMesh.quaternion.setFromUnitVectors(UP, up);
+    }
+  }
+
   // Підписи
   const labelLayer = document.createElement("div");
   labelLayer.style.cssText = "position:absolute;inset:0;pointer-events:none;overflow:hidden";
@@ -437,6 +509,7 @@ async function main() {
       loadState(ms);
       loadOrbits(ms);
     }
+    loadFlight(simMs, Math.abs(ms - (flightReq?.ms ?? ms)) > 60000); // інша дата чи точка — новий політ
   });
 
   // Клік по Місяцю — вибір точки (спільний стан з вкладкою «Місяць»)
@@ -465,6 +538,7 @@ async function main() {
       if (!fetching && now - lastFetch > 70) loadState(simMs);
       // орбіта Місяця помітно змінюється за добу (збурення) — оновлюємо, коли час відійшов на >12 год
       if (!orbitLoading && !(Math.abs(simMs - orbitMs) < 12 * 3600000)) loadOrbits(simMs, 0);
+      loadFlight(simMs); // сам вирішує, чи час відійшов достатньо (needsReload)
     }
     if (!state) { renderer.render(scene, camera); return; }
 
@@ -496,6 +570,7 @@ async function main() {
 
     updateOrbits(lay);
     const facts = updatePointAndStations(lay, earthRot, eM, mM, sunFromMoonKm);
+    updateFlight(lay, eM, mM);
     updateCamera(lay, now);
     controls.update();
     updateLabels(lay);
@@ -695,6 +770,7 @@ async function main() {
     if (playing) f.datetime = isoUtc(simMs).replace("T", " ");
     f.point = facts.point ?? "не вибрано (клік по Місяцю)";
     f.dsn = facts.dsn;
+    f.flight = flightFact(flight ? [flight.rocket, flight.trajectory, flight.lander].filter(Boolean) : []);
     for (const [k, v] of Object.entries(f)) setFact(k, v);
   }
 

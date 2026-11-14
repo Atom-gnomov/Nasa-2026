@@ -23,3 +23,8 @@ def load_launch_sites() -> list[dict]:
 def load_launch_systems() -> list[dict]:
     """Системи запуску з першоджерел (app/data/launch_systems.json, задача D6)."""
     return list(_load(str(current_app.config["DATA_DIR"] / "launch_systems.json")))
+
+
+def load_rockets() -> list[dict]:
+    """Сучасні ракети з першоджерел (app/data/rockets.json, задача D7)."""
+    return list(_load(str(current_app.config["DATA_DIR"] / "rockets.json")))

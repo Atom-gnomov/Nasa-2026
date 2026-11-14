@@ -79,7 +79,7 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 - **Зараз:** —
 - **Гілка:** —
-- **Зараз (агент Claude):** — (F10b, M21, I9 злито в `main`: PR #64–#66; на рев'ю — правило злиття в AGENTS.md, PR #68)
+- **Зараз (агент Claude):** — (злито: F10b, M21, I9, AGENTS-правило злиття — PR #64–#66, #68; PR Чорнобога #67); вільний для нових задач
 - **Гілка (агент Claude):** `perun/F10b-advice-visible`, `perun/M21-catalog-economics`, `perun/I9-data-pack`
 
 ### Велес

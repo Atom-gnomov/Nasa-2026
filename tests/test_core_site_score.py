@@ -113,3 +113,67 @@ def test_decisive_factor_is_weighted():
     w = ss.priority_weights(["comms", "energy"])
     r = ss.score_points([a, b], ["comms", "energy"])
     assert ss.compare(r[0], r[1], w)["decisive_factor"] == "comms"
+
+
+# ---------- M23: вимоги до місця посадки (нахил — жорстка, видимість — м'які) ----------
+def summ2(slope=3.0, earth=0.6, sun=0.6, **kw):
+    return {**summ(sun=sun, **kw), "slope_deg": slope, "earth_fraction": earth}
+
+
+def test_hard_slope_requirement_makes_a_steep_point_infeasible():
+    req = ss.Requirements(max_slope_deg=10.0)
+    scored = ss.score_points([summ2(slope=4.0), summ2(slope=14.0)], ["energy", "comms"], requirements=req)
+    flat, steep = (next(p for p in scored if p.index == i) for i in (0, 1))
+    assert flat.feasible and not flat.violations
+    assert not steep.feasible
+    assert steep.violations == [{"requirement": "max_slope_deg", "value": 14.0, "required": 10.0}]
+    assert scored[0].index == 0  # допустима перед недопустимою
+
+
+def test_slope_exactly_at_the_limit_is_acceptable():
+    p = ss.score_points([summ2(slope=10.0)], ["energy"], requirements=ss.Requirements(max_slope_deg=10.0))[0]
+    assert p.feasible and p.violations == []
+
+
+def test_unknown_slope_is_unchecked_not_fulfilled_and_not_violated():
+    req = ss.Requirements(max_slope_deg=10.0)
+    p = ss.score_points([summ2(slope=None)], ["energy"], requirements=req)[0]
+    assert p.feasible and p.violations == []  # порушення немає…
+    assert p.unchecked == ["max_slope_deg"]  # …але й «виконано» не стверджуємо
+    assert ss.score_points([summ2(slope=3.0)], ["energy"], requirements=req)[0].unchecked == []
+    assert ss.score_points([summ2(slope=None)], ["energy"])[0].unchecked == []  # вимоги не задано — нічого й перевіряти
+
+
+def test_soft_requirement_only_lowers_the_score_and_keeps_the_point_feasible():
+    base = ss.score_points([summ2(earth=0.6)], ["energy", "comms"])[0]
+    soft = ss.score_points([summ2(earth=0.125)], ["energy", "comms"],
+                           requirements=ss.Requirements(min_earth_fraction=0.25))[0]
+    assert soft.feasible and soft.violations == []
+    assert soft.warnings == [{"requirement": "min_earth_fraction", "value": 0.125, "required": 0.25,
+                              "kind": "screening"}]
+    assert soft.score_pct == pytest.approx(base.score_pct * 0.5, abs=0.02)  # 0,125 / 0,25 = 0,5 (на межі підлоги)
+
+
+def test_soft_penalty_is_proportional_and_has_a_floor():
+    w = lambda value: [{"value": value, "required": 0.25}]  # noqa: E731
+    assert ss.soft_penalty([]) == 1.0
+    assert ss.soft_penalty(w(0.2)) == pytest.approx(0.8)
+    assert ss.soft_penalty(w(0.0)) == ss.SOFT_PENALTY_FLOOR == 0.5  # нульова видимість — не більш ніж удвічі
+    both = [{"value": 0.2, "required": 0.25}, {"value": 0.0, "required": 0.05}]
+    assert ss.soft_penalty(both) == pytest.approx(0.4)
+
+
+def test_met_soft_requirement_changes_nothing():
+    req = ss.Requirements(min_earth_fraction=0.25, min_sun_fraction=0.05)
+    p = ss.score_points([summ2(earth=0.6, sun=0.6)], ["energy", "comms"], requirements=req)[0]
+    base = ss.score_points([summ2(earth=0.6, sun=0.6)], ["energy", "comms"])[0]
+    assert p.warnings == [] and p.score_pct == base.score_pct
+
+
+def test_soft_penalty_can_change_the_winner_but_never_makes_a_point_infeasible():
+    a = summ2(sun=0.9, earth=0.0, comm=0.9, gap=10.0, sun_h=600.0)  # сильна точка без видимості Землі
+    b = summ2(sun=0.7, earth=0.9, comm=0.7, gap=60.0, sun_h=500.0)
+    no_req = ss.score_points([a, b], ["energy", "comms"])
+    with_req = ss.score_points([a, b], ["energy", "comms"], requirements=ss.Requirements(min_earth_fraction=0.25))
+    assert no_req[0].index == 0 and with_req[0].index == 1  # м'яка вимога змінила переможця
+    assert all(p.feasible for p in with_req)

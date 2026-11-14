@@ -35,11 +35,27 @@ def test_crewed_takes_every_published_threshold_for_the_profile():
     assert "limits.landing_slope_deg" in p.from_profile and "crew" not in p.from_profile
 
 
-def test_crewed_requirements_in_hours_from_sun_visibility_screening():
-    p = mp.resolve("crewed", THRESHOLDS, crew=2)
-    req = p.requirements(708.72)
-    assert req.min_sun_hours == pytest.approx(0.05 * 708.72)
-    assert req.min_comm_hours is None  # числового порогу зв'язку в документах NASA немає (D5)
+def test_crewed_requirements_hard_slope_and_soft_visibility_from_sources():
+    """M23: нахил посадки (вимога документа) — жорстка; видимість Землі й Сонця (фільтри відбору) — м'які."""
+    req = mp.resolve("crewed", THRESHOLDS, crew=2).requirements()
+    assert req.max_slope_deg == 10  # Artemis III: нахил ділянки посадки < 10°
+    assert req.min_earth_fraction == pytest.approx(0.25)
+    assert req.min_sun_fraction == pytest.approx(0.05)
+    assert req.min_sun_hours is None and req.min_comm_hours is None  # годин не задаємо: порогу зв'язку немає (D5)
+
+
+def test_uncrewed_profile_sets_no_landing_requirements():
+    """Для безпілотної порогів у документах NASA немає: вимог за замовчуванням немає, користувач задає їх сам."""
+    assert mp.resolve("uncrewed", THRESHOLDS).requirements() == site_score.Requirements()
+
+
+def test_overridden_slope_limit_changes_the_requirement_and_removed_limit_drops_it():
+    tighter = mp.resolve("crewed", THRESHOLDS, crew=2, limit_overrides={"landing_slope_deg": 6})
+    assert tighter.requirements().max_slope_deg == 6.0
+    removed = mp.resolve("crewed", THRESHOLDS, crew=2, limit_overrides={"landing_slope_deg": None,
+                                                                         "earth_visible_fraction": None})
+    req = removed.requirements()
+    assert req.max_slope_deg is None and req.min_earth_fraction is None and req.min_sun_fraction == pytest.approx(0.05)
 
 
 def test_explicit_values_win_over_the_profile():

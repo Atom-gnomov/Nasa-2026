@@ -171,13 +171,14 @@ def _flight_extras(when: datetime, launch_site_id: str, lat: float | None, lon: 
         best = min(transfer.dv_curve(eph, when_utc, FLIGHT_TOF_DAYS), key=lambda p: p.dv_total_m_s)
         inclination = launch.best_inclination_deg(site["lat"], best.min_parking_inclination_deg)
     r_m, v_m = transfer.moon_state_icrf(eph, best.arrival_utc)
-    _, points = transfer.transfer_arc(r_m, v_m, best.tof_days, n=96)
+    _, points, times_s, speeds = transfer.transfer_arc_timed(r_m, v_m, best.tof_days, n=96)
     dep = launch.site_departure(site["lat"], inclination)
     extras = [
         {"kind": "rocket", "id": f"rocket-{site['id']}", "site_id": site["id"], "name": site["name"],
          "lat": site["lat"], "lon": site["lon"], "unit_itrs": _earth_unit(site["lat"], site["lon"])},
         {"kind": "trajectory", "id": "transfer-direct", "frame": "icrf_geocentric_km",
          "points_km": [[round(float(c), 1) for c in p] for p in points],
+         "times_s": [round(float(x), 1) for x in times_s], "speeds_km_s": [round(float(x), 4) for x in speeds],
          "departure_utc": _iso(best.departure_utc), "arrival_utc": _iso(best.arrival_utc),
          "tof_days": best.tof_days, "dv_tli_m_s": round(best.dv_tli_m_s, 1), "dv_loi_m_s": round(best.dv_loi_m_s, 1),
          "c3_km2_s2": round(best.c3_km2_s2, 3), "moon_at_arrival_km": [round(float(c), 1) for c in r_m],

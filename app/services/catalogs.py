@@ -30,6 +30,24 @@ def load_mission_thresholds() -> list[dict]:
     return list(_load(str(current_app.config["DATA_DIR"] / "mission_thresholds.json")))
 
 
+def load_payload_tables() -> dict:
+    """Параметри корисного навантаження з першоджерел NASA (app/data/payload_tables.json, задача D4)."""
+    path = str(current_app.config["DATA_DIR"] / "payload_tables.json")
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
 def load_rockets() -> list[dict]:
     """Сучасні ракети з першоджерел (app/data/rockets.json, задача D7)."""
     return list(_load(str(current_app.config["DATA_DIR"] / "rockets.json")))
+
+
+def load_vehicles() -> list[tuple[str, dict]]:
+    """Єдиний каталог засобів запуску: системи D6 і ракети D7 як пари (каталог, рядок). Ідентифікатори унікальні."""
+    pairs = [("launch_systems", r) for r in load_launch_systems()] + [("rockets", r) for r in load_rockets()]
+    seen: set[str] = set()
+    for _, row in pairs:
+        if row["id"] in seen:
+            raise ValueError(f"Дубль ідентифікатора засобу запуску: {row['id']}")
+        seen.add(row["id"])
+    return pairs

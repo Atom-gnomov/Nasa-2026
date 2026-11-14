@@ -282,6 +282,14 @@ def transfer_arc(r_moon_km, v_moon_km_s, tof_days: float, params: TransferParams
     Дуга — оскулюючий еліпс після TLI (задача двох тіл), від точки відльоту до точки прибуття за рухом. Для показу
     в 3D (задача G9, П-5); ділянку виведення на паркувальну орбіту не показуємо.
     """
+    point, points, _, _ = transfer_arc_timed(r_moon_km, v_moon_km_s, tof_days, params, n)
+    return point, points
+
+
+def transfer_arc_timed(r_moon_km, v_moon_km_s, tof_days: float, params: TransferParams = DEFAULT_PARAMS,
+                       n: int = 96) -> tuple[TransferPoint, np.ndarray, np.ndarray, np.ndarray]:
+    """Те саме, що `transfer_arc`, плюс час від відльоту до кожної точки (с, з рівняння Кеплера; нормовано так, щоб
+    остання точка припадала на `tof_days`) і швидкість у ній (км/с, vis-viva) — для анімації польоту (G12)."""
     if n < 2:
         raise ValueError("Потрібно щонайменше 2 точки")
     point = coplanar_transfer(r_moon_km, v_moon_km_s, tof_days, params)
@@ -295,8 +303,15 @@ def transfer_arc(r_moon_km, v_moon_km_s, tof_days: float, params: TransferParams
     if nu2 <= nu1:
         nu2 += 2 * math.pi
     nu = np.linspace(nu1, nu2, n)
-    points = orbit.radius(nu)[:, None] * (np.cos(nu)[:, None] * orbit.p_hat + np.sin(nu)[:, None] * orbit.q_hat)
-    return point, points
+    radius = orbit.radius(nu)
+    points = radius[:, None] * (np.cos(nu)[:, None] * orbit.p_hat + np.sin(nu)[:, None] * orbit.q_hat)
+    # Час за Кеплером: ν → E → M → t; кут E розгортаємо, бо ν може перетнути ±π
+    ecc = np.unwrap(2.0 * np.arctan2(math.sqrt(1 - orbit.e) * np.sin(nu / 2), math.sqrt(1 + orbit.e) * np.cos(nu / 2)))
+    mean_anomaly = ecc - orbit.e * np.sin(ecc)
+    times = (mean_anomaly - mean_anomaly[0]) * math.sqrt(orbit.a_km**3 / GM_EARTH)
+    times = times * (tof_days * 86400.0 / times[-1])
+    speeds = np.sqrt(GM_EARTH * (2.0 / radius - 1.0 / orbit.a_km))
+    return point, points, times, speeds
 
 
 # --- з ефемеридами ---------------------------------------------------------------------------------------------

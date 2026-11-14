@@ -11,6 +11,7 @@ export const QUALITY = {
     antialias: false,
     anisotropyMax: 4,
     polarTiles: false, // детальний рельєф полюса LOLA 80 і 20 м (≈ 60 МБ) не вантажимо
+    photometry: false, // вид «з поверхні»: закон Ламберта (G13); фотометрія реголіту — лише у «високій»
     terrainN: 121, // вузлів на сторону сітки поверхні виду «з поверхні» (/api/terrain?n=…)
   },
   high: {
@@ -19,6 +20,7 @@ export const QUALITY = {
     antialias: true,
     anisotropyMax: 16,
     polarTiles: true,
+    photometry: true,
     terrainN: null, // за замовчуванням API: крок сітки ≈ роздільності DEM, до 301 вузла
   },
 };

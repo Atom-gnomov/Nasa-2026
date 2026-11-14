@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import time
+from dataclasses import replace
 from datetime import datetime
 
 from app.core import grid, site_score
@@ -74,8 +75,19 @@ def search(body: dict, start: datetime, end: datetime) -> dict:
         params = ScoreParams(**(body.get("params") or {}))
     except TypeError as exc:
         raise RankError(f"Невідомий параметр шкали: {exc}") from exc
-    requirements = Requirements(*(None if body.get(k) is None else _num(body, k, 0, 0, 1e6)
-                                  for k in ("min_sun_hours", "min_comm_hours")))
+    profile = ranking._resolve_profile(body, start, end)  # M23: профіль місії (як у /rank)
+    if profile is not None and not body.get("priorities"):
+        priorities = list(profile.priorities)
+    bad = [f for f in priorities if f not in ranking.SUPPORTED]
+    if bad:
+        raise RankError(f"Фактор ще не підтримується: {', '.join(bad)}")
+    explicit = {k: _num(body, k, 0, lo, hi) for k, lo, hi in (
+        ("min_sun_hours", 0, 1e6), ("min_comm_hours", 0, 1e6), ("max_slope_deg", 0, 90),
+        ("min_earth_fraction", 0, 1), ("min_sun_fraction", 0, 1)) if body.get(k) is not None}
+    requirements = Requirements(**explicit)
+    if profile is not None:  # явні значення запиту переважають профіль поле за полем
+        from_profile = profile.requirements()
+        requirements = replace(requirements, **ranking._profile_fill(from_profile, explicit))
     step_h = _num(body, "step_h", 6.0, 1.0, 24.0)
     height_m = _num(body, "height_m", 0.0, 0.0, 1000.0)
     step_deg = _num(body, "grid_step_deg", 2.0, 0.25, 30.0)
@@ -90,7 +102,8 @@ def search(body: dict, start: datetime, end: datetime) -> dict:
         if len(evaluated) >= MIN_EVALUATED and _now() - started > BUDGET_S:
             break
         summary, source, station_hours = ranking.evaluate_point(
-            cand, start, end, step_h, height_m, need_thermal, params)
+            cand, start, end, step_h, height_m, need_thermal, params,
+            need_slope=requirements.max_slope_deg is not None)
         evaluated.append(cand)
         summaries.append(summary)
         sources.append(source)
@@ -119,12 +132,15 @@ def search(body: dict, start: datetime, end: datetime) -> dict:
             "earth_target": earth_target,
             "feasible": sp.feasible,
             "violations": sp.violations,
+            "warnings": sp.warnings,
+            "unchecked": sp.unchecked,
             "score_pct": sp.score_pct,
             "pareto": sp.pareto,
             "factors": {f: round(v, 4) for f, v in sp.factors.items()},
             "summary": {k: s[k] for k in ("sun_hours", "comm_hours", "sun_fraction", "comm_fraction",
                                           "longest_night_h", "longest_comm_gap_h", "energy_wh_per_m2",
-                                          "sky_view_fraction", "thermal_fraction") if s.get(k) is not None},
+                                          "sky_view_fraction", "thermal_fraction", "slope_deg")
+                                  if s.get(k) is not None},
             "horizon_source": sources[sp.index],
         })
     return {

@@ -13,7 +13,7 @@ from app.core.launch import TRAJECTORIES
 from app.services import catalogs
 
 ALLOWED = {"crew", "days", "sizes", "trajectory", "launch_site_id", "launch_lat", "launch_system_id",
-           "longest_night_h", "mission_profile"}
+           "longest_night_h", "mission_profile", "parameters_basis"}
 
 
 class MissionError(ValueError):
@@ -39,10 +39,10 @@ def _system(body: Mapping) -> launch_system.LaunchSystem | None:
         return None
     if not isinstance(system_id, str):
         raise MissionError("launch_system_id має бути рядком")
-    row = next((r for r in catalogs.load_launch_systems() if r["id"] == system_id), None)
-    if row is None:
-        raise LaunchSiteNotFound(f"Систему запуску {system_id} не знайдено")
-    return launch_system.from_catalog(row)
+    found = next(((cat, r) for cat, r in catalogs.load_vehicles() if r["id"] == system_id), None)
+    if found is None:
+        raise LaunchSiteNotFound(f"Засіб запуску {system_id} не знайдено")
+    return launch_system.from_catalog(found[1], found[0])
 
 
 def _latitude(body: Mapping, system: launch_system.LaunchSystem | None = None) -> tuple[float, str | None]:
@@ -85,14 +85,20 @@ def compute(body: Mapping) -> dict:
     sizes = body.get("sizes")
     if sizes is not None and not isinstance(sizes, Mapping):
         raise MissionError("sizes має бути об'єктом")
+    basis = body.get("parameters_basis", "model")
+    if basis not in payload.BASES:
+        raise MissionError(f"parameters_basis: допустимо {', '.join(payload.BASES)}")
+    params, applied = payload.DEFAULT_PARAMS, []
+    if basis == "sourced":  # M22: маси й енергетика — діапазони з першоджерел NASA (D4), решта лишається тимчасовою
+        params, applied = payload.params_from_tables(catalogs.load_payload_tables())
     trajectory = body.get("trajectory", "direct")
     if trajectory not in TRAJECTORIES:
         raise MissionError(f"trajectory: допустимо {', '.join(TRAJECTORIES)}")
     system = _system(body)
     lat, site_id = _latitude(body, system)
 
-    budget = payload.payload_budget(sizes, crew=crew, days=days, longest_night_h=night)
-    choice = launch_system.to_rocket(system) if system else None
+    budget = payload.payload_budget(sizes, crew=crew, days=days, longest_night_h=night, params=params)
+    choice = launch_system.to_rocket(system, trajectory=trajectory) if system else None
     rocket_kwargs = {"rocket": choice.rocket} if choice else {}
     estimate = cost.mission_cost(budget.masses_kg, trajectory=trajectory, latitude_deg=lat, **rocket_kwargs)
     risk_kwargs = {"params": choice.risk_params()} if choice else {}  # база відмови — цієї ракети (M21)
@@ -102,8 +108,11 @@ def compute(body: Mapping) -> dict:
         "provisional": True,
         "launch_lat": lat,
         "launch_site_id": site_id,
+        "parameters_basis": basis,
+        "sourced_parameters": applied,
         "profile": profile.to_dict() if profile else None,
-        "launch_system": ({**choice.to_dict(), "fit": launch_system.fit(estimate.mass_leo_kg, system)}
+        "launch_system": ({**choice.to_dict(),
+                           "fit": launch_system.fit(estimate.mass_leo_kg, system, choice.rocket.capacity_leo_kg)}
                           if choice else None),
         "payload": budget.to_dict(),
         "cost": estimate.to_dict(),

@@ -16,7 +16,7 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.4 syst
 .cal-steps button { padding: 4px 8px; font-size: 13px; white-space: nowrap; }
 #view { padding: 16px; padding-right: 300px; }
 .moon-layout { display: grid; grid-template-columns: 1fr 280px; gap: 16px; }
-.canvas-host { min-height: 60vh; background: #000; border: 1px solid var(--border); border-radius: 8px; display: grid; place-items: center; }
+.canvas-host { min-height: 60vh; background: transparent; border: 1px solid var(--border); border-radius: 8px; display: grid; place-items: center; }
 .fallback-2d { display: block; padding: 8px; min-height: 0; }
 .fallback-map { position: relative; cursor: crosshair; line-height: 0; }
 .fallback-map img { width: 100%; height: auto; display: block; border-radius: 4px; }
@@ -52,7 +52,7 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.4 syst
 .surface-host { height: 52vh; min-height: 320px; position: relative; overflow: hidden; }
 .surface-host canvas { display: block; cursor: grab; }
 .surface-flat { width: 100%; height: 300px; display: block; border: 1px solid var(--border); border-radius: 8px; }
-.surface-pano { width: 100%; height: 440px; display: block; border: 1px solid var(--border); border-radius: 8px; background: #000; cursor: grab; touch-action: none; }
+.surface-pano { width: 100%; height: 440px; display: block; border: 1px solid var(--border); border-radius: 8px; background: transparent; cursor: grab; touch-action: none; }
 .surface-pano:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .surface-toolbar button:disabled { opacity: 0.4; cursor: default; }
 .surface-labels { position: absolute; inset: 0; pointer-events: none; }
@@ -200,6 +200,10 @@ button.primary:disabled { opacity: 0.6; cursor: progress; }
 .lw-priorities ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
 .lw-priorities button { padding: 0 6px; }
 .lw-note { font-size: 12px; margin: 0; }
+.lw-priorities label { margin-bottom: 6px; }
+.lw-priorities input { width: 100%; box-sizing: border-box; }
+.results-table tr.infeasible td { color: var(--muted); }
+#plan-table td:nth-child(4) { white-space: normal; min-width: 180px; }
 .lw-results { min-width: 0; display: grid; gap: 10px; }
 .lw-scale { display: flex; gap: 3px; align-items: flex-end; height: 180px; overflow-x: auto; padding-bottom: 4px; }
 .lw-bar { flex: 1 0 22px; height: 100%; position: relative; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; background: none; border: 0; padding: 0; color: var(--muted); font: 11px/1.2 system-ui, sans-serif; cursor: pointer; }

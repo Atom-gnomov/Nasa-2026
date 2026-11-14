@@ -198,6 +198,23 @@ def _prp_at(td: TempData, lat: float, lon: float) -> dict | None:
             "ice_depth_m": round(ice, 3) if np.isfinite(ice) else None, "cell_m": meta["cell_m"]}
 
 
+def temperature_series(lat: float, lon: float, times) -> list[float | None]:
+    """Температура поверхні (K) у точці для кожного моменту `times` (час ефемерид, масив): за місцевим сонячним часом
+    із добової кривої Diviner; None — немає вимірювань (M11). Сезонні відмінності не розділено, як у
+    `temperature_point`."""
+    td = data()
+    lon = (lon + 180.0) % 360.0 - 180.0
+    n_lat, n_lon, _ = td.tbol.shape
+    i = min(n_lat - 1, max(0, int((lat + 90.0) / td.res_deg)))
+    j = min(n_lon - 1, max(0, int((lon + 180.0) / td.res_deg)))
+    eph = get_ephemeris()
+    _, sub = frames.vector_to_latlon(eph.sun_vector_me(times))
+    lt = local_time_h(lon, np.atleast_1d(np.asarray(sub, dtype=float)))
+    row = np.asarray(td.filled[i, j])
+    values = _interp_lt(np.broadcast_to(row, (lt.shape[0], row.shape[0])), lt, td.lt_step_h) / 10.0
+    return [round(float(v), 1) if v > 0 else None for v in values]
+
+
 def temperature_point(lat: float, lon: float, when: datetime) -> dict:
     td = data()
     lon = (lon + 180.0) % 360.0 - 180.0

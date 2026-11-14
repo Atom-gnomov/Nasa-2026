@@ -1,0 +1,286 @@
+/*
+ Cosmos — космічний шар поверх Orbital Glass: індиго + ціан, зоряне тло, туманність.
+ Лише презентація: геометрію веде workspace.css, розрахунки не чіпаємо.
+ Підключений ПІСЛЯ orbital-glass.css. Кольори наукових шарів (JS, :root --accent) не змінені:
+ акцент UI перевизначається локально, не на :root.
+*/
+:root {
+  --cx-void: #02030b;
+  --cx-indigo: #6f7cff;
+  --cx-violet: #a58bff;
+  --cx-cyan: #62e4ff;
+  --cx-cyan-soft: rgba(98, 228, 255, .16);
+  --cx-ink: #e9eeff;
+  --cx-subtle: #9ba6cf;
+  --cx-line: rgba(140, 160, 255, .22);
+  --cx-glow: 0 0 22px rgba(98, 228, 255, .16);
+  --cx-font-num: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+
+  --bg: var(--cx-void);
+  --text: var(--cx-ink);
+  --muted: var(--cx-subtle);
+  --border: var(--cx-line);
+  --og-ice: var(--cx-cyan);
+  --og-line: var(--cx-line);
+  /* Liquid Glass (стиль iOS 26): майже прозоре тіло, яскравий дзеркальний край зверху-зліва, м'яке внутрішнє сяйво */
+  --og-card:
+    radial-gradient(120% 90% at 0% 0%, rgba(255, 255, 255, .20) 0%, rgba(255, 255, 255, .05) 38%, transparent 62%),
+    radial-gradient(90% 70% at 100% 100%, rgba(150, 200, 255, .12) 0%, transparent 60%),
+    linear-gradient(160deg, rgba(30, 36, 92, .46), rgba(8, 10, 32, .50));
+  --og-rim: linear-gradient(140deg, rgba(255, 255, 255, .85) 0%, rgba(190, 215, 255, .30) 22%, rgba(150, 175, 255, .10) 55%, rgba(210, 190, 255, .35) 82%, rgba(255, 255, 255, .55) 100%);
+  --og-shadow: 0 22px 60px rgba(1, 2, 18, .55), 0 2px 10px rgba(1, 2, 18, .35),
+               inset 1.5px 1.5px 0 rgba(255, 255, 255, .42), inset -1px -1px 0 rgba(200, 220, 255, .20),
+               inset 0 0 28px rgba(190, 210, 255, .09), inset 0 18px 30px -18px rgba(255, 255, 255, .16);
+  --og-highlight: linear-gradient(180deg, rgba(255, 255, 255, .10), rgba(255, 255, 255, 0));
+  --og-button: linear-gradient(160deg, rgba(150, 170, 255, .20), rgba(80, 100, 220, .07));
+  --ui-input: rgba(4, 6, 22, .62);
+  --ui-panel-soft: rgba(10, 12, 36, .78);
+  --ui-focus: rgba(98, 228, 255, .26);
+}
+
+/* ---------- Зоряне тло ---------- */
+html { background: var(--cx-void); }
+body, body:not(.page-moon):not(.page-system) #view { background: transparent; }
+body::before, body::after {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+}
+/* туманність */
+body::before {
+  background:
+    radial-gradient(ellipse 60% 50% at 18% 12%, rgba(88, 74, 220, .30), transparent 70%),
+    radial-gradient(ellipse 50% 45% at 85% 20%, rgba(32, 150, 214, .20), transparent 72%),
+    radial-gradient(ellipse 70% 55% at 70% 100%, rgba(120, 60, 200, .22), transparent 70%),
+    radial-gradient(ellipse 40% 35% at 8% 88%, rgba(40, 100, 210, .16), transparent 70%),
+    linear-gradient(180deg, #03041a 0%, #02030b 100%);
+}
+/* зорі: три шари різного розміру, повільний дрейф */
+body::after {
+  background-image:
+    radial-gradient(1.5px 1.5px at 20px 30px, #fff, transparent 60%),
+    radial-gradient(1.5px 1.5px at 90px 140px, rgba(255, 255, 255, .8), transparent 60%),
+    radial-gradient(1.5px 1.5px at 160px 70px, #cfe6ff, transparent 60%),
+    radial-gradient(1.5px 1.5px at 230px 190px, rgba(255, 255, 255, .7), transparent 60%),
+    radial-gradient(1.5px 1.5px at 60px 220px, #ffe9d0, transparent 60%),
+    radial-gradient(2px 2px at 270px 90px, rgba(190, 220, 255, .95), transparent 60%),
+    radial-gradient(1.5px 1.5px at 130px 260px, rgba(255, 255, 255, .6), transparent 60%),
+    radial-gradient(1px 1px at 47px 83px, #fff, transparent 60%),
+    radial-gradient(1.5px 1.5px at 151px 29px, #bcd4ff, transparent 60%),
+    radial-gradient(1px 1px at 101px 119px, rgba(255, 255, 255, .8), transparent 60%);
+  background-size: 300px 300px, 300px 300px, 300px 300px, 300px 300px, 300px 300px, 300px 300px, 300px 300px, 197px 211px, 233px 173px, 131px 157px;
+  opacity: 1;
+  animation: cx-drift 240s linear infinite;
+}
+@keyframes cx-drift { to { background-position: -600px 300px; } }
+
+/* ---------- Акцент інтерфейсу (локально, :root не чіпаємо) ---------- */
+.topbar, #view, .ui-widget, .ui-dock, .overlay, .help-menu-content { --accent: var(--cx-cyan); }
+
+/* ---------- Хедер ---------- */
+#site-header.topbar {
+  background: linear-gradient(180deg, rgba(20, 24, 62, .78), rgba(5, 7, 24, .86));
+  border-bottom: 1px solid var(--cx-line);
+  box-shadow: inset 0 1px 0 rgba(190, 205, 255, .10), 0 8px 30px rgba(1, 2, 16, .5), 0 1px 0 rgba(98, 228, 255, .08);
+}
+#site-header .brand-mark {
+  background: radial-gradient(circle at 35% 30%, rgba(180, 240, 255, .35), rgba(111, 124, 255, .12));
+  border-color: rgba(150, 235, 255, .5); color: #f2fbff;
+  text-shadow: 0 0 12px rgba(98, 228, 255, .7);
+  box-shadow: var(--cx-glow), inset 0 1px 0 rgba(255, 255, 255, .2);
+}
+#site-header .brand .logo { letter-spacing: .06em; text-transform: uppercase; font-size: 13px; font-weight: 700; }
+#site-header .header-middle .tabs a { color: var(--cx-subtle); }
+#site-header .header-middle .tabs a:hover:not(.active) { background: rgba(120, 140, 255, .12); color: #fff; }
+#site-header .header-middle .tabs a.active,
+#site-header .header-middle .tabs a[aria-current="page"] {
+  color: #fff; background: linear-gradient(165deg, rgba(111, 124, 255, .38), rgba(98, 228, 255, .10));
+  border-color: rgba(150, 215, 255, .5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .22), 0 0 18px rgba(98, 228, 255, .20), 0 0 2px rgba(98, 228, 255, .6);
+}
+#site-header .header-middle .calendar { color: var(--cx-subtle); }
+#site-header .header-middle #calendar-input,
+#site-header .header-actions .lang-switch,
+#site-header .header-actions .header-icon { border-color: var(--cx-line); }
+#site-header .header-actions .lang-switch button.active {
+  background: linear-gradient(180deg, rgba(111, 124, 255, .45), rgba(98, 228, 255, .14)); color: #fff;
+}
+.help-menu-content { background: linear-gradient(150deg, rgba(24, 28, 70, .97), rgba(5, 7, 26, .98)); border-color: var(--cx-line); }
+
+/* ---------- Скляні панелі ---------- */
+.ui-widget .widget-header, .ui-dock .dock-header, .workspace-results .results-heading {
+  border-bottom-color: var(--cx-line);
+}
+.ui-widget .widget-title, .ui-dock .dock-title, .workspace-results .results-heading h2 {
+  color: #f2f5ff; text-transform: uppercase; letter-spacing: .09em; font-size: 12.5px; font-weight: 700;
+}
+.ui-widget .widget-title::before, .workspace-results .results-heading h2::before {
+  content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 8px; border-radius: 50%;
+  background: var(--cx-cyan); box-shadow: 0 0 10px var(--cx-cyan); vertical-align: 1px;
+}
+.ui-widget .widget-body, .ui-widget .widget-body dt, .ui-widget .widget-body .overlay-note { color: #c7cff0; }
+.ui-widget .widget-body .muted, body:not(.page-moon):not(.page-system) #view .muted { color: var(--cx-subtle); }
+.ui-widget .widget-body a, body:not(.page-moon):not(.page-system) #view a { color: var(--cx-cyan); }
+
+/* ---------- Телеметрія: цифри моноширинні ---------- */
+.ui-widget .widget-body dd, .results-table td, .lw-bar, output { font-family: var(--cx-font-num); font-variant-numeric: tabular-nums; }
+.ui-widget .widget-body dd { color: #f0f4ff; }
+.ui-widget .widget-body details summary, .overlay summary {
+  color: var(--cx-cyan); text-transform: uppercase; letter-spacing: .08em; font-size: 11.5px;
+}
+.ui-widget .widget-body details { border-color: var(--cx-line); }
+
+/* ---------- Перемикачі, кнопки, поля ---------- */
+.ui-widget .seg, .ui-dock .seg, body:not(.page-moon):not(.page-system) #view .seg {
+  background: rgba(4, 6, 24, .5); border-color: var(--cx-line);
+}
+.ui-widget .seg button, .ui-widget .seg a, .ui-dock .seg button, .ui-dock .seg a,
+body:not(.page-moon):not(.page-system) #view .seg button { color: var(--cx-subtle); }
+.ui-widget .seg button.active, .ui-widget .seg a.active, .ui-dock .seg button.active, .ui-dock .seg a.active,
+body:not(.page-moon):not(.page-system) #view .seg button.active {
+  background: linear-gradient(180deg, rgba(111, 124, 255, .42), rgba(98, 228, 255, .13));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 0 14px rgba(98, 228, 255, .16); color: #fff;
+}
+.ui-widget .seg button:hover:not(.active), .ui-dock .seg button:hover:not(.active) { background: rgba(120, 140, 255, .14); }
+.widget-action, .dock-toggle, .ui-widget .widget-action, .ui-dock .dock-toggle { border-color: var(--cx-line); color: #dfe6ff; }
+.widget-action:hover, .dock-toggle:hover { background: rgba(111, 124, 255, .28); border-color: rgba(150, 215, 255, .6); color: #fff; }
+.ui-widget.is-collapsed .widget-collapse { background: linear-gradient(180deg, rgba(111, 124, 255, .35), rgba(98, 228, 255, .10)); color: #fff; }
+
+#view select, #view textarea,
+#view input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]),
+.ui-widget .widget-body select,
+.ui-widget .widget-body input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]),
+.ui-dock select {
+  background: rgba(4, 6, 24, .62); border-color: var(--cx-line); color: #f0f3ff;
+}
+#view input:focus-visible, #view select:focus-visible, .ui-dock select:focus-visible {
+  border-color: var(--cx-cyan); outline-color: var(--cx-cyan); box-shadow: 0 0 0 3px var(--cx-cyan-soft), var(--cx-glow);
+}
+#view input[type="checkbox"], #view input[type="range"], .ui-dock input[type="range"] { accent-color: var(--cx-cyan); }
+#view button.primary, #view #plan-flight, .ui-widget .widget-body .coords button {
+  color: #fff; background: linear-gradient(160deg, rgba(111, 124, 255, .65), rgba(60, 170, 235, .45));
+  border-color: rgba(150, 225, 255, .55); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), 0 0 20px rgba(98, 228, 255, .18);
+}
+#view button.primary:hover, #view #plan-flight:hover, .ui-widget .widget-body .coords button:hover {
+  background: linear-gradient(160deg, rgba(135, 146, 255, .8), rgba(80, 190, 245, .6)); border-color: #bff3ff;
+}
+#view fieldset, .ui-widget .widget-body fieldset { border-color: var(--cx-line); background: linear-gradient(150deg, rgba(120, 140, 255, .05), rgba(4, 6, 24, .2)); }
+#view fieldset legend { color: #c9d2f5; }
+
+/* ---------- Таблиці, графіки, смуги ---------- */
+body:not(.page-moon):not(.page-system) #view .results-table thead th { background: rgba(111, 124, 255, .12); color: #d6dcfa; border-color: var(--cx-line); text-transform: uppercase; letter-spacing: .06em; font-size: 11.5px; }
+body:not(.page-moon):not(.page-system) #view .results-table tbody td { border-color: rgba(140, 160, 255, .12); }
+body:not(.page-moon):not(.page-system) #view .results-table tbody tr:hover { background: rgba(111, 124, 255, .10); }
+body:not(.page-moon):not(.page-system) #view .results-table tr.best td { color: var(--cx-cyan); }
+body:not(.page-moon):not(.page-system) #view .table-scroll,
+body.page-search #search #s-advice .widget-body #s-advice-out { background: rgba(4, 6, 24, .35); border-color: var(--cx-line); }
+body.page-launch .lw-scale, body.page-search #search .widget-body .prio, body.page-mission .mission-result details { background: rgba(4, 6, 24, .32); border-color: var(--cx-line); }
+body.page-mission .fill-bar span, body.page-launch .lw-bar.best .lw-fill, .bar::after {
+  background: linear-gradient(90deg, var(--cx-indigo), var(--cx-cyan)); box-shadow: 0 0 14px rgba(98, 228, 255, .3);
+}
+body.page-launch .lw-bar.best { color: var(--cx-cyan); }
+.ui-widget .widget-body .ok, .workspace-results .ok { color: #7ff0c4; }
+.ui-widget .widget-body .bad, .workspace-results .bad { color: #ff9db0; }
+.ui-widget .widget-body .warn, .workspace-results .warn, .globe-warn { color: #ffc46b; }
+
+/* ---------- Liquid Glass: сильне розмиття з підвищеною насиченістю, заломлення фону ---------- */
+body.page-moon .ui-scene-widget, body.page-system .ui-scene-widget,
+body.page-moon #metrics-overlay.ui-scene-widget, body.page-system .system-info.ui-scene-widget,
+body.page-search #search .ui-widget, body.page-mission .mission-form.ui-widget,
+body.page-plan .lw-controls.ui-widget, body.page-launch .lw-controls.ui-widget,
+body.page-search #search .workspace-results, body.page-mission .workspace-results,
+body.page-plan .workspace-results, body.page-launch .workspace-results,
+body.page-moon .ui-dock, body.page-system .ui-dock, body.page-moon #surface .ui-surface-dock {
+  backdrop-filter: blur(20px) saturate(190%) contrast(1.04) brightness(.98);
+  -webkit-backdrop-filter: blur(20px) saturate(190%) contrast(1.04) brightness(.98);
+  border-radius: 24px;
+}
+body.page-moon .ui-dock, body.page-system .ui-dock, body.page-moon #surface .ui-surface-dock { border-radius: 28px; }
+#site-header.topbar {
+  background: linear-gradient(180deg, rgba(60, 70, 150, .30), rgba(10, 12, 40, .34));
+  backdrop-filter: blur(20px) saturate(190%) brightness(1.1);
+  -webkit-backdrop-filter: blur(20px) saturate(190%) brightness(1.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), inset 0 -1px 0 rgba(180, 200, 255, .15), 0 10px 34px rgba(1, 2, 16, .45);
+}
+.ui-widget .widget-header, .ui-dock .dock-header { background: transparent; border-bottom-color: rgba(200, 215, 255, .16); box-shadow: none; }
+/* кнопки й капсули теж «скляні» */
+.widget-action, .dock-toggle, #site-header .header-actions .lang-switch, #site-header .header-actions .header-icon,
+.ui-widget .seg, .ui-dock .seg {
+  background: linear-gradient(160deg, rgba(255, 255, 255, .20), rgba(255, 255, 255, .05));
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .45), inset -1px -1px 0 rgba(200, 215, 255, .15), 0 3px 10px rgba(1, 2, 16, .25);
+  backdrop-filter: blur(8px) saturate(160%); -webkit-backdrop-filter: blur(8px) saturate(160%);
+}
+.ui-widget .widget-action { border-radius: 50%; }
+
+/* ---------- Режим фокусу (кнопка ⛶): лишається лише сцена ---------- */
+body.ui-focus .ui-scene-widget, body.ui-focus .ui-dock, body.ui-focus .globe-status, body.ui-focus #globe-warn,
+body.ui-focus #surface .surface-toolbar { display: none !important; }
+body.ui-focus #fullscreen-toggle { background: linear-gradient(160deg, rgba(98, 228, 255, .45), rgba(111, 124, 255, .25)); box-shadow: var(--cx-glow); }
+
+/* ---------- Лінійка масштабу глобуса: правий нижній кут сцени над доком, не перекриває Місяць ---------- */
+body.page-moon .scale-bar {
+  /* батьківський #moon-globe має contain: layout — позиція рахується від нього, а не від вікна */
+  position: absolute; z-index: 26; left: auto; right: 17px; bottom: calc(var(--scene-dock-space, 86px) + 8px);
+  transform: none; padding: 5px 10px 7px; border-radius: 12px; text-align: right; color: #fff; font: 11px/1.2 var(--cx-font-num);
+  background: linear-gradient(160deg, rgba(255, 255, 255, .14), rgba(255, 255, 255, .04)), rgba(8, 10, 34, .34);
+  border: 1px solid rgba(255, 255, 255, .24); text-shadow: none; pointer-events: none;
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .35), 0 6px 18px rgba(1, 2, 16, .35);
+  backdrop-filter: blur(12px) saturate(170%); -webkit-backdrop-filter: blur(12px) saturate(170%);
+}
+body.page-moon .scale-bar span { margin-bottom: 4px; opacity: .9; }
+body.page-moon .scale-bar i { margin-left: auto; height: 5px; border: 2px solid var(--cx-cyan); border-top: 0; box-shadow: none; }
+body.page-moon.surface-active .scale-bar { display: none; }
+
+/* ---------- Вхід панелей ---------- */
+@keyframes cx-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+body:not(.page-moon):not(.page-system) .ui-widget, body:not(.page-moon):not(.page-system) .workspace-results {
+  animation: cx-rise .5s cubic-bezier(.2, .7, .2, 1) both;
+}
+
+/* Прокрутка в тон */
+* { scrollbar-width: thin; scrollbar-color: rgba(111, 124, 255, .4) transparent; }
+
+/* ---------- Доступність ---------- */
+@media (prefers-reduced-motion: reduce) {
+  body::after, body:not(.page-moon):not(.page-system) .ui-widget, body:not(.page-moon):not(.page-system) .workspace-results { animation: none; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  body.page-moon .ui-scene-widget, body.page-system .ui-scene-widget,
+  body.page-search #search .ui-widget, body.page-mission .mission-form.ui-widget,
+  body.page-plan .lw-controls.ui-widget, body.page-launch .lw-controls.ui-widget,
+  body.page-search #search .workspace-results, body.page-mission .workspace-results,
+  body.page-plan .workspace-results, body.page-launch .workspace-results,
+  body.page-moon .ui-dock, body.page-system .ui-dock, #site-header.topbar { background: #0c0f2c; border-color: rgba(140, 160, 255, .35); }
+}
+
+/* ---------- Легенда міток глобуса ---------- */
+body.page-moon .marker-legend {
+  position: fixed; z-index: 24; margin: 0; padding: 8px 14px; list-style: none; display: flex; flex-wrap: wrap; gap: 4px 16px;
+  top: calc(var(--header-h, 58px) + 12px); left: 50%; max-width: calc(100vw - var(--scene-left, 0px) - var(--scene-right, 0px) - 34px);
+  transform: translateX(calc((var(--scene-left, 0px) - var(--scene-right, 0px)) / 2 - 50%));
+  border-radius: 16px; font-size: 12px; color: #eef2ff; pointer-events: none; white-space: nowrap;
+  background: linear-gradient(160deg, rgba(255, 255, 255, .16), rgba(255, 255, 255, .04)), rgba(8, 10, 34, .38);
+  border: 1px solid rgba(255, 255, 255, .26);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .4), 0 8px 24px rgba(1, 2, 16, .4);
+  backdrop-filter: blur(14px) saturate(170%); -webkit-backdrop-filter: blur(14px) saturate(170%);
+}
+.marker-legend li { display: inline-flex; align-items: center; gap: 7px; }
+.marker-legend .dot { width: 11px; height: 11px; border-radius: 50%; box-shadow: 0 0 8px currentColor; }
+.dot-selected { background: #f5b942; color: #f5b942; }
+.dot-result { background: #4fc3f7; color: #4fc3f7; }
+.dot-best { background: #7bed9f; color: #7bed9f; }
+.dot-site { background: #b8bfcc; color: #b8bfcc; }
+body.page-moon.surface-active .marker-legend { display: none; }
+@media (max-width: 760px) { body.page-moon .marker-legend { gap: 2px 10px; font-size: 11px; padding: 6px 10px; white-space: normal; } }
+
+/* ---------- Метрики системи: підпис над значенням, довгі рядки (політ, DSN, орбіти) переносяться ---------- */
+body.page-system .system-info .widget-body dl { display: block; }
+body.page-system .system-info .widget-body dt {
+  margin: 13px 0 3px; font-size: 10.5px; line-height: 1.3; text-transform: uppercase; letter-spacing: .08em; color: var(--cx-subtle);
+}
+body.page-system .system-info .widget-body dl > dt:first-child { margin-top: 0; }
+body.page-system .system-info .widget-body dd {
+  margin: 0; padding-bottom: 8px; text-align: left; font-size: 13px; line-height: 1.45; color: #f0f4ff;
+  overflow-wrap: anywhere; border-bottom: 1px solid rgba(140, 160, 255, .10);
+}
+body.page-system .system-info .widget-body dd:last-of-type { border-bottom: 0; }
+body.page-system .system-info #flight-telemetry h2 { font-size: 11.5px; text-transform: uppercase; letter-spacing: .09em; color: var(--cx-cyan); margin: 16px 0 10px; }
+.ui-widget .seg button, .ui-widget .seg a, .ui-dock .seg button, .ui-dock .seg a { color: #cdd5f7; text-shadow: 0 1px 2px rgba(1, 2, 16, .55); }

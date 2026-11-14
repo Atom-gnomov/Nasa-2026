@@ -77,6 +77,12 @@
       <span id="globe-grid-label"></span>
       <span id="globe-sun"></span>
     </div>
+    <ul class="marker-legend" id="marker-legend" aria-label="Легенда міток на глобусі">
+      <li><i class="dot dot-selected"></i>Обрана точка</li>
+      <li><i class="dot dot-result"></i>Результати підбору</li>
+      <li><i class="dot dot-best"></i>Найкраща з підбору</li>
+      <li><i class="dot dot-site"></i>Історичні місця висадки</li>
+    </ul>
     <p id="globe-warn" class="globe-warn" role="status"></p>
     <details class="globe-sources">
       <summary>Джерела даних і точність</summary>
@@ -162,7 +168,6 @@
     </div>
   </div>
 </section>
-{% include "_search.html" %}
 {% endblock %}
 {% block scripts %}
 <script type="module" src="{{ url_for('static', filename='js/moon_globe.js') }}"></script>
@@ -170,5 +175,4 @@
 <script type="module" src="{{ url_for('static', filename='js/globe_view.js') }}"></script>
 <script type="module" src="{{ url_for('static', filename='js/compare.js') }}"></script>
 <script type="module" src="{{ url_for('static', filename='js/charts.js') }}"></script>
-<script type="module" src="{{ url_for('static', filename='js/search.js') }}"></script>
 {% endblock %}

@@ -65,17 +65,28 @@ class ResolvedProfile:
     def limit(self, quantity: str) -> Limit | None:
         return self.limits.get(quantity)
 
-    def requirements(self, period_h: float) -> Requirements:
-        """Вимоги до оцінки точок (site_score.Requirements) у годинах за період.
+    def requirements(self, period_h: float | None = None) -> Requirements:
+        """Вимоги до місця посадки з порогів профілю (M23; `period_h` лишено для сумісності, не потрібен).
 
-        Лише те, що профіль справді задає числом: частка часу, коли видно Сонце (screening з D5), → `min_sun_hours`.
-        Вимоги до зв'язку числом у знайдених документах NASA немає (D5), тому `min_comm_hours` не задається.
+        - `landing_slope_deg` (вимога документа, Artemis III: < 10°) → **жорстка** `max_slope_deg`;
+        - `earth_visible_fraction` (фільтр відбору: ≥ 25 %) → **м'яка** `min_earth_fraction`;
+        - `sun_visible_fraction` (фільтр відбору: ≥ 5 %) → **м'яка** `min_sun_fraction`.
+        Для безпілотної порогів немає (у документах NASA вони лише для пілотованої), тож і вимог немає — користувач
+        задає їх сам. `min_comm_hours` не задається: числового порогу зв'язку в знайдених документах немає (D5).
         """
-        sun = self.limits.get("sun_visible_fraction")
-        min_sun = None
-        if sun is not None and sun.value is not None and sun.comparison in (">", ">="):
-            min_sun = _fraction(sun) * float(period_h)
-        return Requirements(min_sun_hours=min_sun)
+        def threshold(quantity: str, upper: bool) -> float | None:
+            lim = self.limits.get(quantity)
+            if lim is None or lim.value is None:
+                return None
+            if lim.comparison not in (("<", "<=") if upper else (">", ">=")):
+                return None
+            return _fraction(lim) if quantity.endswith("_fraction") else float(lim.value)
+
+        return Requirements(
+            max_slope_deg=threshold("landing_slope_deg", upper=True),
+            min_earth_fraction=threshold("earth_visible_fraction", upper=False),
+            min_sun_fraction=threshold("sun_visible_fraction", upper=False),
+        )
 
     def to_dict(self) -> dict:
         return {

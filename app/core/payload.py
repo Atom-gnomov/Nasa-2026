@@ -13,7 +13,8 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import asdict, dataclass
+import math
+from dataclasses import asdict, dataclass, replace
 
 CATEGORIES = ("equipment", "life_support", "comfort")
 LEVELS = {"min": 0.0, "basic": 1.0 / 3.0, "extended": 2.0 / 3.0, "max": 1.0}
@@ -132,3 +133,43 @@ def payload_budget(sizes: Mapping[str, str | float] | None = None, crew: int = 0
         power_w=power, heat_w=power, panel_kg=panel, battery_kg=battery,
         payload_kg=payload, total_kg=total, total_range_kg=(total * lo, total * hi),
     )
+
+
+# ---- Таблиці D4 → параметри моделі (M22) ----------------------------------------------------------------------
+# Правило відображення діапазону з джерел на параметр моделі: "asc" — пара (мін., макс.) як у джерелі; "desc" — пара
+# (макс., мін.) (вищий рівень → менше); "geomean" — скаляр = середнє геометричне меж (діапазони широкі, ~10×).
+# Не застосовуємо: житловий об'єм (ISS 25–29 м³ — станція, а не модуль посадкового апарата), ціни (один приклад
+# або сума ракети й апарата — не окремі поля), параметри без джерел (`no_source`).
+TABLE_RULES = {
+    "equipment_mass_kg": ("equipment_mass_kg", "asc"),
+    "consumables_kg_per_person_day": ("consumables_kg_per_person_day", "desc"),
+    "habitat_kg_per_m3": ("habitat_kg_per_m3", "geomean"),
+    "solar_array_w_per_kg": ("panel_w_per_kg", "geomean"),
+    "battery_wh_per_kg": ("battery_wh_per_kg", "geomean"),
+    "battery_depth_of_discharge": ("battery_depth_of_discharge", "geomean"),
+}
+BASES = ("model", "sourced")
+
+
+def params_from_tables(tables: Mapping, base: PayloadParams = DEFAULT_PARAMS) -> tuple[PayloadParams, list[dict]]:
+    """Параметри моделі, де можливо замінені діапазонами з payload_tables.json (D4). Повертає (параметри, застосовано):
+    кожен запис — {id, param, value, source_range}. Решта параметрів лишається тимчасовою (`provisional`)."""
+    changes: dict[str, object] = {}
+    applied: list[dict] = []
+    for entry in tables.get("parameters", []):
+        rule = TABLE_RULES.get(entry["id"])
+        rng = entry.get("range")
+        if rule is None or rng is None or entry.get("status") not in ("sourced", "derived"):
+            continue
+        name, how = rule
+        lo, hi = float(rng[0]), float(rng[1])
+        if how == "asc":
+            value: object = (lo, hi)
+        elif how == "desc":
+            value = (hi, lo)
+        else:
+            value = math.sqrt(lo * hi)
+        changes[name] = value
+        applied.append({"id": entry["id"], "param": name, "value": list(value) if isinstance(value, tuple) else value,
+                        "source_range": [lo, hi]})
+    return replace(base, **changes), applied

@@ -89,6 +89,31 @@ export function fillInfo(cost) {
   return { percent, barPercent: Math.min(100, percent), over: cost.utilization > 1, text };
 }
 
+const STATUS_LABELS = { in_testing: "випробування", design_target: "проєктна ціль", retired: "знята" };
+
+// Підпис засобу запуску у списку: назва й, коли важливо, статус (проєктні ракети не видаємо за діючі).
+export function vehicleLabel(v) {
+  const marks = [];
+  if (v.catalog === "rockets") {
+    if (STATUS_LABELS[v.status]) marks.push(t(STATUS_LABELS[v.status]));
+    else if (v.verified_by_flight === false) marks.push(t("не підтверджено польотом"));
+  } else if (v.active === false) {
+    marks.push(t("не діє"));
+  }
+  return marks.length ? `${v.name} (${marks.join(", ")})` : v.name;
+}
+
+// Для списку: лише засоби з відомою місткістю; діючі й підтверджені польотом — першими.
+export function selectableVehicles(list) {
+  // 0 — діюча й підтверджена польотом; 1 — діюча, але не підтверджена; 2 — випробування чи проєктна ціль; 3 — не діє
+  const rank = (v) => {
+    if (v.active === false) return 3;
+    if (v.status === "in_testing" || v.status === "design_target") return 2;
+    return v.active === true && v.verified_by_flight !== false ? 0 : 1;
+  };
+  return list.filter((v) => v.capacity_basis).sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name, "uk"));
+}
+
 const PROVISIONAL_LABELS = { price_usd_per_kg: "ціна за кг", failure_probability: "ймовірність відмови" };
 export function provisionalNotes(response) {
   const notes = [];
@@ -97,6 +122,9 @@ export function provisionalNotes(response) {
   if (own.length) {
     const fields = own.map((f) => t(PROVISIONAL_LABELS[f] ?? f)).join(", ");
     notes.push(t("Для цієї ракети тимчасові: {fields} — у каталозі їх ще немає.", { fields }));
+  }
+  if (response.launch_system?.rocket?.capacity_basis === "tli") {
+    notes.push(t("Місткість ракети дана на траєкторію до Місяця й переведена на низьку орбіту."));
   }
   const fit = response.launch_system?.fit?.note;
   if (fit) notes.push(fit.charAt(0).toUpperCase() + fit.slice(1) + ".");
@@ -244,10 +272,7 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
   (async () => {
     try {
       const [systems, sites] = await Promise.all(["/api/launch-systems", "/api/launch-sites"].map((u) => fetch(u).then((r) => r.json())));
-      for (const s of systems.filter((x) => x.capacity_leo_kg)) {
-        const state = s.active === false ? ` (${t("не діє")})` : "";
-        $("m-system").append(markData(new Option(`${s.name}${state}`, s.id)));
-      }
+      for (const v of selectableVehicles(systems)) $("m-system").append(markData(new Option(vehicleLabel(v), v.id)));
       for (const s of sites) $("m-site").append(markData(new Option(s.name, s.id)));
     } catch { /* без каталогів лишається типова ракета й екватор */ }
     renderForm();

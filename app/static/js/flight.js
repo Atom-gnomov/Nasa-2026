@@ -82,3 +82,138 @@ export function needsReload(prev, next, stepMs = 6 * 3600000) {
   if (prev.siteId !== next.siteId || prev.lat !== next.lat || prev.lon !== next.lon) return true;
   return Boolean(next.siteId) && Math.abs(prev.ms - next.ms) > stepMs;
 }
+
+// ---- Симуляція польоту (G12): положення, швидкість, час і затримка зв'язку вздовж дуги з `trajectory` ------------
+export const LIGHT_KM_S = 299792.458;
+export const SIM_SPEEDS = [
+  { value: 3600, label: "1 год/с" }, { value: 14400, label: "4 год/с" }, { value: 43200, label: "12 год/с" },
+];
+
+// Тривалість у секундах → «3 д 4 год», «5 год 12 хв», «42 с».
+export function fmtDuration(seconds) {
+  const s = Math.max(0, Math.round(Number(seconds) || 0));
+  const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);
+  if (d) return `${d} д ${h} год`;
+  if (h) return `${h} год ${m} хв`;
+  return m ? `${m} хв ${s % 60} с` : `${s} с`;
+}
+
+const lerp = (a, b, f) => a + (b - a) * f;
+const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+
+// Номер відрізка дуги, що містить час t (двійковий пошук за times_s) і частка всередині нього.
+function segment(times, t) {
+  if (t <= times[0]) return [0, 0];
+  if (t >= times[times.length - 1]) return [times.length - 2, 1];
+  let lo = 0, hi = times.length - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (times[mid] <= t) lo = mid; else hi = mid;
+  }
+  return [lo, (t - times[lo]) / (times[hi] - times[lo])];
+}
+
+// Стан ракети через `elapsedS` секунд після відльоту: положення (км), напрям і швидкість (км/с), час, залишок,
+// відстані до Землі й до точки прибуття, затримка радіосигналу до Землі (с). null — немає даних для анімації.
+export function stateAt(trajectory, elapsedS) {
+  const { points_km: pts, times_s: times, speeds_km_s: speeds } = trajectory ?? {};
+  if (!pts || !times || !speeds || pts.length < 2 || times.length !== pts.length) return null;
+  const total = times[times.length - 1];
+  const t = Math.min(Math.max(Number(elapsedS) || 0, 0), total);
+  const [i, f] = segment(times, t);
+  const a = pts[i], b = pts[i + 1];
+  const pos = [lerp(a[0], b[0], f), lerp(a[1], b[1], f), lerp(a[2], b[2], f)];
+  const len = dist(a, b) || 1;
+  const dir = [(b[0] - a[0]) / len, (b[1] - a[1]) / len, (b[2] - a[2]) / len];
+  const distEarth = Math.hypot(...pos);
+  return {
+    elapsedS: t, remainingS: total - t, totalS: total, progress: total > 0 ? t / total : 1, done: t >= total,
+    pos, dir, speedKmS: lerp(speeds[i], speeds[i + 1], f),
+    distEarthKm: distEarth, distTargetKm: dist(pos, trajectory.moon_at_arrival_km ?? pts[pts.length - 1]),
+    delayS: distEarth / LIGHT_KM_S,
+  };
+}
+
+const km = (v) => `${Math.round(v).toLocaleString("uk-UA")} км`;
+
+// Рядки панелі «Телеметрія»: [назва, значення].
+export function telemetryRows(st) {
+  if (!st) return [];
+  return [
+    ["Час польоту", fmtDuration(st.elapsedS)],
+    ["Залишилось", st.done ? "прибуття" : fmtDuration(st.remainingS)],
+    ["Пройдено", `${Math.round(st.progress * 100)} %`],
+    ["Швидкість", `${st.speedKmS.toLocaleString("uk-UA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} км/с`],
+    ["Відстань до Землі", km(st.distEarthKm)],
+    ["До точки прибуття", km(st.distTargetKm)],
+    ["Затримка зв'язку із Землею", `${st.delayS.toLocaleString("uk-UA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} с (в один бік)`],
+  ];
+}
+
+// ---- Політ із посадкою: інтерполяція стану системи та фаза спуску ---------------------------------------------
+// Місяць за 5 діб проходить десятки градусів, тож стан системи беремо з відліків (щогодини) й інтерполюємо:
+// без запитів у кожному кадрі й без ривків. samples — [{ ms, state }] за зростанням ms; state — відповідь /api/system.
+const lerpVec = (a, b, f) => a.map((v, i) => v + (b[i] - v) * f);
+const lerpMat = (a, b, f) => a.map((row, i) => lerpVec(row, b[i], f));
+
+export function interpSystem(samples, ms) {
+  if (!samples?.length) return null;
+  if (ms <= samples[0].ms) return samples[0].state;
+  const last = samples[samples.length - 1];
+  if (ms >= last.ms) return last.state;
+  let lo = 0, hi = samples.length - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (samples[mid].ms <= ms) lo = mid; else hi = mid;
+  }
+  const f = (ms - samples[lo].ms) / (samples[hi].ms - samples[lo].ms);
+  const a = samples[lo].state, b = samples[hi].state;
+  // datetime і орієнтація Землі лишаються з попереднього відліку: обертання Землі система екстраполює сама
+  return {
+    ...a,
+    moon_km: lerpVec(a.moon_km, b.moon_km, f),
+    sun_km: lerpVec(a.sun_km, b.sun_km, f),
+    moon_orientation: lerpMat(a.moon_orientation, b.moon_orientation, f),
+  };
+}
+
+// Відліки часу для польоту: від відльоту до прибуття щогодини (+ кінець).
+export function sampleTimes(departureMs, totalS, stepMs = 3600000) {
+  const end = departureMs + totalS * 1000;
+  const out = [];
+  for (let t = departureMs; t < end; t += stepMs) out.push(t);
+  out.push(end);
+  return out;
+}
+
+// Біля Місяця схематичний масштаб роздуває його в 6 разів, а дуга закінчується в центрі: ракета пролітала б крізь кулю.
+// Відстань s (у одиницях сцени) від центру Місяця стискаємо так, щоб ракета підходила до висоти орбіти (orbitK·R),
+// а не до центру; далі від k·R (s0) відстань не змінюється. Неперервно на s = s0.
+export function remapNearMoon(s, rMoon, k = 7, orbitK = 1.35) {
+  const s0 = rMoon * k, r1 = rMoon * orbitK;
+  return s >= s0 ? s : r1 + (s0 - r1) * (Math.max(s, 0) / s0);
+}
+
+export const DESCENT_REAL_S = 7; // тривалість анімації спуску, с реального часу
+export const ORBIT_ALT_KM = 100; // схематична висота початку спуску
+
+// Стан спуску за прогресом p ∈ [0, 1]: e — частка пройденого вниз (гальмування до нуля), висота й швидкість (схематично).
+export function descentState(p) {
+  const x = Math.min(Math.max(Number(p) || 0, 0), 1);
+  const e = 1 - (1 - x) ** 2; // м'яке торкання: швидкість падіння → 0
+  return { p: x, e, altKm: ORBIT_ALT_KM * (1 - e), speedKmS: 1.63 * Math.sqrt(Math.max(0, 1 - e)), landed: x >= 1 };
+}
+
+export function descentRows(p, site = null) {
+  const d = descentState(p);
+  if (d.landed) {
+    return [["Фаза", "Посадка виконана"], ["Висота над поверхнею", "0 м"], ["Швидкість", "0,00 км/с"],
+      ...(site ? [["Точка посадки", site]] : [])];
+  }
+  return [
+    ["Фаза", "Спуск і посадка"],
+    ["Висота над поверхнею (схем.)", `${d.altKm.toFixed(1)} км`],
+    ["Швидкість (схем.)", `${d.speedKmS.toFixed(2).replace(".", ",")} км/с`],
+    ["Пройдено", `${Math.round(d.p * 100)} %`],
+  ];
+}

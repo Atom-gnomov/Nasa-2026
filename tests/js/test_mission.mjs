@@ -116,3 +116,26 @@ test("пуски: українська множина 2–4 «пуски», 5+ �
   assert.equal(word(54), "пуски");
   assert.equal(word(60), "пусків");
 });
+
+test("список засобів запуску: проєктні ракети не видаємо за діючі, діючі першими", () => {
+  const list = [
+    { id: "lm10", name: "Long March 10", catalog: "rockets", status: "design_target", verified_by_flight: false, active: null, capacity_basis: "tli" },
+    { id: "f9", name: "Falcon 9", catalog: "rockets", status: "active", verified_by_flight: true, active: true, capacity_basis: "leo" },
+    { id: "vc6", name: "Vulcan VC6", catalog: "rockets", status: "active", verified_by_flight: false, active: true, capacity_basis: "tli" },
+    { id: "peg", name: "Pegasus XL", catalog: "launch_systems", active: false, capacity_basis: "leo" },
+    { id: "zen", name: "Zenit", catalog: "launch_systems", active: false, capacity_basis: null },
+  ];
+  const picked = m.selectableVehicles(list);
+  assert.deepEqual(picked.map((v) => v.id), ["f9", "vc6", "lm10", "peg"]); // без місткості — не пропонуємо; діючі й підтверджені першими
+  assert.equal(m.vehicleLabel(list[1]), "Falcon 9");
+  assert.equal(m.vehicleLabel(list[0]), "Long March 10 (проєктна ціль)");
+  assert.equal(m.vehicleLabel(list[2]), "Vulcan VC6 (не підтверджено польотом)");
+  assert.equal(m.vehicleLabel(list[3]), "Pegasus XL (не діє)");
+});
+
+test("місткість на TLI, переведена на НОО, названа в примітках", () => {
+  const notes = m.provisionalNotes({ provisional: false, launch_system: { provisional_fields: [], rocket: { capacity_basis: "tli" }, fit: { note: null } } });
+  assert.equal(notes.length, 1);
+  assert.match(notes[0], /траєкторію до Місяця/);
+  assert.equal(m.provisionalNotes({ provisional: false, launch_system: { provisional_fields: [], rocket: { capacity_basis: "leo" }, fit: {} } }).length, 0);
+});

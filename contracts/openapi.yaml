@@ -159,7 +159,7 @@ paths:
     get:
       tags: [planning]
       x-status: implemented
-      summary: Системи запуску (ракета + спосіб старту) з першоджерел
+      summary: Засоби запуску з першоджерел — системи (D6) і сучасні ракети (D7)
       description: |
         Каталог D6 (`app/data/launch_systems.json`) у стислому вигляді: спосіб старту, місткість на НОО
         (`null`, якщо в джерелах її немає — наприклад, лише ГПО), висота скидання для повітряного старту,
@@ -282,6 +282,10 @@ paths:
           in: query
           description: Крок сітки, год. Сервер може збільшити крок, щоб точок було не більше limits.max_points (див. /meta).
           schema: {type: number, minimum: 0.1, maximum: 24, default: 1}
+        - name: temperature
+          in: query
+          description: "1 — додати ряд `temperature_k` і мінімум/максимум у `summary` (потрібні дані Diviner, інакше 503)"
+          schema: {type: integer, enum: [0, 1], default: 0}
       responses:
         "200":
           description: OK
@@ -569,6 +573,34 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/LaunchRankingResponse"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "503": {$ref: "#/components/responses/Unavailable"}
+
+  /plan:
+    post:
+      tags: [planning]
+      x-status: implemented
+      summary: Повний план місії одним викликом — місце посадки, старт, ракета, траєкторія, маршрут
+      description: |
+        Оркеструє `/search` (місця посадки за вимогами, M23) → `/mission` (маса корисного навантаження) →
+        `/launch-ranking` (майданчик, ракета, траєкторія для кожного місця) → `/mission` для лідера (повна місія).
+        **Автовибір.** Лідер — оптимум серед місць, що виконують усі жорсткі вимоги; якщо таких немає
+        (`hard_requirements_met: false`), то місця з найменшою кількістю порушень, із поясненням `explanation`.
+        Невідомі вимоги (`unchecked`) і м'які попередження (`warnings`) лише позначаються. Сітка кандидатів і бюджет
+        часу — як у `/search`. Підсумкова оцінка плану — добуток оцінки місця й оцінки запуску (у відсотках).
+        `route` придатний для анімації польоту (G12). Коефіцієнти вартості й ризику тимчасові (`provisional`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/PlanRequest"}
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PlanResponse"}
         "400": {$ref: "#/components/responses/BadRequest"}
         "404": {$ref: "#/components/responses/NotFound"}
         "503": {$ref: "#/components/responses/Unavailable"}
@@ -944,6 +976,8 @@ components:
         energy_wh_per_m2: {type: number, description: Вертикальна панель зі стеженням, η = 0,30}
         earth_hours: {type: number, description: Години, коли центр диска Землі над маскою горизонту (незалежно від станцій)}
         earth_fraction: {type: number, minimum: 0, maximum: 1}
+        temperature_min_k: {type: [number, "null"], description: "Мінімум температури поверхні за період, K (лише з `temperature=1`)"}
+        temperature_max_k: {type: [number, "null"], description: "Максимум температури поверхні за період, K (лише з `temperature=1`)"}
 
     Timeline:
       type: object
@@ -959,6 +993,10 @@ components:
         stations: {type: array, items: {$ref: "#/components/schemas/StationTrack"}}
         summary: {$ref: "#/components/schemas/PeriodSummary"}
         horizon_source: {type: string, description: "Набір DEM, з якого збудовано маску горизонту, або flat"}
+        temperature_k:
+          type: array
+          description: "Температура поверхні в кожен момент `times`, K (LRO Diviner за місцевим сонячним часом; null — немає вимірювань); лише з `temperature=1`"
+          items: {type: [number, "null"]}
 
     Event:
       type: object
@@ -1206,6 +1244,14 @@ components:
         height_m: {type: number, minimum: 0, maximum: 1000, default: 0}
         min_sun_hours: {type: number, minimum: 0, description: Повзунок «години Сонця»}
         min_comm_hours: {type: number, minimum: 0, description: Повзунок «години зв'язку»}
+        max_slope_deg: {type: number, minimum: 0, maximum: 90, description: Жорстка вимога — макс. нахил майданчика (з DEM; без DEM — «не перевірено»)}
+        min_earth_fraction: {type: number, minimum: 0, maximum: 1, description: М'яка вимога — мін. частка періоду, коли видно Землю}
+        min_sun_fraction: {type: number, minimum: 0, maximum: 1, description: М'яка вимога — мін. частка періоду, коли видно Сонце}
+        mission_profile:
+          type: string
+          enum: [uncrewed, crewed]
+          description: "Профіль місії (M17) — початкові пріоритети й вимоги до місця (нахил посадки < 10°, Земля ≥ 25 %, Сонце ≥ 5 % для пілотованої); явні значення переважають"
+        crew: {type: integer, minimum: 0, maximum: 6, description: Лише разом із mission_profile}
         earth_target: {oneOf: [{$ref: "#/components/schemas/LatLon"}, {type: "null"}], description: Точка на Землі, куди потрібен зв'язок; поки лише повертається в ланцюжку}
         launch_site_ids: {type: array, items: {type: string}, description: Ще не підтримується (модель запусків) — 400}
         trajectory: {oneOf: [{$ref: "#/components/schemas/Trajectory"}, {type: "null"}], description: Ще не підтримується (модель запусків) — 400}
@@ -1244,6 +1290,14 @@ components:
         violations:
           type: array
           items: {$ref: "#/components/schemas/RankViolation"}
+        warnings:
+          type: array
+          description: Не виконані м'які вимоги (фільтри відбору); точка лишається допустимою, бал знижено
+          items: {$ref: "#/components/schemas/RankWarning"}
+        unchecked:
+          type: array
+          description: Задані вимоги, яких не вдалося перевірити (немає даних, напр. нахил без DEM) — не «виконано» і не «порушено»
+          items: {type: string, enum: [max_slope_deg]}
         score_pct: {type: number, minimum: 0, maximum: 100}
         pareto: {type: boolean, description: Недомінований серед допустимих кандидатів}
         factors:
@@ -1425,9 +1479,16 @@ components:
         requirements:
           type: object
           additionalProperties: false
+          description: |
+            Вимоги до місця посадки. Жорсткі (не виконано — точка недопустима): `min_sun_hours`, `min_comm_hours`,
+            `max_slope_deg` (нахил з DEM; без DEM — «не перевірено», див. `unchecked`). М'які (лише попередження
+            й зниження бала): `min_earth_fraction`, `min_sun_fraction` — частки періоду 0…1.
           properties:
             min_sun_hours: {type: number, minimum: 0}
             min_comm_hours: {type: number, minimum: 0}
+            max_slope_deg: {type: number, minimum: 0, maximum: 90, description: Жорстка вимога — макс. нахил майданчика, градуси}
+            min_earth_fraction: {type: number, minimum: 0, maximum: 1, description: М'яка вимога — мін. частка періоду, коли видно Землю}
+            min_sun_fraction: {type: number, minimum: 0, maximum: 1, description: М'яка вимога — мін. частка періоду, коли видно Сонце}
         params:
           type: object
           additionalProperties: false
@@ -1445,9 +1506,21 @@ components:
       type: object
       required: [requirement, value, required]
       properties:
-        requirement: {type: string, enum: [min_sun_hours, min_comm_hours]}
+        requirement: {type: string, enum: [min_sun_hours, min_comm_hours, max_slope_deg]}
         value: {type: number}
         required: {type: number}
+
+    RankWarning:
+      type: object
+      description: |
+        М'яка вимога (фільтр відбору), яка не виконана: точка лишається допустимою, але бал знижено
+        (множник max(0,5; значення / потрібне)).
+      required: [requirement, value, required, kind]
+      properties:
+        requirement: {type: string, enum: [min_earth_fraction, min_sun_fraction]}
+        value: {type: number, minimum: 0, maximum: 1}
+        required: {type: number, minimum: 0, maximum: 1}
+        kind: {type: string, enum: [screening]}
 
     RankSummary:
       type: object
@@ -1462,6 +1535,7 @@ components:
         longest_comm_gap_h: {type: number}
         energy_wh_per_m2: {type: number}
         sky_view_fraction: {type: number, description: Частка відкритого неба (доза ГКП ∝ ця частка)}
+        slope_deg: {type: number, description: Нахил поверхні з DEM LOLA, градуси; лише якщо запитано max_slope_deg і DEM є}
         thermal_fraction: {type: [number, "null"], description: Частка місячної доби з температурою поверхні в діапазоні; лише якщо запитано temperature}
 
     RankedPoint:
@@ -1481,6 +1555,14 @@ components:
         violations:
           type: array
           items: {$ref: "#/components/schemas/RankViolation"}
+        warnings:
+          type: array
+          description: Не виконані м'які вимоги (фільтри відбору); точка лишається допустимою, бал знижено
+          items: {$ref: "#/components/schemas/RankWarning"}
+        unchecked:
+          type: array
+          description: Задані вимоги, яких не вдалося перевірити (немає даних, напр. нахил без DEM) — не «виконано» і не «порушено»
+          items: {type: string, enum: [max_slope_deg]}
         score_pct: {type: number, minimum: 0, maximum: 100}
         pareto: {type: boolean, description: Недомінований серед допустимих точок}
         factors:
@@ -1604,9 +1686,26 @@ components:
     LaunchSystem:
       type: object
       required: [id, name, kind, active, capacity_leo_kg, capacity_condition, drop_altitude_m, launch_site_ids,
-                 price_usd_per_kg_leo, flights_total, flights_failed, failure_probability]
+                 price_usd_per_kg_leo, flights_total, flights_failed, failure_probability,
+                 catalog, status, verified_by_flight, capacity_tli_kg, capacity_basis]
       additionalProperties: false
       properties:
+        catalog:
+          type: string
+          enum: [launch_systems, rockets]
+          description: Звідки запис — launch_systems (системи запуску D6, зокрема повітряний старт і морська платформа) або rockets (сучасні ракети D7)
+        status:
+          type: [string, "null"]
+          enum: [active, in_testing, design_target, retired, null]
+          description: Лише для ракет D7, для систем D6 — null (там є поле active)
+        verified_by_flight:
+          type: [boolean, "null"]
+          description: Чи підтверджено польотом (проєктні цілі — false); для систем D6 null
+        capacity_tli_kg: {type: [number, "null"], description: Місткість на траєкторію до Місяця, якщо є в каталозі}
+        capacity_basis:
+          type: [string, "null"]
+          enum: [leo, tli, null]
+          description: Яка місткість іде в розрахунок «Місії» — tli, якщо відома (як у ранжуванні старту), інакше leo; null — жодної
         price_usd_per_kg_leo:
           oneOf:
             - {$ref: "#/components/schemas/Range2"}
@@ -1617,7 +1716,7 @@ components:
         failure_probability:
           type: [number, "null"]
           description: |
-            Ймовірність відмови зі статистики польотів за правилом спадкоємності Лапласа (невдалих + 1) / (усього + 2);
+            Ймовірність відмови зі статистики польотів — зважування слабкого апріорного рівня (2 % вагою 10 польотів) із записом польотів: (невдалих + 10·0,02) / (усього + 10);
             null — статистики немає (тоді `/mission` використовує тимчасове значення й називає його в `provisional_fields`)
         id: {type: string}
         name: {type: string}
@@ -1640,11 +1739,14 @@ components:
           description: Поля ракети, яких немає в каталозі — використано тимчасові значення «типової ракети»
         rocket:
           type: object
-          required: [name, capacity_leo_kg, price_usd_per_kg, failure_probability]
+          required: [name, capacity_leo_kg, capacity_basis, price_usd_per_kg, failure_probability]
           additionalProperties: false
           properties:
             name: {type: string}
-            capacity_leo_kg: {type: number}
+            capacity_leo_kg:
+              type: number
+              description: Еквівалентна місткість на НОО; якщо в основі місткість на TLI, її переведено множником розгінного блока
+            capacity_basis: {type: string, enum: [leo, tli], description: Основа місткості — leo чи tli}
             price_usd_per_kg: {$ref: "#/components/schemas/Range2"}
             failure_probability: {type: number}
         fit:
@@ -1688,6 +1790,15 @@ components:
             місця не має — тоді екватор). Система без місткості на НОО відхиляється (400).
         launch_lat: {type: number, minimum: -90, maximum: 90, description: Широта старту, градуси}
         longest_night_h: {type: number, minimum: 0, description: "Найдовша ніч точки, год (з /metrics); під неї підбираються акумулятори"}
+        parameters_basis:
+          type: string
+          enum: [model, sourced]
+          default: model
+          description: |
+            Звідки коефіцієнти маси (M22). `model` — тимчасові значення моделі (поведінка за замовчуванням).
+            `sourced` — маса обладнання, витратні, маса оболонки на м³, питома потужність панелей, питома енергія й
+            глибина розряду акумуляторів беруться з таблиць NASA (D4); решта лишається тимчасовою. У відповіді —
+            `sourced_parameters`.
 
     Range2:
       type: array
@@ -1766,6 +1877,18 @@ components:
         provisional: {type: boolean, description: "true — коефіцієнти моделі тимчасові (чекають D4)"}
         launch_lat: {type: number, description: Широта старту, з якою рахувалась вартість}
         launch_site_id: {type: [string, "null"]}
+        parameters_basis: {type: string, enum: [model, sourced]}
+        sourced_parameters:
+          type: array
+          description: Параметри моделі, замінені діапазонами з першоджерел (порожньо для `model`)
+          items:
+            type: object
+            required: [id, param, value, source_range]
+            properties:
+              id: {type: string, description: Ідентифікатор у payload_tables.json}
+              param: {type: string, description: Поле PayloadParams}
+              value: {description: Число або пара (значення при розмірі 0 і 1), type: [number, array]}
+              source_range: {type: array, items: {type: number}, minItems: 2, maxItems: 2}
         profile:
           description: Профіль, застосований до запиту (лише якщо задано `mission_profile`)
           oneOf:
@@ -1955,6 +2078,16 @@ components:
           minItems: 2
           items: {type: array, minItems: 3, maxItems: 3, items: {type: number}}
           description: "Дуга від паркувальної орбіти до центру Місяця в момент прибуття (задача двох тіл)"
+        times_s:
+          type: array
+          minItems: 2
+          items: {type: number}
+          description: "Час від відльоту до кожної точки дуги, с (рівняння Кеплера; остання точка = tof_days); для анімації польоту"
+        speeds_km_s:
+          type: array
+          minItems: 2
+          items: {type: number}
+          description: "Геоцентрична швидкість у кожній точці дуги, км/с (vis-viva)"
         departure_utc: {type: string, format: date-time}
         arrival_utc: {type: string, format: date-time}
         tof_days: {type: number}
@@ -2147,6 +2280,109 @@ components:
           description: Оцінки факторів 0…1 («більше — краще») для факторів із пріоритетів
           additionalProperties: {type: number, minimum: 0, maximum: 1}
         provisional_fields: {type: array, items: {type: string}}
+
+    PlanRequest:
+      type: object
+      required: [start, end]
+      additionalProperties: false
+      description: |
+        Поля вибору місця — як у SearchRequest (регіон, сітка, вимоги, профіль місії, пріоритети місця),
+        поля запуску — як у LaunchRankingRequest, склад місії — як у MissionRequest.
+      properties:
+        start: {type: string, format: date-time}
+        end: {type: string, format: date-time}
+        departure: {type: string, format: date-time, description: Момент старту TLI; без нього — start}
+        region: {type: object}
+        include_catalog: {type: boolean}
+        grid_step_deg: {type: number}
+        max_candidates: {type: integer}
+        step_h: {type: number}
+        height_m: {type: number}
+        priorities: {type: array, items: {type: string}, description: Пріоритети вибору місця посадки}
+        mode: {type: string, enum: [weighted, maximin]}
+        params: {type: object}
+        min_sun_hours: {type: number, minimum: 0}
+        min_comm_hours: {type: number, minimum: 0}
+        max_slope_deg: {type: number, minimum: 0, maximum: 90}
+        min_earth_fraction: {type: number, minimum: 0, maximum: 1}
+        min_sun_fraction: {type: number, minimum: 0, maximum: 1}
+        mission_profile: {type: string, enum: [uncrewed, crewed]}
+        crew: {type: integer, minimum: 0}
+        days: {type: number, minimum: 0}
+        sizes: {type: object}
+        earth_target: {type: object}
+        vehicle: {type: string, default: any, description: "any (автовибір ракети) або id з /launch-systems"}
+        trajectories: {type: array, items: {$ref: "#/components/schemas/Trajectory"}}
+        launch_priorities: {type: array, items: {$ref: "#/components/schemas/LaunchFactor"}}
+        launch_mode: {type: string, enum: [weighted, maximin]}
+        include_design_targets: {type: boolean, default: true}
+        allow_multiple_launches: {type: boolean, default: false}
+        surface_after_arrival: {type: boolean, default: true, description: "true — місце оцінюється за період після прибуття (`departure` + типовий переліт обраної траєкторії); false — за період від `start`, як у /search (B20b)"}
+        departure_days: {type: integer, minimum: 1, maximum: 60, default: 1, description: "Скільки діб від `departure` перебирати для найкращої дати старту (B20, на основі /launch-window); 1 — лише `departure`"}
+        landing_candidates: {type: integer, minimum: 1, maximum: 10, default: 3, description: Скільки найкращих місць комбінувати із запусками}
+        limit: {type: integer, minimum: 1, maximum: 20, default: 5, description: Скільки планів повернути}
+
+    PlanResponse:
+      type: object
+      required: [provisional, period, surface_period, departure_utc, grid, landing_evaluated, hard_requirements_met, auto_selected,
+                 plans, explanation, notes]
+      properties:
+        provisional: {const: true}
+        period: {type: object}
+        surface_period:
+          type: object
+          description: Період, за який оцінено місця посадки (світло, зв'язок), і припущений переліт
+          required: [start, end, assumed_flight_days, after_arrival]
+          properties:
+            start: {type: string, format: date-time}
+            end: {type: string, format: date-time}
+            assumed_flight_days: {type: number}
+            after_arrival: {type: boolean}
+        departure_utc: {type: string, format: date-time}
+        grid: {type: object}
+        landing_evaluated: {type: integer, minimum: 0}
+        hard_requirements_met: {type: boolean, description: Чи є хоч одне місце, що виконує всі жорсткі вимоги}
+        auto_selected: {type: [integer, "null"], description: Ранг обраного автоматично плану}
+        plans:
+          type: array
+          items:
+            type: object
+            required: [rank, score_pct, landing, requirements, mass_moon_kg, launch, route, mission]
+            properties:
+              rank: {type: integer, minimum: 1}
+              score_pct: {type: number}
+              landing: {type: object}
+              requirements:
+                type: object
+                required: [feasible, violations, warnings, unchecked]
+                properties:
+                  feasible: {type: boolean}
+                  violations: {type: array, items: {$ref: "#/components/schemas/RankViolation"}}
+                  warnings: {type: array, items: {$ref: "#/components/schemas/RankWarning"}}
+                  unchecked: {type: array, items: {type: string}}
+              mass_moon_kg: {type: number}
+              launch:
+                oneOf:
+                  - {$ref: "#/components/schemas/LaunchRankingOption"}
+                  - {type: "null"}
+              launch_explanation: {type: [string, "null"]}
+              departure_window:
+                description: Оцінки дат старту (лише якщо `departure_days` > 1); `best` — обрана дата
+                oneOf:
+                  - type: object
+                    required: [days, best]
+                  - {type: "null"}
+              route:
+                oneOf:
+                  - type: object
+                    required: [launch_site, moon_site, trajectory, departure_utc, arrival_utc, duration_days]
+                  - {type: "null"}
+              mission:
+                oneOf:
+                  - {$ref: "#/components/schemas/MissionResponse"}
+                  - {type: "null"}
+        explanation: {type: string}
+        notes: {type: array, items: {type: string}}
 
     LaunchRankingResponse:
       type: object

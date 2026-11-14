@@ -42,18 +42,20 @@ export function anisotropy(renderer, quality = qualitySettings()) {
 // Створює сцену в контейнері host. Повертає об'єкти сцени та dispose().
 // logarithmicDepthBuffer — для сцен із відстанями, що різняться в мільйони разів (система Сонце–Земля–Місяць).
 // Згладжування й щільність пікселів — з режиму якості (three/quality.js).
-export function createScene(host, { background = 0x000000, logarithmicDepthBuffer = false, quality = qualitySettings() } = {}) {
+export function createScene(host, { background = null, logarithmicDepthBuffer = false, quality = qualitySettings() } = {}) {
   if (!hasWebGL()) {
     host.innerHTML = `<p class="placeholder">${NO_WEBGL_MESSAGE}</p>`;
     return null;
   }
   host.innerHTML = "";
-  const renderer = new THREE.WebGLRenderer({ antialias: quality.antialias, logarithmicDepthBuffer });
+  const renderer = new THREE.WebGLRenderer({ antialias: quality.antialias, logarithmicDepthBuffer, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, quality.pixelRatioMax));
   host.append(renderer.domElement);
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(background);
+  // Прозорий фон за замовчуванням: крізь canvas видно зоряне тло сторінки (css/cosmos.css).
+  renderer.setClearColor(0x000000, 0);
+  scene.background = background === null ? null : new THREE.Color(background);
   const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 1000);
   camera.position.set(0, 0, 3);
   const controls = new OrbitControls(camera, renderer.domElement);

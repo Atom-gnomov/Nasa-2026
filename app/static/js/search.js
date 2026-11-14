@@ -310,8 +310,9 @@ if (root) {
       const status = put(r.feasible ? "✓ допустима" : `✗ ${r.violations.join("; ")}`);
       status.className = r.feasible ? "ok" : "no";
       const open = () => {
-        setState({ site: r.site.name ?? null, lat: r.site.lat, lon: r.site.lon });
-        document.getElementById("moon-globe")?.scrollIntoView({ behavior: "smooth", block: "nearest" }); // до карти
+        setState({ site: r.site.site_id ?? null, lat: r.site.lat, lon: r.site.lon });
+        // Підбір — окрема вкладка; координати й позначки вже збережені у стані/сесії.
+        window.location.assign("/moon" + window.location.search);
       };
       tr.addEventListener("click", open);
       tr.addEventListener("keydown", (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); open(); } });

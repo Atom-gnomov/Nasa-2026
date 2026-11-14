@@ -2,6 +2,7 @@
 // Точка посадки й початок періоду — зі спільного стану (вибір на вкладці «Місяць», календар); клік по даті
 // переносить її в календар. Чисті функції експортуються для тестів у Node (tests/js/test_launch_window.mjs).
 import { getState, setState, subscribe } from "./state.js";
+import { launchChoice, loadLead, loadMissionForm } from "./selection.js";
 
 export const FACTORS = ["light", "fuel", "comms", "windows"];
 export const FACTOR_LABELS = {
@@ -203,6 +204,10 @@ function init() {
   fetch("/api/launch-sites").then((r) => r.json()).then((list) => {
     sites = list;
     siteSel.replaceChildren(...list.map((s) => new Option(`${s.name} (${s.lat.toFixed(1)}°)`, s.id)));
+    // F18: майданчик і траєкторія — з лідера «Плану місії» або з вкладки «Місія»
+    const pick = launchChoice(loadLead(), loadMissionForm());
+    if (pick.siteId && list.some((s) => s.id === pick.siteId)) siteSel.value = pick.siteId;
+    if (pick.trajectory) $("lw-trajectory").value = pick.trajectory;
   }).catch(() => { status.textContent = "Не вдалося завантажити каталог майданчиків."; });
 }
 

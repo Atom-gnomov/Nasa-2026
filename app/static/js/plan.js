@@ -2,6 +2,7 @@
 // з виділеним автовибором. Усе рахує бекенд; тут форма, запит і підписи. Чисті функції — без DOM, тестуються в Node.
 import { getState, setState } from "./state.js";
 import { onLangChange, t } from "./i18n.js";
+import { leadFromPlan, loadMissionForm, planFieldsFromMission, saveLead } from "./selection.js";
 
 export const DEFAULT_FORM = {
   profile: "uncrewed", crew: null, days: 5,
@@ -118,6 +119,11 @@ function init() {
 
   const render = (response) => {
     last = response;
+    const lead = leadFromPlan(response);
+    if (lead) {
+      saveLead(lead); // «Вікно запуску» підхопить майданчик і траєкторію
+      setState({ site: lead.moon.site, lat: lead.moon.lat, lon: lead.moon.lon }); // точка на «Місяці» — лідер плану
+    }
     lead.textContent = response.explanation;
     lead.hidden = false;
     table.tBodies[0].replaceChildren(...planRows(response).map((r) => {
@@ -166,6 +172,15 @@ function init() {
     }
   };
 
+  // F18: профіль, екіпаж, ракета й траєкторію беремо з вкладки «Місія», якщо там щось вибрано
+  const prefill = planFieldsFromMission(loadMissionForm());
+  if (prefill) {
+    $("plan-profile").value = prefill.profile;
+    if (prefill.crew) $("plan-crew").value = prefill.crew;
+    if (prefill.days != null) $("plan-days").value = prefill.days;
+    if (prefill.trajectory) $("plan-trajectory").value = prefill.trajectory;
+    $("plan-prefill").hidden = false;
+  }
   $("plan-flight").addEventListener("click", () => { window.location.href = `/system${window.location.search}`; });
   $("plan-profile").addEventListener("change", syncProfile);
   form.addEventListener("submit", (e) => { e.preventDefault(); run(); });
@@ -173,6 +188,7 @@ function init() {
   fetch("/api/launch-systems").then((r) => r.json()).then((list) => {
     const sel = $("plan-vehicle");
     for (const v of list.filter((x) => x.capacity_basis)) sel.append(new Option(v.name, v.id));
+    if (prefill && prefill.vehicle !== "any" && [...sel.options].some((o) => o.value === prefill.vehicle)) sel.value = prefill.vehicle;
   }).catch(() => {});
   onLangChange(() => { if (last) render(last); });
 }

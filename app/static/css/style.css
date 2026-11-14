@@ -46,6 +46,17 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.4 syst
 .seg button.active { background: var(--accent); color: var(--bg); }
 .globe-host { height: 68vh; min-height: 360px; position: relative; overflow: hidden; }
 .globe-host canvas { display: block; cursor: crosshair; }
+.surface-wrap h2 { margin: 12px 0 4px; font-size: 18px; }
+.surface-toolbar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; color: var(--muted); font-size: 14px; margin-bottom: 6px; }
+.surface-toolbar input[type=range] { flex: 1; min-width: 160px; }
+.surface-host { height: 52vh; min-height: 320px; position: relative; overflow: hidden; }
+.surface-host canvas { display: block; cursor: grab; }
+.surface-flat { width: 100%; height: 300px; display: block; border: 1px solid var(--border); border-radius: 8px; }
+.surface-labels { position: absolute; inset: 0; pointer-events: none; }
+.surface-label { position: absolute; left: 0; top: 0; margin: -18px 0 0 6px; font-size: 12px; white-space: nowrap; text-shadow: 0 0 3px #000, 0 0 3px #000; }
+.surface-label.compass { color: #c9ced8; margin: 0 0 0 -10px; }
+.surface-label.sun { color: rgb(245, 185, 66); }
+.surface-label.earth { color: rgb(90, 169, 255); }
 .globe-status { display: flex; flex-wrap: wrap; gap: 4px 16px; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 .globe-status .credit { margin-left: auto; }
 .globe-warn { margin: 0; color: var(--accent); font-size: 13px; min-height: 0; }

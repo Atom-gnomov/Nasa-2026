@@ -258,7 +258,7 @@ async function main() {
   } catch { /* немає даних — тіла будуть однотонними */ }
 
   const ctx = createScene(host, { logarithmicDepthBuffer: true, quality });
-  if (ctx) bindSky(ctx.camera, host, () => M_ICRF); // зорі обертаються разом із камерою сцени
+  if (ctx) bindSky(ctx.camera, host, () => M_ICRF, { controls: ctx.controls }); // зорі обертаються разом із камерою сцени
   if (!ctx) return;
   const { scene, camera, renderer, controls } = ctx;
   camera.near = 0.001;

@@ -657,7 +657,7 @@ async function main() {
   if (!ctx) return;
   const { scene, camera, renderer, controls } = ctx;
   // справжнє зоряне небо: ICRF → власна система Місяця (/api/system) → осі глобуса; обертається разом з камерою
-  bindSky(camera, host, (orientation) => (orientation ? mul3(ME_TO_GLOBE, orientation) : null));
+  bindSky(camera, host, (orientation) => (orientation ? mul3(ME_TO_GLOBE, orientation) : null), { controls });
   camera.near = 0.00005;
   camera.far = 100;
   camera.updateProjectionMatrix();

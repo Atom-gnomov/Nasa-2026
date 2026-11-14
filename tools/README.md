@@ -10,5 +10,6 @@
 - `build_illumination_grid.py` — сітка «години Сонця / години зв'язку» для підбору локацій (друга черга).
 - `i18n_missing.py` — які українські тексти інтерфейсу ще не мають англійського перекладу (`app/static/js/i18n/en.json`); `--js` додає літерали JS.
 - `build_starmap.py` — справжнє зоряне небо для фону: NASA SVS «Deep Star Maps 2020» (`starmap_2020_4k.exr`, ≈ 34 МБ; Hipparcos-2, Tycho-2, Gaia DR2) → `data_cache/starmap/starmap.jpg` (≈ 2,8 МБ). Потрібні лише для скрипта `OpenEXR`, `numpy`, `Pillow`; без карти лишається CSS-тло.
+- `import_sky_pano.py` — панорама Чумацького Шляху з вашого GLB (Sketchfab «Sky Pano – Milkyway», CC BY-NC-SA 4.0, MozillaHubs) → `data_cache/starmap/pano.jpg` + `pano.json` з калібруванням орієнтації й подякою; основний фон, поки є, інакше карта NASA. Запуск: `python tools/import_sky_pano.py <файл.glb>`; потрібні `numpy`, `Pillow`.
 
 Великі файли (`*.bsp`, `*.tif`) не комітимо — лише скрипти.

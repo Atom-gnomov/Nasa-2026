@@ -36,6 +36,8 @@ html { background: #02030a; }
 body { background: transparent; } /* інакше фон body закриває canvas зоряного неба (z-index: −1) */
 body::before { background: #02030a; }
 body.has-starfield::before, body.has-starfield::after { display: none; }
+.sky-credit { position: fixed; right: 10px; bottom: 3px; z-index: 40; font-size: 10px; line-height: 1.2; color: var(--cg-muted); text-decoration: none; opacity: .75; }
+.sky-credit:hover { opacity: 1; text-decoration: underline; }
 #starfield { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: -1; pointer-events: none; display: block; }
 
 /* ---------- Скляні поверхні ---------- */

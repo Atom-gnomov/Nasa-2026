@@ -183,7 +183,8 @@ function create3D(host, labelsEl) {
   const { scene, camera, renderer, controls } = ctx;
   // зорі — з тією ж орієнтацією, що Сонце й Земля: ICRF → власна система Місяця → схід/північ/зеніт точки
   bindSky(camera, host, (orientation) => (orientation
-    ? mul3(meToSurface(skySite.lat, skySite.lon, skyVector(90, 0), skyVector(0, 0), skyVector(0, 90)), orientation) : null));
+    ? mul3(meToSurface(skySite.lat, skySite.lon, skyVector(90, 0), skyVector(0, 0), skyVector(0, 90)), orientation) : null),
+  { parallax: false }); // камера в точці на поверхні: відстані до планети немає
   host.append(labelsEl);
   camera.fov = 70;
   camera.near = 0.0005;

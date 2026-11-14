@@ -64,3 +64,51 @@ test("meToSurface: схід, зеніт ME → осі сцени; матриця
     sf.mul3(m, sf.transpose3(m)).forEach((row, i) => closeVec(row, sf.IDENTITY3[i], 1e-12));
   }
 });
+
+// ---------- Панорама, затемнення, паралакс ----------
+const PANO_META = { orientation: { north: "up", ra_direction: "right", ra_center_deg: 179.5 }, credit: { title: "Sky Pano - Milkyway" } };
+
+test("panoConfig: лише відкалібрована панорама (північ угорі, напрям RA, центр)", () => {
+  const cfg = sf.panoConfig(PANO_META);
+  assert.equal(cfg.sign, 1);
+  assert.equal(cfg.centerDeg, 179.5);
+  assert.equal(cfg.exposure, sf.DIM_EXPOSURE);
+  assert.ok(sf.DIM_EXPOSURE > 0.4 && sf.DIM_EXPOSURE < 0.8, "затемнено, але не вимкнено");
+  assert.equal(sf.panoConfig({ orientation: { north: "up", ra_direction: "left", ra_center_deg: 10 } }).sign, -1);
+  assert.equal(sf.panoConfig({ orientation: { north: "down", ra_direction: "right", ra_center_deg: 10 } }), null);
+  assert.equal(sf.panoConfig({ orientation: { north: "up", ra_direction: "sideways", ra_center_deg: 10 } }), null);
+  assert.equal(sf.panoConfig({ orientation: { north: "up", ra_direction: "right" } }), null);
+  assert.equal(sf.panoConfig(null), null);
+});
+
+test("skyUv за налаштуваннями панорами: RA вправо, центр кадру = RA центру, шов на RA ±180° від центру", () => {
+  const pano = sf.panoConfig(PANO_META);
+  const dir = (raDeg, decDeg) => [Math.cos(decDeg * DEG) * Math.cos(raDeg * DEG), Math.cos(decDeg * DEG) * Math.sin(raDeg * DEG), Math.sin(decDeg * DEG)];
+  close(sf.skyUv(dir(179.5, 0), pano).u, 0.5);
+  close(sf.skyUv(dir(269.5, 0), pano).u, 0.75); // RA збільшується вправо
+  close(sf.skyUv(dir(89.5, 0), pano).u, 0.25);
+  close(sf.skyUv(dir(179.5, 45), pano).v, 0.25);
+  close(sf.skyUv(dir(0, 0), pano).u, 0.5 + (((0 - 179.5 + 540) % 360) - 180) / 360); // через шов: −179,5° → u≈0
+  // карта NASA — без змін: RA ліворуч, 0h по центру
+  close(sf.skyUv(dir(90, 0)).u, 0.25);
+  close(sf.skyUv(dir(90, 0), sf.NASA_MAP).u, 0.25);
+});
+
+test("parallaxAngleDeg: нуль на опорній відстані, росте з віддаленням, обмежений, стійкий до сміття", () => {
+  assert.equal(sf.parallaxAngleDeg(3.5, 3.5), 0);
+  assert.ok(sf.parallaxAngleDeg(7, 3.5) > 0 && sf.parallaxAngleDeg(1.75, 3.5) < 0);
+  close(sf.parallaxAngleDeg(7, 3.5), -sf.parallaxAngleDeg(1.75, 3.5), 1e-12);
+  assert.equal(sf.parallaxAngleDeg(1e9, 1), 6);
+  assert.equal(sf.parallaxAngleDeg(1e-9, 1), -6);
+  assert.ok(Math.abs(sf.parallaxAngleDeg(10, 3.5)) < 3, "«зовсім трошки»: у типовому діапазоні менше кількох градусів");
+  assert.equal(sf.parallaxAngleDeg(0, 1), 0);
+  assert.equal(sf.parallaxAngleDeg(NaN, 1), 0);
+  assert.equal(sf.parallaxAngleDeg(1, -1), 0);
+});
+
+test("rotY: ортонормований поворот навколо вертикалі камери", () => {
+  const r = sf.rotY(0.3);
+  sf.mul3(r, sf.transpose3(r)).forEach((row, i) => closeVec(row, sf.IDENTITY3[i], 1e-12));
+  closeVec(sf.apply3(r, [0, 1, 0]), [0, 1, 0]);
+  closeVec(sf.apply3(sf.rotY(Math.PI / 2), [0, 0, -1]), [-1, 0, 0]);
+});

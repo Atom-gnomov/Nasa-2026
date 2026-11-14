@@ -90,14 +90,21 @@
       <h2>Вид з поверхні</h2>
       <div class="surface-toolbar">
         <div class="seg" role="group" aria-label="Вигляд з поверхні">
-          <button type="button" data-surface="3d" class="active">3D: очима апарата</button>
-          <button type="button" data-surface="flat">Розгортка 360°</button>
+          <button type="button" data-surface="3d" class="active" title="Справжня геометрія: поверхня з DEM, дальній силует, обертання мишею">3D: очима апарата</button>
+          <button type="button" data-surface="pano" title="Панорама на canvas: обертання й масштаб, працює без WebGL">Панорама</button>
+          <button type="button" data-surface="flat" title="Оглядова схема: азимут × кут місця за місячну добу">Розгортка 360°</button>
         </div>
         <div class="seg" role="group" aria-label="Дивитися на">
           <button type="button" data-look="sun">Сонце</button>
           <button type="button" data-look="earth">Земля</button>
           <button type="button" data-look="0">Північ</button>
+          <button type="button" data-look="90">Схід</button>
           <button type="button" data-look="180">Південь</button>
+          <button type="button" data-look="270">Захід</button>
+        </div>
+        <div class="seg" role="group" aria-label="Масштаб панорами">
+          <button type="button" data-zoom="out" title="Ширше поле зору" aria-label="Ширше">−</button>
+          <button type="button" data-zoom="in" title="Вужче поле зору" aria-label="Вужче">+</button>
         </div>
       </div>
       <div class="surface-toolbar">
@@ -105,9 +112,18 @@
         <input type="range" id="surface-time" min="0" max="0" value="0" step="1" aria-label="Момент у межах місячної доби від дати календаря">
         <button type="button" id="surface-to-calendar" title="Встановити цей момент у календар (усі вкладки)">У календар</button>
       </div>
+      <div class="surface-toolbar">
+        <label title="Вертикальне перебільшення висот рельєфу (як «Рельєф ×» на глобусі); 1 — справжні висоти">Рельєф ×<output id="surface-exag-value">1</output>
+          <input type="range" id="surface-exag" min="1" max="10" step="1" value="1">
+        </label>
+        <label title="Геометричні тіні за рельєфом DEM (промінь до Сонця); під час відтворення вимкнено"><input type="checkbox" id="surface-shadows" checked> Тіні</label>
+        <label title="Умовна підсвітка нічної сторони й тіней — лише щоб було видно рельєф: справжнє земне сяйво на порядки слабше"><input type="checkbox" id="surface-ambient" checked> Підсвітка тіней (умовна)</label>
+        <label title="Кільця на ґрунті на відстанях 5 м … 10 км — масштаб панорами"><input type="checkbox" id="surface-rings" checked> Кільця дальності</label>
+      </div>
       <p id="surface-moment" class="small"></p>
       <p id="surface-events" class="small"></p>
       <div id="surface-view" class="canvas-host surface-host"><p class="placeholder">Виберіть місце на Місяці</p></div>
+      <canvas id="surface-pano" class="surface-pano" tabindex="0" aria-label="Панорама з поверхні: перетягніть, щоб повернути, колесо — масштаб; стрілки й +/− з клавіатури"></canvas>
       <canvas id="surface-flat" class="surface-flat" aria-label="Розгортка горизонту 360°: азимут і кут місця"></canvas>
       <p id="surface-status" class="muted small"></p>
     </section>

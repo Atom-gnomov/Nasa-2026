@@ -70,3 +70,33 @@ def test_directions_match_scene_enu(client, lat, lon):
     for (x, y, z), (_, _, enu) in zip(json.loads(proc.stdout), pairs, strict=True):
         # сцена: x = схід, y = зеніт, −z = північ
         assert [x, y, -z] == pytest.approx([enu[0], enu[2], enu[1]], abs=2e-3)
+
+
+TERRAIN_JS = GEOMETRY_JS.with_name("surface_terrain.js")
+
+
+@pytest.mark.skipif(NODE is None, reason="Node.js не встановлено")
+@pytest.mark.parametrize("lat, lon", [(0.67416, 23.47314), (-89.67, 129.78)])
+def test_earth_phase_is_complement_of_moon_phase(client, lat, lon):
+    """Освітлена частка Землі з місця = 1 − освітлена частка Місяця із Землі (/api/system): та сама кутова
+    відстань Сонця від Землі (фазовий кут Місяця); розбіжність — лише паралакс місця на поверхні (≲ 0,3°)."""
+    pytest.importorskip("naif_de440")
+    query = f"lat={lat}&lon={lon}&start=2027-07-01T00:00Z&end=2027-07-30T00:00Z&step_h=24"  # step_h ≤ 24 за контрактом
+    tl = client.get(f"/api/timeline?{query}").get_json()
+    script = (
+        f"const t = await import({json.dumps(TERRAIN_JS.as_uri())});"
+        f"const tl = {json.dumps({'sun': tl['sun'], 'earth': tl['earth']})};"
+        "console.log(JSON.stringify(tl.sun.azimuth_deg.map((_, i) => t.earthPhase(tl.sun.azimuth_deg[i],"
+        " tl.sun.elevation_deg[i], tl.earth.azimuth_deg[i], tl.earth.elevation_deg[i]).fraction)));"
+    )
+    proc = subprocess.run(
+        [NODE, "--input-type=commonjs", "-e", f"(async () => {{ {script} }})()"],
+        capture_output=True, text=True, encoding="utf-8", timeout=60,
+    )
+    assert proc.returncode == 0, proc.stderr
+    earth = json.loads(proc.stdout)
+    assert len(earth) == len(tl["times"]) and len(earth) >= 14
+    for when, k_earth in zip(tl["times"], earth, strict=True):
+        k_moon = client.get(f"/api/system?datetime={when}").get_json()["moon_illumination"]["fraction"]
+        assert k_earth == pytest.approx(1.0 - k_moon, abs=0.01), (when, k_earth, k_moon)
+    assert max(earth) - min(earth) > 0.8, "за синодичний місяць фаза Землі проходить майже весь діапазон"

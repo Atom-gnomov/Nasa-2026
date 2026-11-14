@@ -79,8 +79,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 - **Зараз:** —
 - **Гілка:** —
-- **Зараз (агент Claude):** B18 (`/api/plan`); M23 злито (PR #75); далі M22 (таблиці D4 у модель) і B18 (`/api/plan`). Злито: B19 (PR #73), D8 (Велес, PR #72); M21b — PR #74
-- **Гілка (агент Claude):** `perun/B18-plan`, далі `perun/M22-payload-tables`
+- **Зараз (агент Claude):** M22 (таблиці D4 у модель); злито M23 (PR #75), B18 (PR #76); далі F16 (таблиці D4 у модель) і B18 (`/api/plan`). Злито: B19 (PR #73), D8 (Велес, PR #72); M21b — PR #74
+- **Гілка (агент Claude):** `perun/M22-payload-tables`
 
 ### Велес
 

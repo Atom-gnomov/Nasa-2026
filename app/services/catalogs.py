@@ -18,3 +18,8 @@ def load_launch_sites() -> list[dict]:
     """Місця старту; відсутні необов'язкові поля заповнюються значеннями за замовчуванням."""
     records = _load(str(current_app.config["DATA_DIR"] / "launch_sites.json"))
     return [{"country": "", "note": "", "verified": False, **r} for r in records]
+
+
+def load_launch_systems() -> list[dict]:
+    """Системи запуску з першоджерел (app/data/launch_systems.json, задача D6)."""
+    return list(_load(str(current_app.config["DATA_DIR"] / "launch_systems.json")))

@@ -140,6 +140,7 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 - G7 (доопрацювання за зауваженням користувача) — `GET /api/terrain` і вид «з поверхні» v2: поверхня з DEM, освітлення й тіні, панорама, фаза Землі — гілка `veles/G7-surface-v2`, PR #35
 - D6 — Каталог систем запуску з першоджерел (Pegasus XL, LauncherOne, Sea Launch, Ariane 6) — гілка `veles/D6-launch-systems`, PR #36
 - F8 — Перемикач мови інтерфейсу UA / EN (`i18n.js`, словник `en.json`, 228 з 228 текстів шаблонів) — гілка `veles/F8-i18n`, PR #59
+- D6 (доопрацювання за рев'ю #36) — дослівні цитати першоджерел до статусів Pegasus XL і Ariane 64 — гілка `veles/D6-source-quotes`, PR #60
 
 ### Ярило
 

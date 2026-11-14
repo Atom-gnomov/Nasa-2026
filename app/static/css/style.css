@@ -141,3 +141,5 @@ button.primary:disabled { opacity: 0.6; cursor: progress; }
 .advice-controls input { flex: 1 1 240px; }
 .advice-summary { margin: 0; font-weight: 600; }
 .advice ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+/* Графіки таймлайну (charts.js) */
+.timeline-chart { width: 100%; height: 220px; display: block; cursor: crosshair; }

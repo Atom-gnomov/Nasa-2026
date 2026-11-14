@@ -84,8 +84,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Велес
 
-- **Зараз:** D6 — каталог систем запуску з першоджерел (`app/data/launch_systems.json`)
-- **Гілка:** `veles/D6-launch-systems`
+- **Зараз:** F8 — перемикач мови інтерфейсу uk/en (словник за українським текстом, без правок усіх шаблонів)
+- **Гілка:** `veles/F8-i18n`
 
 ### Ярило
 
@@ -138,6 +138,7 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 - F5 — Графіки таймлайну: Сонце, Земля й зв'язок DSN за місячну добу — гілка `veles/F5-timeline-charts`, PR #32
 - G7 — Вид «з поверхні»: горизонт LOLA, Сонце й Земля за місячну добу (П-3) — гілка `veles/G7-surface-view`, PR #33
 - G7 (доопрацювання за зауваженням користувача) — `GET /api/terrain` і вид «з поверхні» v2: поверхня з DEM, освітлення й тіні, панорама, фаза Землі — гілка `veles/G7-surface-v2`, PR #35
+- D6 — Каталог систем запуску з першоджерел (Pegasus XL, LauncherOne, Sea Launch, Ariane 6) — гілка `veles/D6-launch-systems`, PR #36
 
 ### Ярило
 

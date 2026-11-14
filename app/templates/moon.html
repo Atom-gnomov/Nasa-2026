@@ -98,6 +98,11 @@
     {# Добова крива болометричної температури LRO Diviner (модуль globe_view.js, /api/temperature) #}
     <canvas id="temp-chart" class="temp-chart" width="520" height="280" aria-label="Добова крива температури"></canvas>
     <p id="temp-summary" class="muted small">Виберіть місце на Місяці</p>
+    <h2>Сонце, Земля й зв'язок за місячну добу</h2>
+    {# Модуль charts.js (F5): кути Сонця й Землі та смуги видимості й зв'язку DSN — GET /api/timeline #}
+    <canvas id="timeline-chart" class="timeline-chart" aria-label="Кут Сонця й Землі над горизонтом і вікна зв'язку DSN за місячну добу"></canvas>
+    <p id="timeline-summary" class="muted small">Виберіть місце на Місяці</p>
+    <p id="timeline-readout" class="muted small"></p>
     <h2>Порівняння</h2>
     {# Модуль compare.js: два місця каталогу поруч (GET /api/compare); вибір — у спільному стані compare #}
     <div id="compare" class="compare">
@@ -120,5 +125,6 @@
 <script type="module" src="{{ url_for('static', filename='js/moon_globe.js') }}"></script>
 <script type="module" src="{{ url_for('static', filename='js/globe_view.js') }}"></script>
 <script type="module" src="{{ url_for('static', filename='js/compare.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/charts.js') }}"></script>
 <script type="module" src="{{ url_for('static', filename='js/search.js') }}"></script>
 {% endblock %}

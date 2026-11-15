@@ -581,13 +581,20 @@ html[data-wizard="closed"] #site-header .header-plans { display: none; }
 /* ---------- Екран завантаження: логотип крутиться, поки сторінка й дані не готові ---------- */
 #boot-loader { display: none; }
 html.boot-loading #boot-loader {
-  display: flex; position: fixed; inset: 0; z-index: 9000; align-items: center; justify-content: center;
+  display: flex; position: fixed; inset: 0; z-index: 9000; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
   background: #04060f; transition: opacity .4s ease;
 }
+.boot-bar { width: min(320px, 70vw); height: 6px; border-radius: 6px; background: rgba(255, 255, 255, .12); overflow: hidden; }
+.boot-bar span { display: block; height: 100%; width: 0; border-radius: 6px; background: #62e4ff; transition: width .6s ease; }
+#boot-loader.is-indeterminate .boot-bar span { width: 35% !important; animation: boot-slide 1.4s ease-in-out infinite; }
+@keyframes boot-slide { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+.boot-text { margin: 0; min-height: 1.3em; max-width: min(520px, 86vw); text-align: center; font-size: 13px; color: rgba(255, 255, 255, .7); }
+.boot-actions { display: flex; gap: 10px; }
+.boot-actions[hidden] { display: none; }
 #boot-loader.is-done { opacity: 0; pointer-events: none; }
 #boot-loader img { width: 96px; height: 96px; animation: boot-spin 1.6s linear infinite; }
 @keyframes boot-spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { #boot-loader img { animation: none; } }
+@media (prefers-reduced-motion: reduce) { #boot-loader img, #boot-loader .boot-bar span { animation: none !important; } }
 
 /* ---------- Місяць-тло на сторінках кроків планування: над зоряним небом, під інтерфейсом ---------- */
 #moon-backdrop { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: -1; pointer-events: none; display: block; }

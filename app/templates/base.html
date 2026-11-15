@@ -79,7 +79,7 @@
     (function () {
       var d = document.documentElement;
       d.classList.add("boot-loading");
-      setTimeout(function () { d.classList.remove("boot-loading"); }, 90000);
+      setTimeout(function () { d.classList.remove("boot-loading"); }, 25 * 60000);
     })();
   </script>
   {# Вступна заставка: раз за сесію (або ?intro=1); клас ставиться до першого кадру, щоб інтерфейс не мигнув. #}
@@ -98,6 +98,12 @@
 <body class="page-{{ active_tab }}">
   <div id="boot-loader" role="status" aria-label="Завантаження…">
     <img src="{{ url_for('static', filename='img/logo.png') }}" alt="" width="96" height="96">
+    <div class="boot-bar"><span></span></div>
+    <p class="boot-text"></p>
+    <div class="boot-actions" hidden>
+      <button type="button" class="boot-retry">Спробувати знову</button>
+      <button type="button" class="boot-skip">Відкрити як є</button>
+    </div>
   </div>
   <div id="intro" aria-hidden="true">
     <div class="intro-flash"></div>

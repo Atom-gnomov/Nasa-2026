@@ -328,3 +328,32 @@ def test_flight_phases_warn_when_the_rocket_is_overloaded(client):
     tli = data["flight_phases"]["tli"]
     assert tli["overloaded"] and tli["warnings"] and tli["launches"] >= 2
     assert tli["max_g"] == 3.0  # пілотована — менше перевантаження
+
+
+def test_supply_kg_changes_balance_economics_and_feasibility(client):
+    base = {"mission_profile": "crewed", "days": 20, "crew_members": CREW}
+    auto = client.post("/api/mission", json=base).get_json()
+    assert auto["mission_feasible"] is True and auto["crew_supplies"]["summary"]["mission_ok"]
+    eco = auto["crew_supplies"]["economics"]
+    assert eco["usd_per_kg"][0] > 0 and eco["usd_per_kg"][1] > eco["usd_per_kg"][0] and eco["provisional"]
+    need = auto["crew_supplies"]["resources"]["oxygen"]["required_kg"]
+    lean = client.post("/api/mission", json={**base, "supply_kg": {"oxygen": need * 0.6}}).get_json()
+    assert_valid(api_validator("MissionResponse"), lean)
+    assert lean["mission_feasible"] is False
+    cs = lean["crew_supplies"]
+    assert cs["summary"]["first_shortage_resource"] == "oxygen"
+    assert cs["summary"]["first_shortage_day"] == pytest.approx(12.0)
+    assert cs["economics"]["deficit_usd"][0] > 0
+    assert cs["loaded_total_kg"] < auto["crew_supplies"]["loaded_total_kg"], "менше кисню — менша маса навантаження"
+    water = auto["crew_supplies"]["loaded_kg"]["water"] + 100
+    fat = client.post("/api/mission", json={**base, "supply_kg": {"water": water}}).get_json()
+    assert fat["crew_supplies"]["economics"]["excess_usd"][0] > 0 and fat["mission_feasible"] is True
+    assert fat["cost"]["total_usd"][0] > auto["cost"]["total_usd"][0], "зайва вода дорожчає місію"
+
+
+def test_supply_kg_errors(client):
+    base = {"mission_profile": "crewed", "days": 20, "crew_members": CREW}
+    for bad in ({"air": 5}, {"oxygen": -3}, {"oxygen": "x"}, "many"):
+        res = client.post("/api/mission", json={**base, "supply_kg": bad})
+        assert res.status_code == 400, bad
+    assert client.get("/api/mission").status_code in (404, 405)

@@ -13,7 +13,8 @@ from app.core.launch import TRAJECTORIES
 from app.services import catalogs
 
 ALLOWED = {"crew", "days", "sizes", "trajectory", "launch_site_id", "launch_lat", "launch_system_id",
-           "longest_night_h", "mission_profile", "parameters_basis", "crew_members", "supply_days", "reserve_fraction"}
+           "longest_night_h", "mission_profile", "parameters_basis", "crew_members", "supply_days", "reserve_fraction",
+           "supply_kg"}
 
 
 class MissionError(ValueError):
@@ -143,7 +144,7 @@ def compute(body: Mapping) -> dict:
         supply_days = body.get("supply_days")
         try:
             supplies = crew_model.supplies_report(members, days, None if supply_days is None else supply_days,
-                                                  crew_params)
+                                                  crew_params, supply_kg=body.get("supply_kg"))
         except ValueError as exc:
             raise MissionError(str(exc)) from exc
         consumables = supplies["loaded_total_kg"]
@@ -154,6 +155,9 @@ def compute(body: Mapping) -> dict:
     transfer_params = cost.DEFAULT_TRANSFER
     capacity_leo = (choice.rocket if choice else cost.DEFAULT_ROCKET).capacity_leo_kg
     estimate = cost.mission_cost(budget.masses_kg, trajectory=trajectory, latitude_deg=lat, **rocket_kwargs)
+    if supplies is not None:  # гроші на запаси: надлишок понад потребу й вартість закриття нестачі
+        supplies["economics"] = crew_model.economics(
+            supplies, cost.delivery_usd_per_kg(estimate, choice.rocket if choice else cost.DEFAULT_ROCKET))
     risk_kwargs = {"params": choice.risk_params()} if choice else {}  # база відмови — цієї ракети (M21)
     assessment = risk.assess(estimate.utilization, estimate.mass_moon_kg, budget.sizes, crew=crew,
                              trajectory=trajectory, **risk_kwargs)
@@ -168,6 +172,7 @@ def compute(body: Mapping) -> dict:
                            "fit": launch_system.fit(estimate.mass_leo_kg, system, choice.rocket.capacity_leo_kg)}
                           if choice else None),
         "crew_supplies": supplies,
+        "mission_feasible": None if supplies is None else supplies["summary"]["mission_ok"],
         "flight_phases": {"tli": burns.tli_burn(estimate.mass_leo_kg, capacity_leo, transfer_params.dv_tli_m_s,
                                                  transfer_params.isp_tli_s, crewed=crew > 0)},
         "categories": _categories(budget, estimate),

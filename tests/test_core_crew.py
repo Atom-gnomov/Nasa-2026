@@ -70,3 +70,40 @@ def test_empty_crew_and_bad_days_are_rejected():
         crew.supplies_report([], 10)
     with pytest.raises(ValueError):
         crew.supplies_report([crew.REFERENCE["male"]], 500)
+
+
+def test_custom_supply_kg_overrides_days_per_resource_and_reports_balance():
+    m = [crew.REFERENCE["male"]]
+    base = crew.supplies_report(m, 10)
+    need_o2 = base["required_kg"]["oxygen"]
+    short = crew.supplies_report(m, 10, supply_kg={"oxygen": need_o2 * 0.5})
+    o2 = short["resources"]["oxygen"]
+    assert o2["custom"] and o2["loaded_kg"] == pytest.approx(need_o2 * 0.5)
+    assert o2["runs_out_day"] == pytest.approx(5.0) and o2["deficit_kg"] == pytest.approx(need_o2 * 0.5)
+    assert not short["resources"]["water"]["custom"] and short["resources"]["water"]["runs_out_day"] is None
+    assert short["summary"]["mission_ok"] is False and short["summary"]["first_shortage_resource"] == "oxygen"
+    assert short["summary"]["first_shortage_day"] == pytest.approx(5.0)
+    assert [w["resource"] for w in short["warnings"]] == ["oxygen"] and short["warnings"][0]["kind"] == "shortage"
+    assert short["log"][-1]["remaining_pct"]["oxygen"] == 0.0 and short["log"][-1]["status"]["oxygen"] == "shortage"
+    assert short["log"][-1]["remaining_pct"]["water"] > 0.0
+
+
+def test_excess_is_above_need_plus_reserve_and_economics_scales_with_price():
+    m = [crew.REFERENCE["female"]]
+    base = crew.supplies_report(m, 10)
+    assert base["summary"]["excess_kg"] == pytest.approx(0.0) and base["summary"]["mission_ok"] is True
+    big = crew.supplies_report(m, 10, supply_kg={"water": base["loaded_kg"]["water"] + 40.0})
+    assert big["resources"]["water"]["excess_kg"] == pytest.approx(40.0)
+    eco = crew.economics(big, (1000.0, 3000.0))
+    assert eco["excess_usd"] == [pytest.approx(40_000.0), pytest.approx(120_000.0)]
+    assert eco["deficit_usd"] == [0.0, 0.0] and eco["provisional"] is True
+    assert eco["by_resource"]["water"]["excess_usd"][0] == pytest.approx(40_000.0)
+
+
+def test_supply_kg_validation():
+    m = [crew.REFERENCE["male"]]
+    for bad in ({"air": 1}, {"oxygen": -1}, {"oxygen": True}, {"oxygen": "5"}, {"water": 1e9}, [1]):
+        with pytest.raises(ValueError):
+            crew.supplies_report(m, 10, supply_kg=bad)
+    ok = crew.supplies_report(m, 10, supply_kg={"oxygen": None})  # null — не задано
+    assert not ok["resources"]["oxygen"]["custom"]

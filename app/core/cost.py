@@ -129,6 +129,15 @@ def _add(*ranges: Range) -> Range:
     return (sum(r[0] for r in ranges), sum(r[1] for r in ranges))
 
 
+def delivery_usd_per_kg(estimate: CostEstimate, rocket: Rocket = DEFAULT_ROCKET,
+                        table: CostTable = DEFAULT_TABLE) -> Range:
+    """Вартість доставки 1 кг запасів життєзабезпечення на Місяць, $ (мін–макс): запуск (кг на НОО на 1 кг на Місяці ·
+    ціна кг на НОО · поправка на широту старту) плюс ціна кілограма навантаження життєзабезпечення.
+    ⚠️ Таблиці цін тимчасові."""
+    launch = _scale(rocket.price_usd_per_kg, estimate.mass_ratio * estimate.site_factor)
+    return _add(launch, table.life_support_usd_per_kg)
+
+
 def mission_cost(masses_kg: Mapping[str, float], trajectory: str = "direct", latitude_deg: float = 0.0,
                  rocket: Rocket = DEFAULT_ROCKET, table: CostTable = DEFAULT_TABLE,
                  transfer: TransferParams = DEFAULT_TRANSFER) -> CostEstimate:

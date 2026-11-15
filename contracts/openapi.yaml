@@ -1800,6 +1800,16 @@ components:
             запаси O₂, води й їжі за формулами з docs/RESOURCES.md §10; ці запаси входять у масу навантаження.
           items: {$ref: "#/components/schemas/CrewMember"}
         supply_days: {type: number, minimum: 0, maximum: 365, description: "На скільки діб везуть запаси; за замовчуванням — тривалість з рекомендованим резервом"}
+        supply_kg:
+          type: object
+          additionalProperties: false
+          description: |
+            Довільні обсяги запасів, кг (П-14): окремо для кожного запасу; перекривають `supply_days` для вказаних запасів,
+            решта рахується як зазвичай. Відповідь містить баланс по кожному запасу, добу вичерпання й гроші на надлишок.
+          properties:
+            oxygen: {type: number, minimum: 0, maximum: 100000}
+            water: {type: number, minimum: 0, maximum: 100000}
+            food: {type: number, minimum: 0, maximum: 100000}
         reserve_fraction: {type: number, minimum: 0, maximum: 2, default: 0.15, description: "Рекомендований запас понад потребу (частка) ⚠️ тимчасово"}
         parameters_basis:
           type: string
@@ -1888,6 +1898,52 @@ components:
         loaded_kg: {type: object, additionalProperties: {type: number}, description: "Завезені запаси, кг: oxygen, water, food"}
         required_kg: {type: object, additionalProperties: {type: number}}
         loaded_total_kg: {type: number}
+        resources:
+          type: object
+          description: "По кожному запасу (oxygen, water, food): завезено, потрібно, рекомендовано, на скільки діб вистачить, доба вичерпання, баланс, надлишок, нестача"
+          additionalProperties:
+            type: object
+            required: [loaded_kg, required_kg, recommended_kg, rate_kg_per_day, covers_days, runs_out_day, balance_kg, excess_kg, deficit_kg, custom]
+            properties:
+              loaded_kg: {type: number}
+              required_kg: {type: number}
+              recommended_kg: {type: number, description: "Потреба з рекомендованим резервом"}
+              rate_kg_per_day: {type: number}
+              covers_days: {type: number, description: "На скільки діб вистачить (може бути дуже великим, якщо потреби немає)"}
+              runs_out_day: {type: [number, "null"], description: "Доба, на якій запас закінчиться; null — вистачає на всю місію"}
+              balance_kg: {type: number, description: "Завезено мінус потрібно (від'ємне — нестача)"}
+              excess_kg: {type: number, description: "Понад потребу й рекомендований резерв"}
+              deficit_kg: {type: number, description: "Бракує до потреби"}
+              custom: {type: boolean, description: "Обсяг задано в supply_kg"}
+        summary:
+          type: object
+          required: [mission_ok, first_shortage_day, first_shortage_resource, excess_kg, deficit_kg, critical]
+          properties:
+            mission_ok: {type: boolean, description: "Запасів вистачає на всю місію"}
+            first_shortage_day: {type: [number, "null"]}
+            first_shortage_resource: {type: [string, "null"]}
+            excess_kg: {type: number}
+            deficit_kg: {type: number}
+            critical: {type: boolean, description: "Нестача життєзабезпечення — місія не виконується"}
+        economics:
+          type: object
+          description: "Гроші на запаси, $ (діапазон мін–макс; ціни тимчасові): завезене, надлишок і вартість закриття нестачі"
+          required: [usd_per_kg, loaded_usd, excess_kg, excess_usd, deficit_kg, deficit_usd, by_resource, provisional]
+          properties:
+            usd_per_kg: {$ref: "#/components/schemas/Range2"}
+            loaded_usd: {$ref: "#/components/schemas/Range2"}
+            excess_kg: {type: number}
+            excess_usd: {$ref: "#/components/schemas/Range2"}
+            deficit_kg: {type: number}
+            deficit_usd: {$ref: "#/components/schemas/Range2"}
+            by_resource:
+              type: object
+              additionalProperties:
+                type: object
+                properties:
+                  excess_usd: {$ref: "#/components/schemas/Range2"}
+                  deficit_usd: {$ref: "#/components/schemas/Range2"}
+            provisional: {type: boolean}
         warnings:
           type: array
           items:
@@ -1895,6 +1951,7 @@ components:
             required: [kind, message]
             properties:
               kind: {type: string, enum: [shortage, low_reserve]}
+              resource: {type: string, description: "Запас, якого стосується (лише для supply_kg)"}
               message: {type: string}
         log:
           type: array
@@ -1997,6 +2054,7 @@ components:
           oneOf:
             - {$ref: "#/components/schemas/CrewSupplies"}
             - {type: "null"}
+        mission_feasible: {type: [boolean, "null"], description: "false — запасів життєзабезпечення не вистачає на всю місію; null — склад екіпажу не задано"}
         categories: {$ref: "#/components/schemas/MissionCategories"}
         sourced_parameters:
           type: array

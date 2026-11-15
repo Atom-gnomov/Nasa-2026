@@ -227,3 +227,27 @@ def test_every_panel_on_every_page_uses_the_same_glass():
     assert "#view :is(.ui-widget, .side-panel, .advice, .workspace-results)" in block
     assert "var(--cg-fill) !important" in block and "background-image: none !important" in block
     assert "backdrop-filter: var(--cg-blur) !important" in block and "var(--cg-line)" in block
+
+
+def test_alignment_rules_closed_select_ellipsis_and_aligned_headings():
+    """Закрите поле списку: текст по центру, один рядок із «…»; заголовок результатів і legend — на лінії вмісту."""
+    js = (ROOT / "app" / "static" / "js" / "select_ui.js").read_text(encoding="utf-8")
+    assert "selectedcontent" in js and "base-select" in js and "MutationObserver" in js
+    assert "js/select_ui.js" in TEMPLATES["base.html"]
+    assert re.search(r"select > button > selectedcontent\s*\{[^}]*text-overflow:\s*ellipsis", CSS)
+    assert re.search(r"select\s*\{\s*align-items:\s*center", CSS)
+    block = CSS[CSS.index("/* ---------- Вирівнювання ----------"):][:1400]
+    assert "margin-left: -21.6px" in block and "padding-left: 21.6px" in block, "заголовок — від краю до краю"
+    assert 'input[type="range"] { margin: 0 !important; }' in block
+    assert "fieldset > legend { float: left; width: 100%" in block
+
+
+def test_select_inner_button_has_no_own_frame_or_background():
+    """Вбудована кнопка поля списку без власної рамки й фону (раніше в полі була друга рамка)."""
+    m = re.search(r"select > button\s*\{([^}]*)\}", CSS)
+    assert m, "правило для вбудованої кнопки списку"
+    rule = m.group(1)
+    props = ("border: 0 !important", "background: none !important", "padding: 0 !important")
+    assert "box-shadow: none !important" in rule
+    for prop in props:
+        assert prop in rule, prop

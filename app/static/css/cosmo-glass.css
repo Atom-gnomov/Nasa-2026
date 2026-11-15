@@ -267,7 +267,12 @@ select option:checked { background-color: #2a3346 !important; }
    рамка, прямі кути, ширина не менша за сам список, прокрутка, рядки переносяться. */
 @supports (appearance: base-select) {
   select, select::picker(select) { appearance: base-select; }
-  select::picker-icon { color: var(--cg-ink-soft, #b9c4d6); transition: none; }
+  /* закрите поле списку: текст по центру висоти, в один рядок (довгий — з «…»), стрілка праворуч по центру */
+  select { align-items: center; gap: 8px; white-space: nowrap; }
+  /* вбудована кнопка поля — без власної рамки, фону й відступів (інакше загальні стилі кнопок малюють у полі ще одну рамку) */
+  select > button { appearance: none !important; flex: 1 1 auto; min-width: 0; display: flex; align-items: center; height: 100% !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; border: 0 !important; background: none !important; box-shadow: none !important; color: inherit !important; font: inherit !important; text-align: left; cursor: inherit; }
+  select > button > selectedcontent { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.2; }
+  select::picker-icon { flex: none; margin-left: auto; color: var(--cg-ink-soft, #b9c4d6); transition: none; }
   select:open::picker-icon { rotate: 180deg; }
   select::picker(select) {
     box-sizing: border-box; margin-block: 4px; padding: 4px;
@@ -332,6 +337,15 @@ button:disabled:not(.primary) {
   background: var(--cg-fill-faint) !important; border: 1px solid var(--cg-line-soft) !important; color: var(--cg-muted) !important;
   opacity: .5; cursor: not-allowed;
 }
+
+/* ---------- Вирівнювання ----------
+   Заголовок результатів — на всю ширину картки (від краю до краю, як на «Місії» й «Плані»), а його текст — на одній лінії з рештою
+   вмісту (на «Підборі» він був без вильоту й стояв на 22 px правіше); повзунки без власного поля 2 px (були зсунуті відносно підписів і полів); legend груп — рядком у потоці, тож її текст
+   на одній лінії з вмістом групи (раніше вужчий на 6 px, бо стояв у розриві рамки). */
+.workspace-results > .results-heading { margin-left: -21.6px !important; margin-right: -21.6px !important; padding-left: 21.6px !important; padding-right: 21.6px !important; }
+input[type="range"] { margin: 0 !important; }
+:is(#view, .ui-widget, .ui-dock) fieldset > legend { float: left; width: 100%; box-sizing: border-box; padding: 0 0 var(--gap-s) !important; margin: 0; }
+:is(#view, .ui-widget, .ui-dock) fieldset > legend + * { clear: both; }
 
 /* ---------- Прямі кути, без світіння ----------
    Ефект скла лишається (прозорий білуватий фон, розмиття, тонка світла рамка); прибрано: заокруглення кутів,

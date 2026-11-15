@@ -202,6 +202,7 @@
   <script type="module" src="{{ url_for('static', filename='js/workspace_ui.js') }}"></script>
   {# Переклад — одразу після розкладки панелей, до важких модулів сцен: інакше він чекає на їхнє завантаження і текст блимає UA → EN. #}
   <script type="module" src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+  <script type="module" src="{{ url_for('static', filename='js/select_ui.js') }}"></script>
   <script type="module" src="{{ url_for('static', filename='js/intro.js') }}"></script>
   <script type="module" src="{{ url_for('static', filename='js/starfield.js') }}"></script>
   {% block scripts %}{% endblock %}

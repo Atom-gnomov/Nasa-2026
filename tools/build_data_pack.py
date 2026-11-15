@@ -33,6 +33,9 @@ PACKS_FILE = ROOT / "app" / "data" / "data_packs.json"
 DEFAULT_REPO = "Atom-gnomov/Nasa-2026"
 SKIP_DIRS = {"src"}  # сирі завантаження: у пакет не входять
 SKIP_SUFFIXES = (".part", ".lock", ".log", ".tmp")
+# DEM LOLA для сервісу висот (app/services/elevation.py): весь шар (~1,9 км) і південний полюс (80 м);
+# ldem_64 і 20 м завеликі для холодного старту
+KEEP_FROM_SRC = {"globe": ("ldem_16.img", "ldem_16.lbl", "ldem_80s_80m.img", "ldem_80s_80m.lbl")}
 
 
 def cache_dir() -> Path:
@@ -50,12 +53,15 @@ def dataset_dir(dataset_id: str, cache: Path) -> Path:
     return cache / d.subdir if d.subdir else cache
 
 
-def pack_files(base: Path) -> list[Path]:
-    """Файли набору для пакета: усе, крім сирих завантажень і службових файлів; у стабільному порядку."""
+def pack_files(base: Path, keep_src: tuple[str, ...] = ()) -> list[Path]:
+    """Файли набору для пакета: усе, крім сирих завантажень і службових файлів; у стабільному порядку.
+
+    `keep_src` — імена файлів із `src/`, які все ж потрапляють у пакет (DEM, без яких сервіс висот не працює)."""
     out = []
     for path in sorted(base.rglob("*")):
         rel = path.relative_to(base)
-        if not path.is_file() or rel.parts[0] in SKIP_DIRS or path.name.endswith(SKIP_SUFFIXES):
+        in_src = rel.parts[0] in SKIP_DIRS
+        if not path.is_file() or path.name.endswith(SKIP_SUFFIXES) or (in_src and path.name not in keep_src):
             continue
         out.append(path)
     return out
@@ -81,7 +87,7 @@ def build_zip(dataset_id: str, out_dir: Path, cache: Path) -> dict:
     out_dir.mkdir(parents=True, exist_ok=True)
     pack_id = f"{dataset_id}-full"
     path = out_dir / f"{pack_id}.zip"
-    files = pack_files(base)
+    files = pack_files(base, KEEP_FROM_SRC.get(dataset_id, ()))
     with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
         for f in files:
             zf.write(f, f.relative_to(base).as_posix())

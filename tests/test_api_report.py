@@ -51,7 +51,7 @@ def test_full_report_has_sections_in_step_order(client, monkeypatch):
     assert _values(data, 2)["Тип"] == "пілотована"
     assert _values(data, 5)["Дата посадки"] == "2027-08-24 02:01 UTC"  # дата й місце посадки — один крок
     assert "Шеклтон" in _values(data, 5)["Точка"]
-    assert _values(data, 4)["Зліт і повернення"].startswith("не змодельовано")
+    assert _values(data, 4)["Зліт і повернення"]== "не моделюється"
     assert any("VIPER" in label for label in _values(data, 6))
     assert "кг" in _values(data, 7)["Маса на Місяці"]
     assert _values(data, 8)["Носій"] and _values(data, 8)["Ризик невдачі"]

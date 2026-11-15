@@ -40,6 +40,8 @@ def test_dictionary_has_no_stale_keys():
     """Кожен ключ словника ще є в шаблонах або коді: його речення (між {змінними}) мають бути в джерелах."""
     sources = [p.read_text(encoding="utf-8") for p in (ROOT / "app" / "templates").glob("*.html")]
     sources += [p.read_text(encoding="utf-8") for p in JS_DIR.rglob("*.js")]
+    # тексти, що приходять із сервера (звіт, перевірка узгодженості), перекладає той самий словник
+    sources += [p.read_text(encoding="utf-8") for p in (ROOT / "app" / "services").glob("*.py")]
     text = re.sub(r"\s+", " ", " ".join(sources).replace("\'", "'").replace('\\"', '"'))
     stale = []
     for key in _dictionary()["strings"]:

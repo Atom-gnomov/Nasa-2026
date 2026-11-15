@@ -180,4 +180,4 @@ def test_mobile_stylesheet_is_loaded_last_and_served(client):
     css = client.get("/static/css/mobile.css")
     assert css.status_code == 200
     text = css.get_data(as_text=True)
-    assert "@media (max-width: 760px)" in text and "#calendar-input" in text
+    assert "@media (max-width: 900px)" in text and "#calendar-input" in text

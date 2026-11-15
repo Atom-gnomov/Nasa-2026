@@ -1,6 +1,6 @@
 /* Адаптація під телефони (F36). Підключено останнім, після cosmo-glass.css, тому перекриває десктопні правила шапки.
    Висоту шапки вимірює workspace_ui.js (--header-h), тож висока шапка в два-три ряди сама відсуває панелі. */
-@media (max-width: 760px) {
+@media (max-width: 900px) {
   /* Шапка: ряд 1 — логотип + мова/екран/довідка; ряд 2 — вкладки (гортаються); ряд 3 — дата на всю ширину */
   #site-header.topbar { flex-wrap: wrap; gap: 4px 6px; padding: 6px 8px; align-items: center; }
   #site-header .brand { order: 1; flex: 1 1 auto; min-width: 0; }
@@ -51,6 +51,8 @@
   :where(.ui-widget, .ui-dock, #view) button { min-height: 40px; }
   :where(.ui-widget, .ui-dock, #view) input[type="checkbox"], :where(.ui-widget, .ui-dock, #view) input[type="radio"] { width: 22px; height: 22px; }
   input[type="range"] { min-height: 32px; }
+  .widget-action, .dock-toggle { min-width: 40px; min-height: 40px; }
+  a.button, a.no-print, #data-banner button { display: inline-flex; align-items: center; min-height: 36px; padding-inline: 10px; }
 }
 
 /* Дуже вузькі телефони */

@@ -75,6 +75,7 @@ test("mobile fallback never creates an unusably thin 3D canvas", () => {
 test("телефон: перший вхід на сторінку зі сценою — панелі згорнуті, збережений стан не чіпаємо", () => {
   assert.deepEqual(phoneDefaultStates({}, ["left", "right"], 390, true), { left: "collapsed", right: "collapsed" });
   assert.deepEqual(phoneDefaultStates({ left: "normal" }, ["left", "right"], 390, true), { left: "normal" });
+  assert.deepEqual(phoneDefaultStates({}, ["left", "right"], 768, true), { left: "collapsed", right: "collapsed" });
   assert.deepEqual(phoneDefaultStates({}, ["left", "right"], 1280, true), {});
   assert.deepEqual(phoneDefaultStates({}, ["left"], 390, false), {});
 });

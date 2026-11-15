@@ -177,7 +177,7 @@ function init() {
     last = response;
     const leader = leadFromPlan(response, chosenRank);
     if (leader) {
-      saveLead(leader); // «Система» й «Вікно запуску» покажуть цей майданчик і траєкторію, якщо вибір не зроблено вручну
+      saveLead(leader); // «Система» покаже цей майданчик і траєкторію, якщо вибір не зроблено вручну
       const mission = (response.plans.find((p) => p.rank === (chosenRank ?? response.auto_selected)) ?? response.plans[0])?.mission;
       if (mission) saveBurn(burnFromMission(mission)); // «Система» анімує розгін за масою лідера
       setState({ site: leader.moon.site, lat: leader.moon.lat, lon: leader.moon.lon }); // точка на «Місяці» — лідер плану

@@ -1,0 +1,21 @@
+// Cloudflare Containers: Worker приймає запити й проксіює їх у контейнер із Dockerfile застосунку.
+// Деплой: cd cloudflare && npm install && npx wrangler deploy (потрібен Docker локально або збирання в Cloudflare Builds).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "nasa-2026",
+  "main": "src/index.js",
+  "compatibility_date": "2025-10-01",
+  "containers": [
+    {
+      "class_name": "LunarApp",
+      "image": "../Dockerfile",
+      "image_build_context": "..",
+      "instance_type": "standard-1",
+      "max_instances": 1
+    }
+  ],
+  "durable_objects": {
+    "bindings": [{ "class_name": "LunarApp", "name": "LUNAR_APP" }]
+  },
+  "migrations": [{ "new_sqlite_classes": ["LunarApp"], "tag": "v1" }]
+}

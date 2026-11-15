@@ -6,7 +6,7 @@ import { getState, subscribe } from "./state.js";
 import { buildMissionRequest, normalizeForm } from "./mission.js";
 import { DEFAULT_LAUNCH, effectiveSite, effectiveTrajectory, loadLaunch, plainSite, stayDays } from "./pipeline.js";
 import { loadLead, loadMissionForm, MISSION_KEY } from "./selection.js";
-import { STEPS, loadPlan, stepHref } from "./mission_plan.js";
+import { STEPS, displayNumber, loadPlan, stepHref } from "./mission_plan.js";
 
 export const SEVERITY_ICON = { error: "✗", warning: "!", info: "·" };
 export const SEVERITY_LABEL = { error: "Місія не виконується", warning: "Варто виправити", info: "Зауваження" };
@@ -70,6 +70,7 @@ if (typeof document !== "undefined" && document.getElementById("c-list")) {
   let timer = null;
   let abort = null;
   let last = null;
+  let autoNight = null;
   const DEBOUNCE_MS = 300;
 
   function render() {
@@ -80,7 +81,9 @@ if (typeof document !== "undefined" && document.getElementById("c-list")) {
       li.append(Object.assign(document.createElement("span"), { className: "check-mark", textContent: r.icon, title: t(SEVERITY_LABEL[r.severity]) }),
         Object.assign(document.createElement("span"), { textContent: r.message }));
       const step = STEPS.find((s) => s.n === r.step);
-      if (step) li.append(Object.assign(document.createElement("a"), { className: "button", href: stepHref(step, location.search), textContent: t("До кроку {n}", { n: r.step }), title: t(r.stepTitle) }));
+      // Номер — як на смузі кроків: без «Тривалості» й «Екіпажу» для безпілотної місії нумерація скорочується
+      const shown = displayNumber(r.step, { crewed: normalizeForm(loadMissionForm()).crewed }) || r.step;
+      if (step) li.append(Object.assign(document.createElement("a"), { className: "button", href: stepHref(step, location.search), textContent: t("До кроку {n}", { n: shown }), title: t(r.stepTitle) }));
       return li;
     }));
     const night = last?.suggested?.longest_night_h;
@@ -102,6 +105,13 @@ if (typeof document !== "undefined" && document.getElementById("c-list")) {
       if (!res.ok) throw new Error(data.detail || res.statusText);
       last = data;
       $("c-status").hidden = true;
+      // Найдовша ніч рахується сама: застосовуємо підказку без кнопки (раз на значення, щоб не зациклитись)
+      const night = data.suggested?.longest_night_h;
+      if (night != null && night !== autoNight) {
+        autoNight = night;
+        try { localStorage.setItem(MISSION_KEY, JSON.stringify(withNight(loadMissionForm(), night))); } catch { /* приватний режим */ }
+        schedule();
+      }
     } catch (err) {
       if (err.name === "AbortError") return;
       $("c-status").textContent = err.message;

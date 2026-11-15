@@ -17,7 +17,7 @@
     "змінюється в календарі вгорі": "change it in the calendar above",
     "Обрана точка": "Chosen point",
     "Точку ще не обрано.": "No point chosen yet.",
-    "Клацніть по глобусу, щоб обрати точку посадки; дату змінюйте в календарі вгорі. Потім натисніть «Підтвердити й далі».": "Click the globe to choose the landing point; change the date in the calendar above. Then press “Confirm and continue”.",
+    "Клацніть по глобусу, щоб обрати точку посадки; дату змінюйте в календарі вгорі. Потім перейдіть до наступного кроку.": "Click the globe to choose the landing point; change the date in the calendar above. Then go to the next step.",
     "Ракету ви оберете на кроці «Носій і політ»: система сама покаже, які носії вміщують цю масу, а вартість і ризик залежать від неї.": "You will choose the rocket at the “Carrier and flight” step: the system shows which carriers fit this mass, and cost and risk depend on it.",
     "Найдовша ніч порахується сама, коли ви оберете точку й дату посадки.": "The longest night is calculated automatically once you choose a landing point and date.",
     "Найдовша ніч у вибраній точці за час перебування: {h} год. Акумулятори розраховано під неї автоматично.": "Longest night at the chosen point during the stay: {h} h. Batteries are sized for it automatically.",

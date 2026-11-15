@@ -170,3 +170,14 @@ def test_mission_toggle_button_and_initial_state_are_on_every_page(client):
         assert 'id="mp-toggle"' in tabs, path  # єдина кнопка планування — у смузі вкладок
         for link in ('/search', '/mission', '/plan'):  # вкладки планування сховано під неї, але є
             assert f'href="{link}"' in tabs and 'tab-plan' in tabs, (path, link)
+
+
+def test_mobile_stylesheet_is_loaded_last_and_served(client):
+    """F36: адаптація під телефони — окремий файл, що йде після всіх тем і перекриває десктопні правила шапки."""
+    html = client.get("/moon").get_data(as_text=True)
+    assert 'name="viewport"' in html
+    assert html.index("css/mobile.css") > html.index("css/cosmo-glass.css")
+    css = client.get("/static/css/mobile.css")
+    assert css.status_code == 200
+    text = css.get_data(as_text=True)
+    assert "@media (max-width: 760px)" in text and "#calendar-input" in text

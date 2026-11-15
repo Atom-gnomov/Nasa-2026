@@ -42,6 +42,9 @@ export const DEFAULT_FORM = {
   includeCatalog: true,
   heightM: 0,
   limit: 20,
+  maxSlopeDeg: 0, // жорстка вимога: нахил не більший (0 — без вимоги; потрібен DEM) — M23
+  minEarthPct: 0, // м'яка вимога: частка часу, коли видно Землю, % (0 — без вимоги)
+  minSunPct: 0, // м'яка вимога: частка часу, коли видно Сонце, %
 };
 
 const isoZ = (ms) => new Date(ms).toISOString().slice(0, 19) + "Z";
@@ -90,6 +93,9 @@ export function buildSearchRequest(form, datetime) {
   };
   if (form.minSunHours > 0) body.min_sun_hours = form.minSunHours;
   if (form.minCommHours > 0) body.min_comm_hours = form.minCommHours;
+  if (form.maxSlopeDeg > 0) body.max_slope_deg = form.maxSlopeDeg;
+  if (form.minEarthPct > 0) body.min_earth_fraction = form.minEarthPct / 100;
+  if (form.minSunPct > 0) body.min_sun_fraction = form.minSunPct / 100;
   return body;
 }
 
@@ -206,7 +212,7 @@ if (root) {
   const el = {
     days: $("#s-days"), region: $("#s-region"), customBox: $("#s-custom"), latMin: $("#s-lat-min"), latMax: $("#s-lat-max"),
     step: $("#s-step"), sun: $("#s-sun"), sunOut: $("#s-sun-out"), comm: $("#s-comm"), commOut: $("#s-comm-out"),
-    list: $("#s-priorities"), mode: root.querySelectorAll("[data-mode]"), catalog: $("#s-catalog"), height: $("#s-height"),
+    list: $("#s-priorities"), mode: root.querySelectorAll("[data-mode]"), catalog: $("#s-catalog"), height: $("#s-height"), slope: $("#s-slope"), earth: $("#s-earth"), sunfrac: $("#s-sunfrac"),
     run: $("#s-run"), status: $("#s-status"), note: $("#s-note"), compare: $("#s-compare"),
     table: $("#s-table"), body: $("#s-table tbody"), head: $("#s-head"),
     advice: $("#s-advice"), adviceAsk: $("#s-advice-ask"), adviceQuestion: $("#s-advice-question"),
@@ -281,6 +287,9 @@ if (root) {
     for (const b of el.mode) b.classList.toggle("active", b.dataset.mode === form.mode);
     el.catalog.checked = form.includeCatalog;
     el.height.value = String(form.heightM);
+    el.slope.value = String(form.maxSlopeDeg ?? 0);
+    el.earth.value = String(form.minEarthPct ?? 0);
+    el.sunfrac.value = String(form.minSunPct ?? 0);
     renderSliders();
     renderPriorities();
   }
@@ -418,6 +427,9 @@ if (root) {
   el.comm.addEventListener("input", () => { form.minCommHours = Number(el.comm.value); save(); renderSliders(); });
   for (const b of el.mode) b.addEventListener("click", () => { form.mode = b.dataset.mode; save(); renderForm(); });
   el.catalog.addEventListener("change", () => { form.includeCatalog = el.catalog.checked; save(); });
+  el.slope.addEventListener("change", () => { form.maxSlopeDeg = clamp(numberOr(el.slope, 0), 0, 90); save(); renderForm(); });
+  el.earth.addEventListener("change", () => { form.minEarthPct = clamp(numberOr(el.earth, 0), 0, 100); save(); renderForm(); });
+  el.sunfrac.addEventListener("change", () => { form.minSunPct = clamp(numberOr(el.sunfrac, 0), 0, 100); save(); renderForm(); });
   el.height.addEventListener("change", () => { form.heightM = clamp(numberOr(el.height, 0), 0, 1000); save(); renderForm(); });
   el.run.addEventListener("click", run);
   el.adviceAsk.addEventListener("click", askAdvice);

@@ -123,3 +123,12 @@ def test_errors(client, body, status):
     res = client.post("/api/launch-ranking", json=body)
     assert res.status_code == status
     assert_valid(api_validator("Error"), res.get_json())
+
+
+def test_launch_ranking_site_filter(client):
+    body = {"lat": -89.5, "lon": 0, "datetime": "2027-03-01T00:00:00Z", "mass_moon_kg": 2000}
+    sites = client.get("/api/launch-sites").get_json()
+    sid = sites[0]["id"]
+    data = client.post("/api/launch-ranking", json={**body, "site_id": sid, "limit": 50}).get_json()
+    assert data["options"] and all(o["site"]["id"] == sid for o in data["options"])
+    assert client.post("/api/launch-ranking", json={**body, "site_id": "nope"}).status_code == 400

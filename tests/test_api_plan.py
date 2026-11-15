@@ -142,3 +142,15 @@ def test_crewed_plan_rejects_the_low_energy_trajectory(client):
     assert plan(client, mission_profile="crewed", days=10, trajectories=["direct"]).status_code == 200
     assert plan(client, crew_members=[{"sex": "male"}], mission_profile="crewed", days=5,
                 trajectories=["direct", "low_energy"]).status_code == 400
+
+
+def test_plan_can_be_restricted_to_one_launch_site(client):
+    sites = client.get("/api/launch-sites").get_json()
+    ids = [s["id"] for s in sites]
+    chosen = "kourou" if "kourou" in ids else ids[0]
+    data = plan(client, launch_site_id=chosen).get_json()
+    assert_valid(api_validator("PlanResponse"), data)
+    for p in data["plans"]:
+        if p["launch"]:
+            assert p["launch"]["site"]["id"] == chosen
+    assert plan(client, launch_site_id="no-such-site").status_code == 400

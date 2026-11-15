@@ -30,6 +30,17 @@
       <output id="s-comm-out">без вимоги</output>
     </label>
 
+    <label>Максимальний нахил, ° <small class="muted">(жорстка вимога; потрібен рельєф LOLA)</small>
+      <input type="number" id="s-slope" min="0" max="90" step="1" value="0" placeholder="0 — без вимоги">
+    </label>
+    <label>Мін. частка часу, коли видно Землю, % <small class="muted">(м'яка: знижує бал)</small>
+      <input type="number" id="s-earth" min="0" max="100" step="5" value="0" placeholder="0 — без вимоги">
+    </label>
+    <label>Мін. частка часу, коли видно Сонце, % <small class="muted">(м'яка)</small>
+      <input type="number" id="s-sunfrac" min="0" max="100" step="5" value="0" placeholder="0 — без вимоги">
+    </label>
+    <p class="muted small">Ці вимоги підхоплює вкладка «План місії» — вводити їх удруге не треба.</p>
+
     <h3>Пріоритети</h3>
     <p class="muted small">Перетягніть блок або натисніть ↑ ↓: що вище — то важливіше.</p>
     <ol id="s-priorities" class="priorities"></ol>

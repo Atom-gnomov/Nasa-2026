@@ -6,13 +6,18 @@ const plan = await import(new URL("../../app/static/js/plan.js", import.meta.url
 
 const state = { datetime: "2027-03-01T06:00Z" };
 
-test("запит: період від календаря, вимоги лише задані, профіль і ракета", () => {
-  const body = plan.buildPlanRequest({ ...plan.DEFAULT_FORM, maxSlope: "10", minEarth: "0.25", periodDays: 5 }, state);
+test("запит: вимоги беруться з «Підбору» (регіон, період, пороги, пріоритети), профіль і ракета — з форми", () => {
+  const search = { days: 5, regionKey: "pole", minSunHours: 48, maxSlopeDeg: 10, minEarthPct: 25,
+                   priorities: [{ id: "comms", on: true }, { id: "energy", on: true }, { id: "radiation", on: false }] };
+  const body = plan.buildPlanRequest({ ...plan.DEFAULT_FORM }, state, search);
   assert.equal(body.start, "2027-03-01T06:00:00Z");
   assert.equal(body.end, "2027-03-06T06:00:00Z");
+  assert.deepEqual(body.region, { lat_min: -90, lat_max: -80 });
+  assert.deepEqual(body.priorities, ["comms", "energy"]);
+  assert.equal(body.min_sun_hours, 48);
   assert.equal(body.max_slope_deg, 10);
   assert.equal(body.min_earth_fraction, 0.25);
-  assert.ok(!("min_sun_hours" in body) && !("vehicle" in body) && !("trajectories" in body));
+  assert.ok(!("min_comm_hours" in body) && !("vehicle" in body) && !("trajectories" in body) && !("launch_site_id" in body));
   assert.equal(body.mission_profile, "uncrewed");
   assert.equal(body.departure_days, 7);
   assert.equal(body.days, 0);
@@ -27,10 +32,18 @@ test("запит: пілотована — екіпаж і доби, вибра�
   assert.deepEqual(body.trajectories, ["direct"]);
 });
 
-test("запит: період обмежено 1…60 діб; без дати — помилка", () => {
-  const body = plan.buildPlanRequest({ ...plan.DEFAULT_FORM, periodDays: 500 }, state);
-  assert.equal((Date.parse(body.end) - Date.parse(body.start)) / 86400000, 60);
+test("запит: без збережених вимог «Підбору» — типові (півд. полюс, 30 діб); без дати — помилка", () => {
+  const body = plan.buildPlanRequest(plan.DEFAULT_FORM, state);
+  assert.equal((Date.parse(body.end) - Date.parse(body.start)) / 86400000, 30);
+  assert.deepEqual(body.region, { lat_min: -90, lat_max: -80 });
+  assert.deepEqual(body.priorities, ["energy", "comms"]);
   assert.throws(() => plan.buildPlanRequest(plan.DEFAULT_FORM, { datetime: "?" }));
+});
+
+test("запит: обраний майданчик старту передається, «оптимально» й порожній — ні", () => {
+  assert.equal(plan.buildPlanRequest({ ...plan.DEFAULT_FORM, launchSite: "kourou" }, state).launch_site_id, "kourou");
+  assert.ok(!("launch_site_id" in plan.buildPlanRequest({ ...plan.DEFAULT_FORM, launchSite: "auto:fuel:any" }, state)));
+  assert.ok(!("launch_site_id" in plan.buildPlanRequest({ ...plan.DEFAULT_FORM, launchSite: "" }, state)));
 });
 
 const response = {

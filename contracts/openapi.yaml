@@ -2297,6 +2297,7 @@ components:
         lat: {type: number, minimum: -90, maximum: 90, description: Селенографічна широта точки посадки}
         lon: {type: number, minimum: -180, maximum: 360, description: Селенографічна довгота на схід}
         datetime: {type: string, format: date-time, description: "Момент старту (TLI); без зони — UTC; без поля — зараз"}
+        site_id: {type: string, description: "Лише цей майданчик старту (id з /launch-sites); невідомий — 400 (F20)"}
         mass_moon_kg: {type: number, exclusiveMinimum: 0, description: "Маса, що сідає на Місяць; без поля — з моделі місії (crew, days, sizes)"}
         crew: {type: integer, minimum: 0, maximum: 6, default: 0}
         days: {type: number, minimum: 0, maximum: 365, default: 0}
@@ -2439,6 +2440,7 @@ components:
         allow_multiple_launches: {type: boolean, default: false}
         surface_after_arrival: {type: boolean, default: true, description: "true — місце оцінюється за період після прибуття (`departure` + типовий переліт обраної траєкторії); false — за період від `start`, як у /search (B20b)"}
         departure_days: {type: integer, minimum: 1, maximum: 60, default: 1, description: "Скільки діб від `departure` перебирати для найкращої дати старту (B20, на основі /launch-window); 1 — лише `departure`"}
+        launch_site_id: {type: string, description: "Лише цей майданчик старту (id з /launch-sites); без нього — підбір серед усіх (F20)"}
         landing_candidates: {type: integer, minimum: 1, maximum: 10, default: 3, description: Скільки найкращих місць комбінувати із запусками}
         limit: {type: integer, minimum: 1, maximum: 20, default: 5, description: Скільки планів повернути}
 

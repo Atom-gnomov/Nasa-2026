@@ -4,6 +4,7 @@
 
 import { onLangChange, t } from "./i18n.js";
 import { burnFromMission, saveBurn } from "./selection.js";
+import { loadLaunch, plainSite, saveLaunch } from "./pipeline.js";
 
 const STORAGE_KEY = "lse-mission";
 const DEBOUNCE_MS = 250;
@@ -435,9 +436,10 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
   });
   $("m-supply-days").addEventListener("input", (e) => { form.supplyDays = e.target.value === "" ? null : clamp(num(e.target.value, 0), 0, 365); schedule(); });
   $("m-reserve").addEventListener("input", (e) => { form.reservePct = clamp(num(e.target.value, 15), 0, 200); schedule(); });
-  $("m-trajectory").addEventListener("change", (e) => { form.trajectory = e.target.value; schedule(); });
-  $("m-system").addEventListener("change", (e) => { form.systemId = e.target.value; schedule(); });
-  $("m-site").addEventListener("change", (e) => { form.siteId = e.target.value; schedule(); });
+  // F20: траєкторія, ракета й майданчик — спільний вибір польоту для «Місії», «Плану», «Системи» і «Вікна запуску»
+  $("m-trajectory").addEventListener("change", (e) => { form.trajectory = e.target.value; saveLaunch({ trajectory: form.trajectory }); schedule(); });
+  $("m-system").addEventListener("change", (e) => { form.systemId = e.target.value; saveLaunch({ vehicle: form.systemId || "any" }); schedule(); });
+  $("m-site").addEventListener("change", (e) => { form.siteId = e.target.value; saveLaunch({ site: form.siteId }); schedule(); });
 
   (async () => {
     try {
@@ -445,6 +447,11 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
       for (const v of selectableVehicles(systems)) $("m-system").append(markData(new Option(vehicleLabel(v), v.id)));
       for (const s of sites) $("m-site").append(markData(new Option(s.name, s.id)));
     } catch { /* без каталогів лишається типова ракета й екватор */ }
+    const launch = loadLaunch(); // спільний вибір польоту має перевагу над збереженою формою
+    const has = (id, v) => [...$(id).options].some((o) => o.value === v);
+    if (launch.trajectory !== "any") form.trajectory = launch.trajectory;
+    if (launch.vehicle !== "any" && has("m-system", launch.vehicle)) form.systemId = launch.vehicle;
+    if (plainSite(launch.site) && has("m-site", launch.site)) form.siteId = launch.site;
     renderForm();
     calculate();
   })();

@@ -5,7 +5,7 @@ def test_plan_page(client):
     res = client.get("/plan")
     assert res.status_code == 200
     html = res.get_data(as_text=True)
-    for marker in ("plan-form", "plan-profile", "plan-max-slope", "plan-vehicle", "plan-table", "plan.js",
+    for marker in ("plan-form", "plan-profile", "plan-req", "plan-site", "plan-vehicle", "plan-table", "plan.js",
                    "calendar-input", "metrics-overlay"):
         assert marker in html, marker
 

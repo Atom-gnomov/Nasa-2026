@@ -355,11 +355,16 @@ input[type="range"] { margin: 0 !important; }
 .supply-kg-row input[type="range"] { grid-column: 1; width: 100%; }
 .supply-kg-row output { grid-column: 1; font-size: var(--fs-s); color: var(--cg-muted); }
 .supply-kg-row button { grid-column: 2; grid-row: 2; }
-.supply-kg-row output[data-status="shortage"], .supply-summary .supply-crit { color: #ff8a80 !important; }
+.supply-kg-row output[data-status="shortage"], #view .supply-summary li.supply-crit { color: #ff8a80 !important; }
 .supply-kg-row output[data-status="reserve"] { color: #ffd166; }
-.supply-kg-row output[data-status="excess"], .supply-summary .supply-warn { color: #ffd166 !important; }
-.supply-kg-row output[data-status="ok"], .supply-summary .supply-ok { color: #7bed9f !important; }
+.supply-kg-row output[data-status="excess"], #view .supply-summary li.supply-warn { color: #ffd166 !important; }
+.supply-kg-row output[data-status="ok"], #view .supply-summary li.supply-ok { color: #7bed9f !important; }
 .supply-summary { list-style: none; margin: 0 0 var(--gap-s); padding: 0; display: grid; gap: 4px; }
+
+/* шапка таблиць (що прокручуються): суцільний темний фон нашого скла й світла лінія — раніше була синя, а під рядками просвічувала */
+body:not(.page-moon):not(.page-system) #view .results-table thead th {
+  background: #1b1e29 !important; color: var(--cg-muted) !important; border-bottom: 1px solid var(--cg-line-soft) !important;
+}
 
 /* ---------- Прямі кути, без світіння ----------
    Ефект скла лишається (прозорий білуватий фон, розмиття, тонка світла рамка); прибрано: заокруглення кутів,

@@ -259,4 +259,9 @@ def test_supply_sliders_and_summary_are_in_the_mission_panel():
     for key in ("oxygen", "water", "food"):
         assert f'id="m-kg-{key}"' in html and f'id="m-kg-{key}-auto"' in html and f'id="m-kg-{key}-mark"' in html
     assert 'id="m-supply-summary"' in html and "Баланс" in html
-    assert re.search(r"\.supply-summary \.supply-crit \{ color: #[0-9a-f]{6} !important", CSS)
+    assert re.search(r"#view \.supply-summary li\.supply-crit \{ color: #[0-9a-f]{6} !important", CSS)
+
+
+def test_scrolling_table_header_is_solid_dark_glass():
+    """Шапка таблиць, що прокручуються, суцільна (раніше синя, а під нею просвічували рядки)."""
+    assert re.search(r"\.results-table thead th \{\s*background: #[0-9a-f]{6} !important", CSS)

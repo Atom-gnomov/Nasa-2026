@@ -1,63 +1,64 @@
 # Lunar Mission Builder
 
-Веб-застосунок для планування місячної місії на реальних даних NASA: від вибору точки посадки до підсумкового звіту.
-Бекенд — Flask (Python 3.13), інтерфейс — JavaScript із Three.js.
+A web application for planning a lunar mission on real NASA data, from choosing a landing point to a final report.
+Backend: Flask (Python 3.13). Frontend: JavaScript with Three.js.
 
-## Можливості
+## Features
 
-- **Місяць** — інтерактивний 3D-глобус, карта та південний полюс; вигляд із поверхні; календар дати й часу (UTC);
-  метрики в точці: висота, нахил, місцевий сонячний час, горизонт і відкрите небо, висота й азимут Сонця, час до заходу
-  й сходу, сонячний потік, панелі, висота й азимут Землі та видимість, температура поверхні (LRO Diviner).
-- **Система** — 3D-вид системи Сонце–Земля–Місяць у реальних положеннях (ефемериди NASA/JPL DE440).
-- **Мастер місії** (кнопка «Місії») — кроки планування, що зберігаються як «Мій план» і «Мої плани»:
-  1. назва й мета (мета підставляє типові значення наступних кроків);
-  2. тип місії: безпілотна чи пілотована;
-  3. район, дата й точка посадки — вручну або автопідбором;
-  4. тривалість перебування (для пілотованої);
-  5. екіпаж або техніка;
-  6. корисне навантаження та запаси: розмір категорій, маса, вартість, ризик, час польоту;
-  7. носій і політ: сумісність ракети з майданчиком, автопідбір, симуляція польоту та траєкторії;
-  8. перевірка узгодженості: запаси проти тривалості, маса проти ракети, освітлення й Земля за період перебування
-     (найдовша ніч береться з розрахунку сама);
-  9. підсумковий звіт.
-- **Підбір** — пошук найкращої точки й вікна посадки за пріоритетами (енергія, зв'язок, радіація, температура),
-  порівняння кандидатів, часові ряди та графіки.
-- **План** — варіанти запуску: ракета, майданчик, дата й час, траєкторія.
-- Мови інтерфейсу: українська й англійська. Адаптація під мобільні екрани.
-- Екран завантаження з логотипом, що крутиться, зоряне небо NASA й панорама Чумацького Шляху на тлі.
+- **Moon**: interactive 3D globe, map and south-pole views; a surface view; a date and time calendar (UTC).
+  Metrics at the selected point: surface height, slope, local solar time, horizon and open sky, Sun elevation and azimuth,
+  time to sunset and sunrise, solar flux, panel output, Earth elevation, azimuth and visibility, surface temperature
+  (LRO Diviner).
+- **System**: a 3D view of the Sun–Earth–Moon system at real positions (NASA/JPL DE440 ephemerides).
+- **Mission wizard** (the "Missions" button): planning steps saved as "My plan" and "My plans":
+  1. name and goal (the goal pre-fills defaults for the later steps);
+  2. mission type: uncrewed or crewed;
+  3. landing region, date and point, chosen manually or by automatic selection;
+  4. stay duration (crewed missions);
+  5. crew or equipment;
+  6. payload and supplies: category sizes, mass, cost, risk and flight time;
+  7. launch vehicle and flight: rocket and launch-site compatibility, automatic selection, flight and trajectory simulation;
+  8. consistency check: supplies against duration, mass against the rocket, lighting and Earth visibility over the stay
+     (the longest night is taken from the calculation automatically);
+  9. final report.
+- **Selection**: finds the best landing point and window by priorities (energy, communications, radiation, temperature),
+  compares candidates, and shows time series and charts.
+- **Plan**: launch options by rocket, launch site, date and time, and trajectory.
+- Interface languages: Ukrainian and English. Responsive layout for mobile screens.
+- A loading screen with a spinning logo, a NASA star-map sky and a Milky Way panorama in the background.
 
-## Запуск у Docker
+## Running with Docker
 
-Готовий образ збирається в GitHub Actions і лежить у реєстрі:
+A ready image is built by GitHub Actions and published to the registry:
 
 ```bash
 docker run -p 8000:8000 -v lse-data:/data ghcr.io/atom-gnomov/nasa-2026:latest
 ```
 
-Сайт: http://localhost:8000. Том `lse-data` зберігає дані NASA між запусками.
+Open http://localhost:8000. The `lse-data` volume keeps the NASA data between runs.
 
-Збірка з вихідного коду або запуск через Compose:
+Build from source or run with Compose:
 
 ```bash
 docker build -t lunar-mission-builder .
 docker compose up -d --build
 ```
 
-Під час першого запуску застосунок сам завантажує готові пакети даних із GitHub Release `data-v1` (близько 285 МБ:
-температура, 3D-ресурси, глобус із рельєфом) і перевіряє їх `sha256`. Поки дані готуються, сайт показує екран
-завантаження.
+On first start the app downloads prepared data packs from the GitHub Release `data-v1` (about 285 MB: temperature,
+3D resources, and the globe with terrain) and verifies their `sha256`. While the data is being prepared, the site shows
+a loading screen.
 
 ### Cloudflare Containers
 
-Каталог `cloudflare/` містить Worker, що проксіює запити в контейнер із `Dockerfile`. Налаштування проєкту
-в Cloudflare: Root directory `cloudflare`, Build command `npm install`, Deploy command `npx wrangler deploy`.
-Потрібен план Workers Paid. Диск контейнера тимчасовий: після засинання пакети даних завантажуються знову.
-Секрет `SECRET_KEY` задайте командою `npx wrangler secret put SECRET_KEY`.
+The `cloudflare/` directory contains a Worker that proxies requests to a container built from the `Dockerfile`.
+Project settings in Cloudflare: Root directory `cloudflare`, Build command `npm install`, Deploy command
+`npx wrangler deploy`. The Workers Paid plan is required. The container disk is ephemeral, so the data packs are
+downloaded again after the container sleeps. Set the `SECRET_KEY` secret with `npx wrangler secret put SECRET_KEY`.
 
-Є також конфіги для Fly.io (`fly.toml`) і Render (`render.yaml`), а в `compose.yaml` — необов'язковий Cloudflare Tunnel
-(`docker compose --profile tunnel up -d`).
+Configs for Fly.io (`fly.toml`) and Render (`render.yaml`) are included, and `compose.yaml` has an optional
+Cloudflare Tunnel (`docker compose --profile tunnel up -d`).
 
-## Локальний запуск без Docker
+## Running locally without Docker
 
 ```bash
 python -m venv .venv
@@ -66,33 +67,35 @@ pip install -r requirements.txt
 flask --app app run
 ```
 
-Для розробки: `pip install -r requirements-dev.txt`, тести — `pytest` (JS-тести з `tests/js` запускаються разом із ними, якщо встановлено Node).
+For development: `pip install -r requirements-dev.txt`, then run `pytest` (the JS tests in `tests/js` run with it when
+Node is installed).
 
-## Змінні середовища
+## Environment variables
 
-| Змінна | Типово | Призначення |
+| Variable | Default | Purpose |
 | --- | --- | --- |
-| `PORT` | `8000` | порт у контейнері |
-| `WEB_CONCURRENCY` | `2` | кількість воркерів gunicorn |
-| `SECRET_KEY` | `dev-only-change-me` | секрет Flask; на хостингу задайте свій |
-| `LSE_CACHE_DIR` | `data_cache` (`/data` у Docker) | каталог даних NASA |
-| `LSE_TEMP_DIR` | `<кеш>/temperature` | каталог даних температури |
-| `LSE_DEM_DIR` | `<кеш>/globe/src` | файли рельєфу LOLA |
-| `LSE_AUTO_PREPARE` | `1` | чи готувати дані самому в фоні |
-| `LSE_AUTO_PREPARE_MODE` | `pack` | `pack` — готові пакети, `light`/`full` — збірка зі скриптів `tools/` |
-| `LSE_AUTO_PREPARE_DATASETS` | `temperature,system` | які набори готувати: `temperature`, `system`, `globe` |
-| `LSE_EPHEMERIS_PATH` | пакет `naif-de440` | шлях до ефемерид DE440 |
+| `PORT` | `8000` | port inside the container |
+| `WEB_CONCURRENCY` | `2` | number of gunicorn workers |
+| `SECRET_KEY` | `dev-only-change-me` | Flask secret; set your own when hosting |
+| `LSE_CACHE_DIR` | `data_cache` (`/data` in Docker) | directory for NASA data |
+| `LSE_TEMP_DIR` | `<cache>/temperature` | directory for temperature data |
+| `LSE_DEM_DIR` | `<cache>/globe/src` | LOLA terrain files |
+| `LSE_AUTO_PREPARE` | `1` | whether to prepare data in the background |
+| `LSE_AUTO_PREPARE_MODE` | `pack` | `pack` uses ready packs; `light`/`full` build from the `tools/` scripts |
+| `LSE_AUTO_PREPARE_DATASETS` | `temperature,system` | datasets to prepare: `temperature`, `system`, `globe` |
+| `LSE_EPHEMERIS_PATH` | the `naif-de440` package | path to the DE440 ephemerides |
 
-## Структура
+## Layout
 
-- `app/` — застосунок: `core/` (астрономія й розрахунки), `services/`, `routes/` (сторінки й API), `static/`, `templates/`.
-- `contracts/` — схеми й приклади API.
-- `tools/` — скрипти підготовки даних і публікації пакетів (`build_data_pack.py`).
-- `cloudflare/` — Worker для Cloudflare Containers.
-- `tests/` — Python- і JS-тести.
+- `app/`: the application. `core/` holds astronomy and calculations, plus `services/`, `routes/` (pages and API),
+  `static/` and `templates/`.
+- `contracts/`: API schemas and examples.
+- `tools/`: data preparation scripts and pack publishing (`build_data_pack.py`).
+- `cloudflare/`: the Worker for Cloudflare Containers.
+- `tests/`: Python and JS tests.
 
-## Джерела даних і подяки
+## Data sources and credits
 
-NASA/JPL (ефемериди DE440), LRO LOLA та LROC (рельєф і колір Місяця), LRO Diviner (температура), NASA SVS «CGI Moon Kit»
-і «Deep Star Maps 2020» (Gaia DR2: ESA/Gaia/DPAC). Панорама неба — Sketchfab «Sky Pano – Milkyway» (MozillaHubs),
-ліцензія CC BY-NC-SA 4.0: лише некомерційне використання.
+NASA/JPL (DE440 ephemerides), LRO LOLA and LROC (lunar terrain and color), LRO Diviner (temperature), NASA SVS
+"CGI Moon Kit" and "Deep Star Maps 2020" (Gaia DR2: ESA/Gaia/DPAC). The sky panorama is the Sketchfab model
+"Sky Pano – Milkyway" (MozillaHubs), licensed CC BY-NC-SA 4.0: non-commercial use only.

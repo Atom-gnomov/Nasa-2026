@@ -73,3 +73,15 @@ test("запит: опції ракет передаються лише коли
   assert.equal(body.include_design_targets, false);
   assert.equal(body.allow_multiple_launches, true);
 });
+
+test("запит: екіпаж із біометрією з вкладки «Місія» — crew_members замість crew, лише для пілотованої", () => {
+  const members = [{ sex: "male", age: 35, mass_kg: 82, height_m: 1.78, activity: "active" }];
+  const crewed = plan.buildPlanRequest({ ...plan.DEFAULT_FORM, profile: "crewed", crew: "3", days: "10", members,
+                                         supplyDays: 12, reservePct: 20 }, state);
+  assert.deepEqual(crewed.crew_members, members);
+  assert.ok(!("crew" in crewed));
+  assert.equal(crewed.supply_days, 12);
+  assert.equal(crewed.reserve_fraction, 0.2);
+  const uncrewed = plan.buildPlanRequest({ ...plan.DEFAULT_FORM, members }, state);
+  assert.ok(!("crew_members" in uncrewed));
+});

@@ -30,15 +30,32 @@
         <input type="range" id="m-size-equipment" min="0" max="3" step="1" value="1">
         <output id="m-size-equipment-out">Базовий</output>
       </label>
+      <p class="size-numbers muted small" id="m-num-equipment"></p>
       <label class="size-row" id="m-row-life_support">Життєзабезпечення
         <input type="range" id="m-size-life_support" min="0" max="3" step="1" value="1">
         <output id="m-size-life_support-out">Базовий</output>
       </label>
+      <p class="size-numbers muted small" id="m-num-life_support"></p>
       <label class="size-row" id="m-row-comfort">Умови й зручності
         <input type="range" id="m-size-comfort" min="0" max="3" step="1" value="1">
         <output id="m-size-comfort-out">Базовий</output>
       </label>
+      <p class="size-numbers muted small" id="m-num-comfort"></p>
+      <p class="muted small">Позначка повзунка — рівень (Мінімум → Максимум); під кожним повзунком — його маса, вартість (діапазоном) і потужність у числах.</p>
       <p class="muted small" id="m-size-note">Для безпілотної місії життєзабезпечення й зручності не потрібні.</p>
+    </fieldset>
+
+    {# M24 / F19: біометрія екіпажу → запаси #}
+    <fieldset class="mission-field" id="m-bio-box" hidden>
+      <legend>Екіпаж: дані людей і запаси</legend>
+      <label class="check"><input type="checkbox" id="m-bio"> Задати стать, вік, масу, зріст і активність кожної людини</label>
+      <div id="m-bio-fields" hidden>
+        <div id="m-members" class="member-list"></div>
+        <button type="button" id="m-add-member">Додати людину</button>
+        <label>Запаси везти на, діб <input type="number" id="m-supply-days" min="0" max="365" step="1" inputmode="numeric" placeholder="рекомендовано"></label>
+        <label>Рекомендований запас, % <input type="number" id="m-reserve" min="0" max="200" step="1" inputmode="numeric" value="15"></label>
+        <p class="muted small">Потреби рахуються за рівняннями енергії NASA (стать, вік, маса, зріст, активність); кисень, вода й їжа — пропорційно до енергії. Резерв 15 % і еталонні значення — тимчасові.</p>
+      </div>
     </fieldset>
 
     <fieldset class="mission-field">
@@ -75,6 +92,25 @@
         <span id="m-fill">—</span>
       </dd>
     </dl>
+    <section id="m-supplies" class="mission-supplies" hidden>
+      <h3>Запаси екіпажу</h3>
+      <p class="globe-warn" id="m-supply-warn" hidden></p>
+      <p class="muted small" id="m-supply-reserve"></p>
+      <div class="table-scroll">
+        <table class="results-table" id="m-supply-table">
+          <thead><tr><th>Запас</th><th>На добу (екіпаж)</th><th>Завезено</th><th>Потрібно на місію</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <h3>Журнал розходу запасів</h3>
+      <p class="muted small">Скільки відсотків завезеного лишається на кінець доби. «Резерв» — вже витрачається рекомендований запас, «Нестача» — запас вичерпано.</p>
+      <div class="table-scroll log-scroll">
+        <table class="results-table" id="m-log">
+          <thead><tr><th>Доба</th><th>Кисень</th><th>Вода</th><th>Їжа</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
     <details id="m-limits-box" class="mission-limits" hidden>
       <summary>Пороги профілю пілотованої місії (з джерел NASA)</summary>
       <ul id="m-limits"></ul>

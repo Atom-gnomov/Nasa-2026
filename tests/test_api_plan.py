@@ -116,3 +116,13 @@ def test_plan_launch_options_are_passed_through(client):
     data = plan(client, include_design_targets=False, allow_multiple_launches=True).get_json()
     lead = data["plans"][0]["launch"]
     assert lead["vehicle"]["status"] != "design_target"
+
+
+def test_plan_passes_crew_biometrics_and_reports_supply_shortage(client):
+    members = [{"sex": "male", "mass_kg": 90, "height_m": 1.85}, {"sex": "female"}]
+    data = plan(client, mission_profile="crewed", days=20, crew_members=members, supply_days=15).get_json()
+    assert data["plans"][0]["mission"] is not None or data["notes"]
+    lead = data["plans"][0]["mission"]
+    if lead:
+        assert lead["payload"]["crew"] == 2
+        assert [w["kind"] for w in lead["crew_supplies"]["warnings"]] == ["shortage"]

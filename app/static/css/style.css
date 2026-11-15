@@ -216,3 +216,15 @@ button.primary:disabled { opacity: 0.6; cursor: progress; }
 .lw-date { margin-top: 3px; writing-mode: vertical-rl; transform: rotate(180deg); }
 .results-table tr.best td { color: var(--accent); }
 @media (max-width: 900px) { .lw-layout { grid-template-columns: 1fr; } }
+
+/* F19: числа під повзунками, редактор екіпажу, запаси й журнал розходу */
+.size-numbers { margin: -4px 0 6px; }
+.member-list { display: grid; gap: 8px; margin: 8px 0; }
+.member-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(86px, 1fr)); gap: 6px; align-items: end; padding: 8px; border: 1px solid var(--border); border-radius: 8px; }
+.member-row label { display: grid; gap: 2px; font-size: 12px; color: var(--muted); }
+.member-row input, .member-row select { width: 100%; box-sizing: border-box; }
+.mission-supplies h3 { margin: 14px 0 6px; font-size: 14px; }
+.log-scroll { max-height: 280px; overflow-y: auto; }
+.results-table td.supply-reserve, .results-table tr.supply-reserve td:first-child { color: #ffcf6b; }
+.results-table td.supply-shortage, .results-table tr.supply-shortage td:first-child { color: #ff7b7b; font-weight: 600; }
+.size-row { grid-template-columns: minmax(130px, 1.3fr) minmax(50px, 1fr) 76px; font-size: 13px; }

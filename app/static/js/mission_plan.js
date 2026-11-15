@@ -195,16 +195,23 @@ function init() {
   const bar = document.getElementById("mp-steps");
   if (!bar) return;
   const chips = bar.querySelector(".mp-chips");
-  const nav = bar.querySelector(".mp-nav");
-  const sumBox = bar.querySelector(".mp-summary-rows");
+  const showAllBtn = bar.querySelector(".mp-showall");
+  const sumBox = document.querySelector(".mp-summary-rows");
   const pop = document.querySelector(".mp-goal");
   let plan = loadPlan();
   const current = () => stepFromLocation(location.pathname, location.search, location.hash);
   const ICON = { done: "✓", review: "!", todo: "" };
 
   function render() {
-    const ctx = buildContext(plan);
+    let ctx = buildContext(plan);
     const cur = current();
+    // кнопки «підтвердити й далі» немає: крок, на якому ви зараз і який заповнено, вважається переглянутим;
+    // якщо потім його вибори зміняться деінде — він отримає позначку «потребує перегляду»
+    if (cur && stepFilled(cur, ctx) && stepStatus(cur, ctx) !== "done") {
+      plan = confirmStep(cur, ctx);
+      savePlan(plan);
+      ctx = buildContext(plan);
+    }
     chips.replaceChildren(...visibleSteps(ctx.mission).map((step) => {
       const status = stepStatus(step.n, ctx);
       const a = document.createElement(step.ready ? "a" : "span");
@@ -217,16 +224,10 @@ function init() {
       if (step.n === 1) a.addEventListener("click", (ev) => { if (cur === 1 || !pop.hidden) { ev.preventDefault(); pop.hidden = !pop.hidden; } });
       return a;
     }));
-    const prev = cur ? prevStep(cur, ctx.mission) : null, next = cur ? nextStep(cur, ctx.mission) : null;
-    nav.hidden = !cur;
-    const prevBtn = nav.querySelector(".mp-prev"), nextBtn = nav.querySelector(".mp-next");
-    prevBtn.disabled = !prev;
-    nextBtn.disabled = !cur;
-    nextBtn.textContent = next ? t("Підтвердити й далі ›") : t("Підтвердити");
     const rows = summaryRows(ctx);
     sumBox.replaceChildren(...rows.flatMap(([k, v]) => [Object.assign(document.createElement("dt"), { textContent: k }),
       Object.assign(document.createElement("dd"), { textContent: v })]));
-    bar.querySelector(".mp-summary-empty").hidden = rows.length > 0;
+    document.querySelector(".mp-summary-empty").hidden = rows.length > 0;
     highlight(cur);
   }
 
@@ -248,7 +249,7 @@ function init() {
     }
     document.body.classList.toggle("mp-focus-mode", focusMode);
     if (explicitStep() && cur) document.body.dataset.mpStep = String(cur); else delete document.body.dataset.mpStep;
-    const toggle = nav.querySelector(".mp-showall");
+    const toggle = showAllBtn;
     toggle.hidden = !(explicitStep() && targets.length > 0);
     toggle.setAttribute("aria-pressed", String(showAll));
     toggle.textContent = showAll ? t("Лише цей крок") : t("Усі налаштування");
@@ -256,17 +257,7 @@ function init() {
   }
   const stepSelector = (n) => `[data-step~="${n}"]`;
 
-  const go = (n) => { const step = STEPS.find((x) => x.n === n); if (step?.ready) location.href = stepHref(step, location.search); };
-  nav.querySelector(".mp-prev").addEventListener("click", () => { const cur = current(); if (cur) go(prevStep(cur, loadMissionForm())); });
-  nav.querySelector(".mp-showall").addEventListener("click", () => { showAll = !showAll; highlight(current()); });
-  nav.querySelector(".mp-next").addEventListener("click", () => {
-    const cur = current();
-    if (!cur) return;
-    plan = confirmStep(cur, buildContext(plan));
-    savePlan(plan);
-    const next = nextStep(cur, loadMissionForm());
-    if (next) go(next); else render();
-  });
+  showAllBtn.addEventListener("click", () => { showAll = !showAll; highlight(current()); });
 
   // Крок 1: назва й мета (адмінпараметр і мета; мета далі підставлятиме типові вибори — F22)
   const nameInput = pop.querySelector(".mp-name"), goalSel = pop.querySelector(".mp-goal-select");

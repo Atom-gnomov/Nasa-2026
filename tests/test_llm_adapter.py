@@ -23,8 +23,16 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b'{"error": "bad key %s"}' % TOKEN.encode())
             return
+        if Handler.mode == "429":
+            self.send_response(429)
+            self.send_header("Retry-After", "7")
+            self.end_headers()
+            return
         payload = {"ok": {"model": "fake-1", "choices": [{"message": {"content": '{"summary": "ok"}'}}]},
-                   "bad": {"unexpected": True}, "empty": {"choices": [{"message": {"content": "  "}}]}}[Handler.mode]
+                   "bad": {"unexpected": True}, "empty": {"choices": [{"message": {"content": "  "}}]},
+                   # як TokenHarbor, коли модель вичерпала max_tokens: уривок JSON або порожньо після міркувань
+                   "length": {"choices": [{"finish_reason": "length", "message": {"content": '{"summary": "уря'}}]},
+                   }[Handler.mode]
         data = json.dumps(payload).encode()
         self.send_response(200)
         self.send_header("Content-Length", str(len(data)))
@@ -62,7 +70,7 @@ def test_endpoint_accepts_full_url_and_no_auth_without_key(server):
     assert Handler.seen[0]["path"] == "/v1/chat/completions" and Handler.seen[0]["auth"] is None
 
 
-@pytest.mark.parametrize("mode, text", [("bad", "неочікуваному форматі"), ("empty", "порожню")])
+@pytest.mark.parametrize("mode, text", [("bad", "неочікуваному форматі"), ("empty", "порожню"), ("length", "обрізано")])
 def test_malformed_responses_raise_llm_error(server, mode, text):
     Handler.mode = mode
     with pytest.raises(llm.LlmError, match=text):
@@ -74,6 +82,19 @@ def test_http_error_never_leaks_key_or_body(server):
     with pytest.raises(llm.LlmError) as err:
         llm.chat(cfg(server), "s", "u")
     assert "401" in str(err.value) and TOKEN not in str(err.value) and "bad key" not in str(err.value)
+
+
+def test_rate_limit_reports_retry_after(server):
+    Handler.mode = "429"
+    with pytest.raises(llm.LlmError, match="через 7 с"):
+        llm.chat(cfg(server), "s", "u")
+
+
+def test_reasoning_effort_is_sent_only_when_configured(server):
+    llm.chat(cfg(server), "s", "u")
+    llm.chat(llm.LlmConfig(server, "fake-model", TOKEN, 5, reasoning_effort="none"), "s", "u")
+    assert "reasoning_effort" not in Handler.seen[0]["body"]
+    assert Handler.seen[1]["body"]["reasoning_effort"] == "none"
 
 
 def test_unreachable_service(server):
@@ -92,3 +113,6 @@ def test_config_from_requires_url_and_model():
     assert llm.config_from({"LLM_BASE_URL": "https://x/v1"}) is None
     c = llm.config_from({"LLM_BASE_URL": "https://x/v1", "LLM_MODEL": "m", "LLM_API_KEY": "k", "LLM_TIMEOUT_S": "7"})
     assert (c.base_url, c.model, c.api_key, c.timeout_s) == ("https://x/v1", "m", "k", 7.0)
+    assert c.reasoning_effort is None
+    c = llm.config_from({"LLM_BASE_URL": "https://x/v1", "LLM_MODEL": "m", "LLM_REASONING_EFFORT": "none"})
+    assert c.reasoning_effort == "none"

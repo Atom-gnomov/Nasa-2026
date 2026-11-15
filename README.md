@@ -128,4 +128,5 @@ print(res.choices[0].message.content)
 | `LSE_LLM_MODEL` | — | Назва моделі в цьому сервісі |
 | `LSE_LLM_API_KEY` | — | Ключ сервісу порад (секрет, не комітити) |
 | `LSE_LLM_TIMEOUT_S` | `30` | Таймаут запиту до сервісу порад, секунди |
+| `LSE_LLM_REASONING_EFFORT` | `none` | Поле `reasoning_effort` запиту: `none` вимикає міркування моделі (інакше DeepSeek V4.1 Flash обрізає відповідь); порожнє — поле не надсилати |
 | `SECRET_KEY` | `dev-only-change-me` | Секрет сесій Flask; у продакшні задайте свій |

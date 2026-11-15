@@ -19,7 +19,7 @@ test("ключ: розрахункові GET нормалізуються (по�
   assert.equal(c.cacheKey("GET", "/api/data/status"), null);
   assert.equal(c.cacheKey("GET", "/assets/globe/x.png"), null);
   assert.ok(c.cacheKey("GET", "/api/sites/shackleton"));
-  assert.ok(c.cacheKey("GET", "/api/launch-window?launch_site=kourou"));
+  assert.ok(c.cacheKey("GET", "/api/launch-sites?x=1"));
 });
 
 test("однакові одночасні запити зливаються в один, готові беруться з пам'яті", async () => {

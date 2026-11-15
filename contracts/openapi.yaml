@@ -695,45 +695,6 @@ paths:
         "404": {$ref: "#/components/responses/NotFound"}
         "503": {$ref: "#/components/responses/Unavailable"}
 
-  /launch-window:
-    get:
-      tags: [planning]
-      x-status: implemented
-      summary: Вікно запуску — оцінка у % для кожної дати
-      description: |
-        Для кожної дати періоду (старт TLI о 00:00 UTC, не більше 60 діб) з майданчика `launch_site` до точки
-        Місяця (`lat`, `lon`): найкращий прямий перехід за 3–5 діб і дата прибуття (docs/MATH.md, §21.5), вікна
-        запуску на добу й добавка Δv майданчика (§21.2–21.4), частки часу, коли в точці посадки видно Сонце й
-        Землю протягом 7 діб після прибуття (маска рельєфу LOLA, без DEM — гладка сфера). Фактори `light`,
-        `fuel` (мін-макс серед дат), `comms`, `windows` (W/2); оцінка дати — ваги ROC за порядком `priorities`.
-        Економна траєкторія — оцінка: прибуття через середню тривалість, Δv = найкращий прямий − економія.
-      parameters:
-        - {name: launch_site, in: query, required: true, schema: {type: string}, description: id з /launch-sites}
-        - $ref: "#/components/parameters/lat"
-        - $ref: "#/components/parameters/lon"
-        - $ref: "#/components/parameters/start"
-        - $ref: "#/components/parameters/end"
-        - name: landed_days
-          in: query
-          description: "Скільки діб після прибуття оцінювати світло й зв'язок (за замовчуванням 7; зазвичай — тривалість перебування з «Місії»)"
-          schema: {type: number, minimum: 1, maximum: 60, default: 7}
-        - name: trajectory
-          in: query
-          schema: {$ref: "#/components/schemas/Trajectory"}
-        - name: priorities
-          in: query
-          description: "Фактори через кому за важливістю (перший — найважливіший); за замовчуванням light,fuel,comms,windows"
-          schema: {type: string, examples: ["light,fuel,comms,windows"]}
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema: {$ref: "#/components/schemas/LaunchWindow"}
-        "400": {$ref: "#/components/responses/BadRequest"}
-        "404": {$ref: "#/components/responses/NotFound"}
-        "503": {$ref: "#/components/responses/Unavailable"}
-
 components:
   parameters:
     lat:
@@ -1435,41 +1396,6 @@ components:
           oneOf:
             - {$ref: "#/components/schemas/RankComparison"}
             - {type: "null"}
-
-    LaunchWindow:
-      type: object
-      required: [launch_site_id, trajectory, days, best]
-      properties:
-        launch_site_id: {type: string}
-        trajectory: {$ref: "#/components/schemas/Trajectory"}
-        moon_point: {$ref: "#/components/schemas/LatLon"}
-        priorities: {type: array, items: {type: string, enum: [light, fuel, comms, windows]}}
-        method: {type: string, enum: [patched_conic, estimate]}
-        horizon_source: {type: string, description: "Звідки маска горизонту точки посадки (як у /horizon)"}
-        landed_days: {type: number, description: "Скільки діб після прибуття оцінюються світло й зв'язок"}
-        days:
-          type: array
-          items:
-            type: object
-            required: [date, score_pct]
-            properties:
-              date: {type: string, format: date}
-              score_pct: {type: number, minimum: 0, maximum: 100}
-              arrival: {type: string, format: date-time}
-              flight_days: {type: number}
-              dv_total_m_s: {type: number, description: "Перехід (TLI + LOI) + добавка майданчика"}
-              windows_per_day: {type: integer, minimum: 0, maximum: 2}
-              inclination_deg: {type: number}
-              sun_fraction: {type: number, minimum: 0, maximum: 1, description: "Частка часу з Сонцем над маскою після прибуття"}
-              earth_fraction: {type: number, minimum: 0, maximum: 1, description: "Частка часу з Землею над маскою після прибуття"}
-              sunlit_at_arrival: {type: boolean}
-              factors: {type: object, additionalProperties: {type: number, minimum: 0, maximum: 1}}
-        best:
-          type: object
-          required: [date, score_pct]
-          properties:
-            date: {type: string, format: date}
-            score_pct: {type: number}
 
     AdviceRequest:
       type: object
@@ -2867,7 +2793,6 @@ components:
             прибуває в день посадки; економний ≈ 105 діб) або береться з `departure` («Вікно запуску»). `departure` — режим
             сумісності: `start` — старт, місце оцінюється після прибуття (див. `surface_after_arrival`).
         surface_after_arrival: {type: boolean, default: true, description: "Лише для anchor=departure — true: місце оцінюється за період після прибуття (`departure` + типовий переліт); false: від `start`, як у /search (B20b)"}
-        departure_days: {type: integer, minimum: 1, maximum: 60, default: 1, description: "Скільки діб від `departure` перебирати для найкращої дати старту (B20, на основі /launch-window); 1 — лише `departure`. Для `anchor=landing` ігнорується: старт підлаштовується під дату посадки"}
         landing_point:
           type: object
           required: [lat, lon]
@@ -2932,12 +2857,6 @@ components:
                 type: array
                 description: "Моменти доби старту (UTC), коли майданчик проходить через площину перельоту; порожньо — потрібен доворот площини"
                 items: {type: string, format: date-time}
-              departure_window:
-                description: Оцінки дат старту (лише якщо `departure_days` > 1); `best` — обрана дата
-                oneOf:
-                  - type: object
-                    required: [days, best]
-                  - {type: "null"}
               route:
                 oneOf:
                   - type: object

@@ -5,7 +5,7 @@
 export const TTL_MS = 10 * 60 * 1000;
 export const MAX_STORED_BYTES = 400_000;
 const STORAGE_PREFIX = "lse-api:";
-const CACHEABLE = /^\/api\/(timeline|horizon|elevation|metrics|temperature|terrain|events|orbits|system|scene|sites|launch-sites|launch-systems|dsn|meta|compare|models|launch-window)(\/[^?]*)?$/;
+const CACHEABLE = /^\/api\/(timeline|horizon|elevation|metrics|temperature|terrain|events|orbits|system|scene|sites|launch-sites|launch-systems|dsn|meta|compare|models)(\/[^?]*)?$/;
 
 // Ключ кешу: шлях + відсортовані параметри; null — не кешуємо.
 export function cacheKey(method, input, base = "http://localhost") {

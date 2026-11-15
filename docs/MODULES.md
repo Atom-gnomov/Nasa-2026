@@ -134,7 +134,6 @@ tests/                  → тести для всіх модулів
 | GET | `/api/temperature` | `lat`, `lon`, `datetime` | температура Diviner у точці, добова крива (PR #12) |
 | GET | `/api/temperature/map` | `kind`, `datetime` | мапа температури для шару глобуса (PR #12) |
 | POST | `/api/launch-ranking` | `lat`, `lon`, `datetime`, `mass_moon_kg` або `crew`/`days`/`sizes`, `vehicle`, `trajectories`, `priorities`, `mode`, фільтри, `limit` | рейтинг стартів до точки Місяця (B15, PR #53; ядро — `transfer.py`, `launch.py`, `launch_rank.py`) |
-| GET | `/api/launch-window` | `launch_site`, `lat`, `lon`, `start`, `end`, `trajectory`, `priorities` | оцінка у % для кожної дати старту (B8, PR #54); вкладка «Вікно запуску» — `launch_window.js` (F7, PR #57) |
 
 Повний контракт усіх операцій (зокрема запланованих `/meta`, `/events`, `/search`, `/launch-window`, `/advice`) — [CONTRACTS.md](CONTRACTS.md) і `contracts/openapi.yaml`. Заплановані операції вже відповідають 501 у форматі помилок контракту.
 

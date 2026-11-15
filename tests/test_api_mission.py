@@ -262,3 +262,49 @@ def test_sourced_equipment_mass_matches_source_range(client):
 def test_unknown_parameters_basis_is_rejected(client):
     res = client.post("/api/mission", json={"parameters_basis": "magic"})
     assert res.status_code == 400
+
+
+# ---------- M24 / B21: екіпаж із біометрією, запаси, журнал ----------
+CREW = [{"sex": "male", "mass_kg": 90, "height_m": 1.85, "age": 40, "activity": "active"},
+        {"sex": "female", "mass_kg": 58, "height_m": 1.62, "age": 33}]
+
+
+def test_crew_members_drive_supplies_and_payload(client):
+    base = {"mission_profile": "crewed", "days": 20}
+    res = client.post("/api/mission", json={**base, "crew_members": CREW})
+    assert res.status_code == 200, res.get_json()
+    data = res.get_json()
+    assert_valid(api_validator("MissionResponse"), data)
+    assert data["payload"]["crew"] == 2
+    cs = data["crew_supplies"]
+    assert len(cs["members"]) == 2 and cs["supply_days"] == pytest.approx(23.0)
+    assert cs["loaded_total_kg"] > 0 and len(cs["log"]) == 21 and not cs["warnings"]
+    # витратні в масі життєзабезпечення = завезені запаси + обладнання й захист
+    assert data["payload"]["masses_kg"]["life_support"] > cs["loaded_total_kg"]
+    heavier = [{**CREW[0], "mass_kg": 120}, CREW[1]]
+    more = client.post("/api/mission", json={**base, "crew_members": heavier}).get_json()
+    assert more["crew_supplies"]["loaded_total_kg"] > cs["loaded_total_kg"]
+
+
+def test_supply_shortage_is_reported_in_the_response(client):
+    data = client.post("/api/mission", json={"mission_profile": "crewed", "days": 20, "crew_members": CREW,
+                                             "supply_days": 15}).get_json()
+    assert [w["kind"] for w in data["crew_supplies"]["warnings"]] == ["shortage"]
+    assert data["crew_supplies"]["log"][-1]["worst"] == "shortage"
+
+
+def test_categories_expose_numbers_for_sliders(client):
+    data = client.post("/api/mission", json={"mission_profile": "crewed", "crew": 2, "days": 10}).get_json()
+    for name in ("equipment", "life_support", "comfort"):
+        c = data["categories"][name]
+        assert c["mass_kg"] == data["payload"]["masses_kg"][name] and c["usd"][0] < c["usd"][1]
+    assert data["categories"]["life_support"]["power_w"] > 0
+    assert data["crew_supplies"] is None
+
+
+@pytest.mark.parametrize("extra", [{"crew": 3}, {"mission_profile": "uncrewed"}, {"reserve_fraction": 9},
+                                   {"crew_members": []}, {"crew_members": [{"sex": "x"}]}])
+def test_invalid_crew_members_are_rejected(client, extra):
+    body = {"days": 10, "crew_members": CREW, **extra}
+    res = client.post("/api/mission", json=body)
+    assert res.status_code == 400, res.get_json()

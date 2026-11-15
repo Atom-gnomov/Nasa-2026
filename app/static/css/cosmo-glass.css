@@ -490,3 +490,17 @@ html, body, button, input, select, textarea, optgroup, option, summary, label, t
 *, *::before, *::after { font-family: var(--font) !important; }
 
 @media (prefers-reduced-motion: reduce) { #starfield { transition: none; } }
+
+/* ---------- Крок 9 «Перевірка узгодженості» (F28) ---------- */
+.check-summary { margin: var(--gap-s) 0; font-size: var(--fs-m); color: var(--cg-ink); }
+.check-summary[data-ok="false"] { color: #ff8a80; }
+.check-list { list-style: none; margin: 0 0 var(--gap-s); padding: 0; display: grid; gap: 6px; }
+.check-list li { display: grid; grid-template-columns: 20px 1fr auto; gap: var(--gap-s); align-items: start; padding: 6px var(--gap-s);
+  border: 1px solid var(--cg-line-soft); background: var(--cg-fill-faint); font-size: var(--fs-s); }
+.check-list .check-mark { font-weight: 700; text-align: center; }
+.check-list .check-error { border-color: #ff8a80; }
+.check-list .check-error .check-mark { color: #ff8a80; }
+.check-list .check-warning .check-mark { color: #ffd180; }
+.check-list .check-info .check-mark { color: var(--cg-muted); }
+.check-list a.button { white-space: nowrap; }
+.night-field { display: grid; gap: 4px; margin-top: var(--gap-s); font-size: var(--fs-s); }

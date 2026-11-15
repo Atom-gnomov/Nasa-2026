@@ -129,3 +129,11 @@ def test_scene_dock_uses_compact_group_tabs(client):
         html = client.get(route).get_data(as_text=True)
         assert "js/workspace_ui.js" in html
         assert "css/workspace.css" in html
+
+
+def test_consistency_page_is_step_9_of_the_wizard(client):
+    html = client.get("/consistency").get_data(as_text=True)
+    assert 'data-step="9"' in html and 'id="c-list"' in html and 'id="mp-steps"' in html
+    assert "js/consistency.js" in html and 'id="site-header"' in html
+    assert "workspace-results" in html and 'class="results-heading"' in html
+    assert 'id="moon-globe"' not in html

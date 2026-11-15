@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Перевірка узгодженості — Lunar Mission Builder{% endblock %}
+{% block content %}
+<section class="mission-layout consistency-layout">
+  <div class="side-panel workspace-results" data-step="9">
+    <header class="results-heading"><h2>Перевірка узгодженості</h2></header>
+    <p class="muted small">Усі вибори майстра перевіряються разом: запаси проти тривалості, маса проти ракети, освітлення й Земля на період перебування. Перевірка запускається сама після кожної зміни.</p>
+    <p class="globe-warn" id="c-status" hidden></p>
+    <p class="check-summary" id="c-summary" role="status"></p>
+    <ul class="check-list" id="c-list"></ul>
+    <button type="button" id="c-night" hidden></button>
+    <details class="callout" id="c-window-box" hidden>
+      <summary>Період, за яким перевірено освітлення</summary>
+      <p class="muted small" id="c-window"></p>
+    </details>
+    <details class="callout" id="c-skipped-box" hidden>
+      <summary>Що не вдалося перевірити</summary>
+      <ul id="c-skipped"></ul>
+    </details>
+    <p class="muted small">Пороги освітлення й видимості Землі — з профілю пілотованої місії (джерела NASA); нових чисел перевірка не вигадує. Коефіцієнти моделі тимчасові.</p>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script type="module" src="{{ url_for('static', filename='js/consistency.js') }}"></script>
+{% endblock %}

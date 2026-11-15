@@ -12,6 +12,7 @@ from app.services import search as search_service
 from app.services import events as events_service
 from app.services import meta as meta_service
 from app.services import bootstrap
+from app.services import consistency as consistency_service
 from app.services import launch_ranking as launch_ranking_service
 from app.services import launch_window as launch_window_service
 from app.services import mission as mission_service
@@ -421,6 +422,20 @@ def mission():
         return _error(404, str(exc))
     except ValueError as exc:  # включно з mission_service.MissionError і помилками ядра
         return _error(400, str(exc))
+
+
+@bp.post("/consistency")
+def consistency():
+    """Перевірка узгодженості виборів майстра планування (B23, крок 9): конфлікти з серйозністю й кроком виправлення."""
+    body = request.get_json(silent=True)
+    try:
+        return jsonify(consistency_service.compute(body if body is not None else {}))
+    except mission_service.LaunchSiteNotFound as exc:
+        return _error(404, str(exc))
+    except ValueError as exc:  # включно з ConsistencyError, MissionError і помилками ядра
+        return _error(400, str(exc))
+    except RuntimeError as exc:  # немає ефемерид
+        return _error(503, str(exc))
 
 
 @bp.post("/launch-ranking")

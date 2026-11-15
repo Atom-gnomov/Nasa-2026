@@ -30,6 +30,7 @@ export const DEFAULT_FORM = {
   reservePct: 15, // рекомендований запас, % ⚠️ тимчасово
   categoryKg: { equipment: null, life_support: null, comfort: null }, // П-14: своя маса категорії, кг; null — за рівнем
   equipmentItems: {}, // П-14: позиції каталогу NASA: id → кількість
+  nightH: null, // найдовша ніч, год: на неї розраховують акумулятори; null — не враховано (підказує крок 9)
   supplyKg: { oxygen: null, water: null, food: null }, // П-14: довільні обсяги запасів, кг; null — «авто» (за запасом у добах)
 };
 
@@ -84,6 +85,7 @@ export function normalizeForm(raw) {
       if (/^[a-z0-9_]+$/.test(id) && count > 0) f.equipmentItems[id] = count;
     }
   }
+  f.nightH = raw.nightH == null || raw.nightH === "" ? null : clamp(num(raw.nightH, 0), 0, 8760);
   for (const key of Object.keys(f.supplyKg)) {
     const v = raw.supplyKg?.[key];
     f.supplyKg[key] = v == null || v === "" ? null : clamp(num(v, 0), 0, 100000);
@@ -113,6 +115,7 @@ export function buildMissionRequest(form) {
   if (Object.keys(custom).length) body.category_kg = custom; // П-14: своя маса категорії, кг
   const items = Object.entries(form.equipmentItems).filter(([, n]) => n > 0).map(([id, count]) => ({ id, count }));
   if (items.length) body.equipment_items = items; // П-14: обладнання з каталогу NASA
+  if (form.nightH) body.longest_night_h = form.nightH; // найдовша ніч → маса акумуляторів
   if (form.systemId) body.launch_system_id = form.systemId;
   if (form.siteId) body.launch_site_id = form.siteId;
   return body;
@@ -394,6 +397,7 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
       $(`m-row-${key}`).classList.toggle("disabled", !form.crewed);
     }
     $("m-size-note").hidden = form.crewed;
+    if (document.activeElement !== $("m-night")) $("m-night").value = form.nightH ?? "";
     $("m-trajectory").value = form.trajectory;
     $("m-system").value = form.systemId;
     $("m-site").value = form.siteId;
@@ -591,6 +595,7 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
 
   $("m-crewed").addEventListener("input", (e) => { form.crewed = e.target.value === "1"; if (!form.crewed) form.crew = null; renderForm(); schedule(); });
   $("m-crew").addEventListener("input", (e) => { form.crew = e.target.value === "" ? null : clamp(Math.round(num(e.target.value, 1)), 1, 6); $("m-crew-mark").hidden = true; schedule(); });
+  $("m-night").addEventListener("input", (e) => { form.nightH = e.target.value === "" ? null : clamp(num(e.target.value, 0), 0, 8760); schedule(); });
   $("m-days").addEventListener("input", (e) => { form.days = clamp(Math.round(num(e.target.value, 0)), 0, 365); schedule(); });
   for (const key of Object.keys(form.sizes)) {
     $(`m-size-${key}`).addEventListener("input", (e) => { form.sizes[key] = Number(e.target.value); renderForm(); schedule(); });

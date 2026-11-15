@@ -30,6 +30,12 @@ def plan():
     return render_template("plan.html", active_tab="plan")
 
 
+@bp.get("/consistency")
+def consistency():
+    """Крок 9 майстра «Перевірка узгодженості»: конфлікти між виборами з посиланнями на кроки (F28)."""
+    return render_template("consistency.html", active_tab="consistency")
+
+
 @bp.get("/search")
 def search():
     """Окрема аналітична вкладка: критерії, результати й поради ШІ, без фонового глобуса."""

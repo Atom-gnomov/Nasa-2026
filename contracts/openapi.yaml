@@ -565,6 +565,35 @@ paths:
         "400": {$ref: "#/components/responses/BadRequest"}
         "404": {$ref: "#/components/responses/NotFound"}
 
+  /consistency:
+    post:
+      tags: [planning]
+      x-status: implemented
+      summary: Перевірка узгодженості виборів майстра планування (крок 9)
+      description: |
+        Бере ті самі вибори, що й `POST /mission` (поле `mission`), і додає дату запуску, точку посадки й тривалість
+        перебування. Рахує місію, а далі шукає суперечності: запаси проти тривалості, маса проти місткості ракети,
+        освітлення й видимість Землі на період перебування (`/timeline` від прильоту до кінця перебування),
+        найдовша ніч проти розрахунку акумуляторів, довгий переліт для екіпажу. Пороги освітлення й видимості Землі —
+        лише з профілю місії (джерела NASA, `limit_id` у `values`); нових чисел перевірка не вигадує. Кожен конфлікт має
+        серйозність (`error` — місія не виконується, `warning` — варто виправити, `info` — зауваження) і `step` — номер
+        кроку майстра, де це виправити. Перевірки, яких не було чим виконати (немає дати, точки чи ефемерид), —
+        в `skipped`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ConsistencyRequest"}
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ConsistencyResponse"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "503": {$ref: "#/components/responses/Unavailable"}
+
   /launch-ranking:
     post:
       tags: [planning]
@@ -1780,6 +1809,78 @@ components:
             fits_single_launch: {type: boolean}
             note: {type: [string, "null"]}
 
+    ConsistencyRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        mission: {$ref: "#/components/schemas/MissionRequest"}
+        datetime: {type: string, description: "Дата й час запуску, ISO 8601 (UTC)"}
+        site:
+          oneOf:
+            - type: object
+              required: [lat, lon]
+              additionalProperties: false
+              properties:
+                lat: {type: number, minimum: -90, maximum: 90}
+                lon: {type: number, minimum: -180, maximum: 360}
+            - type: "null"
+        stay_days: {type: number, minimum: 0, maximum: 365, description: "Тривалість перебування, діб; без поля — `mission.days`"}
+        goal: {type: string, description: "Мета місії (крок 1)"}
+        name: {type: string, description: "Назва місії (формальність)"}
+    ConsistencyConflict:
+      type: object
+      required: [id, severity, step, message]
+      properties:
+        id: {type: string, description: "Стабільний ідентифікатор перевірки"}
+        severity: {enum: [error, warning, info]}
+        step: {type: integer, minimum: 1, maximum: 10, description: "Крок майстра, де це виправити"}
+        message: {type: string}
+        values: {type: object, description: "Числа, на яких побудовано висновок (для підсвічування в інтерфейсі)"}
+    ConsistencyResponse:
+      type: object
+      required: [ok, counts, conflicts, skipped, window, suggested, provisional, steps_to_review]
+      properties:
+        ok: {type: boolean, description: "Немає конфліктів серйозності `error`"}
+        counts:
+          type: object
+          required: [error, warning, info]
+          properties:
+            error: {type: integer}
+            warning: {type: integer}
+            info: {type: integer}
+        conflicts:
+          type: array
+          items: {$ref: "#/components/schemas/ConsistencyConflict"}
+        skipped:
+          type: array
+          items:
+            type: object
+            required: [id, reason]
+            properties:
+              id: {type: string}
+              reason: {type: string}
+        window:
+          oneOf:
+            - type: object
+              description: "Період перебування, за яким перевірено освітлення й Землю"
+              required: [start, end, basis]
+              properties:
+                start: {type: string}
+                end: {type: string}
+                basis: {type: string}
+                sun_fraction: {type: number}
+                earth_fraction: {type: number}
+                longest_night_h: {type: number}
+            - type: "null"
+        suggested:
+          type: object
+          description: "Поля `mission`, які варто виправити (напр., `longest_night_h`)"
+          additionalProperties: {type: number}
+        provisional: {type: boolean}
+        steps_to_review:
+          type: array
+          items: {type: integer}
+          description: "Кроки з `error` чи `warning` — їх майстер позначає «потребує перегляду»"
     MissionRequest:
       type: object
       additionalProperties: false

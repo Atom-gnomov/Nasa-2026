@@ -23,7 +23,7 @@ from app.core import launch_optimum as lo
 from app.core import transfer
 from app.core.ephemeris import get_ephemeris
 from app.core.launch import best_inclination_deg
-from app.services import catalogs
+from app.services import catalogs, transfer_cache
 
 CRITERIA = ("fuel", "speed")
 SCOPES = ("spaceports", "any")
@@ -46,7 +46,7 @@ def _iso(dt: datetime) -> str:
 
 
 def _best_transfer(eph, departure: datetime, tofs) -> transfer.TransferPoint:
-    return min(transfer.dv_curve(eph, departure, tofs), key=lambda p: p.dv_total_m_s)
+    return min(transfer_cache.dv_curve(departure, tofs), key=lambda p: p.dv_total_m_s)
 
 
 def _moon_dir_fn(eph, tof_days: float):

@@ -12,6 +12,8 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/cosmos.css') }}">
   {# Cosmo Glass: плоске матове скло без градієнтів (референс COSMO) і зоряне тло — після cosmos.css. #}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/cosmo-glass.css') }}">
+  {# Спільна пам'ять відповідей API між вкладками: те, що вже пораховано, вдруге не питаємо (api_cache.js). Модуль у <head> виконується раніше за модулі сторінок. #}
+  <script type="module" src="{{ url_for('static', filename='js/api_cache.js') }}"></script>
   {# М16: Three.js через importmap, версія закріплена #}
   <script type="importmap">
     {

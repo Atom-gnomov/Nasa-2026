@@ -6,8 +6,10 @@
 
 from __future__ import annotations
 
+import copy
 from dataclasses import fields, replace
 from datetime import datetime
+from functools import lru_cache
 
 import numpy as np
 
@@ -86,18 +88,30 @@ def slope_deg(lat: float, lon: float) -> float | None:
         return None
 
 
+@lru_cache(maxsize=4096)
+def _timeline_core(lat: float, lon: float, start_iso: str, end_iso: str, step_h: float, height_m: float):
+    """Найдорожча частина оцінки точки (Сонце, Земля, DSN, маска горизонту) — один раз на точку й період: «Підбір»,
+    «План місії» і ранжування бачать ті самі кандидати й не рахують їх повторно (брати з раннього розрахунку)."""
+    start = datetime.fromisoformat(start_iso)
+    end = datetime.fromisoformat(end_iso)
+    tl = timeline.timeline(lat, lon, start, end, step_h, height_m)
+    summary = dict(tl["summary"])
+    summary["sky_view_fraction"] = timeline.horizon_mask(lat, lon, height_m)["sky_view_fraction"]
+    station_hours = {st["station_id"]: round(sum(st["available"]) * tl["step_h"], 2) for st in tl["stations"]}
+    return summary, tl["horizon_source"], station_hours
+
+
 def evaluate_point(p: dict, start: datetime, end: datetime, step_h: float, height_m: float,
                    need_thermal: bool, params: ScoreParams,
                    need_slope: bool = False) -> tuple[dict, str, dict[str, float]]:
     """Підсумки точки за період (як /timeline) + частка відкритого неба (+ температура), джерело горизонту
     й години доступності кожної станції DSN: {station_id: години}."""
-    tl = timeline.timeline(p["lat"], p["lon"], start, end, step_h, height_m)
-    summary = dict(tl["summary"])
-    summary["sky_view_fraction"] = timeline.horizon_mask(p["lat"], p["lon"], height_m)["sky_view_fraction"]
+    summary, source, station_hours = copy.deepcopy(_timeline_core(
+        round(float(p["lat"]), 6), round(float(p["lon"]), 6), start.isoformat(), end.isoformat(), float(step_h),
+        float(height_m)))
     summary["thermal_fraction"] = thermal_fraction(p["lat"], p["lon"], start, params) if need_thermal else None
     summary["slope_deg"] = slope_deg(p["lat"], p["lon"]) if need_slope else None
-    station_hours = {st["station_id"]: round(sum(st["available"]) * tl["step_h"], 2) for st in tl["stations"]}
-    return summary, tl["horizon_source"], station_hours
+    return summary, source, station_hours
 
 
 def _resolve_profile(request: dict, start: datetime, end: datetime) -> mission_profile.ResolvedProfile | None:

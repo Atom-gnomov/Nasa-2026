@@ -43,3 +43,14 @@ test("сховище недоступне — не падаємо", () => {
   assert.equal(sel.loadLead(), null);
   assert.doesNotThrow(() => sel.saveLead({ siteId: "x" }));
 });
+
+test("біометрія екіпажу з «Місії» потрапляє в поля «Плану місії»", () => {
+  const raw = { crewed: true, crew: 2, days: 14, useBio: true, supplyDays: 20, reservePct: 25,
+                members: [{ sex: "male" }, { sex: "female" }] };
+  const out = sel.planFieldsFromMission(raw);
+  assert.equal(out.members.length, 2);
+  assert.equal(out.supplyDays, 20);
+  assert.equal(out.reservePct, 25);
+  assert.equal(sel.planFieldsFromMission({ ...raw, useBio: false }).members, undefined);
+  assert.equal(sel.planFieldsFromMission({ ...raw, crewed: false }).members, undefined);
+});

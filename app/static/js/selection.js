@@ -22,6 +22,11 @@ export function planFieldsFromMission(raw) {
   const days = Number(raw.days);
   if (raw.crewed && Number.isFinite(days) && days >= 0 && days <= 365) out.days = days;
   if (TRAJECTORIES.includes(raw.trajectory)) out.trajectory = raw.trajectory;
+  if (raw.crewed && raw.useBio && Array.isArray(raw.members) && raw.members.length) { // M24: екіпаж із біометрією
+    out.members = raw.members.slice(0, 6);
+    if (raw.supplyDays != null) out.supplyDays = Number(raw.supplyDays);
+    if (Number.isFinite(Number(raw.reservePct))) out.reservePct = Number(raw.reservePct);
+  }
   return out;
 }
 

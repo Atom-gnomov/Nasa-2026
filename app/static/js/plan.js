@@ -10,6 +10,7 @@ export const DEFAULT_FORM = {
   minSunHours: null, minCommHours: null, maxSlope: null, minEarth: null, minSun: null,
   vehicle: "any", trajectory: "any", plans: 5, departureDays: 7,
   includeDesign: true, multiLaunch: false,
+  members: null, supplyDays: null, reservePct: 15, // екіпаж із біометрією (F18/F19: з вкладки «Місія»)
 };
 
 const REQUIREMENT_LABELS = {
@@ -45,6 +46,12 @@ export function buildPlanRequest(form, state) {
   for (const [key, value] of Object.entries(reqs)) if (num(value) !== null) body[key] = Number(value);
   if (form.vehicle && form.vehicle !== "any") body.vehicle = form.vehicle;
   if (form.trajectory && form.trajectory !== "any") body.trajectories = [form.trajectory];
+  if (form.profile === "crewed" && Array.isArray(form.members) && form.members.length) {
+    body.crew_members = form.members;
+    delete body.crew;
+    if (num(form.supplyDays) !== null) body.supply_days = Number(form.supplyDays);
+    if (num(form.reservePct) !== null && Number(form.reservePct) !== 15) body.reserve_fraction = Number(form.reservePct) / 100;
+  }
   if (form.includeDesign === false) body.include_design_targets = false;
   if (form.multiLaunch === true) body.allow_multiple_launches = true;
   return body;
@@ -115,6 +122,7 @@ function init() {
     vehicle: $("plan-vehicle").value, trajectory: $("plan-trajectory").value, plans: 5,
     departureDays: $("plan-departure-days").value,
     includeDesign: $("plan-design").checked, multiLaunch: $("plan-multi").checked,
+    members: prefill?.members ?? null, supplyDays: prefill?.supplyDays ?? null, reservePct: prefill?.reservePct ?? 15,
   });
 
   const syncProfile = () => {
@@ -130,7 +138,8 @@ function init() {
     }
     const sp = response.surface_period;
     const period = sp ? ` ${t("Місце оцінено за період")} ${sp.start.slice(0, 10)} – ${sp.end.slice(0, 10)}${sp.after_arrival ? ` (${t("після прибуття")})` : ""}.` : "";
-    lead.textContent = [response.explanation + period, ...(response.notes ?? [])].join(" ");
+    const supply = (response.plans?.[0]?.mission?.crew_supplies?.warnings ?? []).map((w) => `⚠ ${w.message}`);
+    lead.textContent = [response.explanation + period, ...supply, ...(response.notes ?? [])].join(" ");
     lead.hidden = false;
     table.tBodies[0].replaceChildren(...planRows(response).map((r) => {
       const tr = document.createElement("tr");

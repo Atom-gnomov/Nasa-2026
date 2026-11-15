@@ -41,6 +41,24 @@ jobs:
       - name: Тести Python і JS
         run: python -m pytest -q -rs
 
+  # Конфіг Cloudflare Containers (cloudflare/): Worker збирається, прив'язки й шлях до Dockerfile коректні. Нічого не публікується.
+  cloudflare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: cloudflare
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: cloudflare/package-lock.json
+      - run: npm ci
+      - name: Сухий прогін wrangler (образ не збирається й не публікується)
+        run: npx wrangler deploy --dry-run --containers-rollout=none --outdir dist
+
   # Образ збирається й відповідає на /api/meta: Dockerfile не розходиться з кодом (I3). Нічого не публікується.
   docker:
     runs-on: ubuntu-latest

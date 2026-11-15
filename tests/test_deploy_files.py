@@ -39,3 +39,31 @@ def test_fly_and_render_configs_agree_with_the_image():
     assert svc["runtime"] == "docker" and svc["healthCheckPath"] == "/api/meta"
     assert svc["disk"]["mountPath"] == "/data"
     assert not any(e.get("value", "").lower().startswith(("sk-", "tok")) for e in svc["envVars"])  # без секретів
+
+
+def _jsonc(path):
+    import json
+    import re
+
+    text = path.read_text(encoding="utf-8")
+    return json.loads(re.sub(r"^\s*//.*$", "", text, flags=re.M))
+
+
+def test_cloudflare_container_config_matches_worker_and_image():
+    cfg = _jsonc(ROOT / "cloudflare" / "wrangler.jsonc")
+    worker = (ROOT / "cloudflare" / "src" / "index.js").read_text(encoding="utf-8")
+    container = cfg["containers"][0]
+    assert container["image"] == "../Dockerfile" and container["image_build_context"] == ".."
+    assert f"class {container['class_name']} extends Container" in worker
+    binding = cfg["durable_objects"]["bindings"][0]
+    assert binding["class_name"] == container["class_name"] and f"env.{binding['name']}" in worker
+    assert container["class_name"] in cfg["migrations"][0]["new_sqlite_classes"]
+    assert "defaultPort = 8000" in worker  # порт образу (Dockerfile: PORT=8000)
+    assert "SECRET_KEY:" not in worker and "TOKEN" not in worker  # секрети — лише через wrangler secret
+
+
+def test_cloudflare_tunnel_service_is_optional_and_has_no_token_in_file():
+    compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
+    tunnel = compose["services"]["cloudflared"]
+    assert tunnel["profiles"] == ["tunnel"]  # без --profile tunnel не стартує
+    assert tunnel["environment"]["TUNNEL_TOKEN"].startswith("${TUNNEL_TOKEN")  # значення — з .env

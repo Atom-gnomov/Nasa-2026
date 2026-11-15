@@ -20,5 +20,18 @@ services:
     restart: unless-stopped
     mem_limit: 2g
 
+  # Необов'язково: сайт через Cloudflare Tunnel без відкритих портів і публічного IP.
+  # docker compose --profile tunnel up -d ; токен тунелю — TUNNEL_TOKEN у .env (Zero Trust → Networks → Tunnels),
+  # публічне ім'я хоста в панелі Cloudflare вказує на http://web:8000. Токен не комітити.
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    profiles: ["tunnel"]
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:-}
+    depends_on:
+      - web
+    restart: unless-stopped
+
 volumes:
   lse-data:

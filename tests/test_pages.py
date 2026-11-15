@@ -131,6 +131,13 @@ def test_scene_dock_uses_compact_group_tabs(client):
         assert "css/workspace.css" in html
 
 
+def test_report_page_is_step_10_of_the_wizard(client):
+    html = client.get("/report").get_data(as_text=True)
+    assert 'data-step="10"' in html and 'id="r-body"' in html and 'id="mp-steps"' in html
+    assert "js/report.js" in html and 'id="r-print"' in html and 'id="r-md"' in html and 'id="r-json"' in html
+    assert "workspace-results" in html and 'id="moon-globe"' not in html
+
+
 def test_consistency_page_is_step_9_of_the_wizard(client):
     html = client.get("/consistency").get_data(as_text=True)
     assert 'data-step="9"' in html and 'id="c-list"' in html and 'id="mp-steps"' in html

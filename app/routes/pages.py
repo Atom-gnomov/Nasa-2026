@@ -36,6 +36,12 @@ def consistency():
     return render_template("consistency.html", active_tab="consistency")
 
 
+@bp.get("/report")
+def report():
+    """Крок 10 майстра «Підсумковий звіт»: усі рішення за кроками, друк/PDF, Markdown, JSON (F29)."""
+    return render_template("report.html", active_tab="report")
+
+
 @bp.get("/search")
 def search():
     """Окрема аналітична вкладка: критерії, результати й поради ШІ, без фонового глобуса."""

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Підсумковий звіт — Lunar Mission Builder{% endblock %}
+{% block content %}
+<section class="mission-layout report-layout">
+  <div class="side-panel workspace-results" data-step="10">
+    <header class="results-heading"><h2>Підсумковий звіт</h2></header>
+    <p class="muted small no-print">Усі рішення в логічному порядку кроків. Звіт оновлюється сам після кожної зміни виборів; назва місії — формальність, на розрахунки не впливає.</p>
+    <p class="globe-warn" id="r-status" hidden></p>
+    <div class="report-actions no-print">
+      <button type="button" id="r-print">Друк / PDF</button>
+      <button type="button" id="r-md">Завантажити Markdown</button>
+      <button type="button" id="r-json">Завантажити JSON</button>
+      <button type="button" id="r-copy">Скопіювати Markdown</button>
+      <span class="muted small" id="r-note" role="status"></span>
+    </div>
+    <article id="r-body" class="report-body"></article>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script type="module" src="{{ url_for('static', filename='js/report.js') }}"></script>
+{% endblock %}

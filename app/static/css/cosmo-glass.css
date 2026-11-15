@@ -504,3 +504,21 @@ html, body, button, input, select, textarea, optgroup, option, summary, label, t
 .check-list .check-info .check-mark { color: var(--cg-muted); }
 .check-list a.button { white-space: nowrap; }
 .night-field { display: grid; gap: 4px; margin-top: var(--gap-s); font-size: var(--fs-s); }
+
+/* ---------- Крок 10 «Підсумковий звіт» (F29) ---------- */
+.report-actions { display: flex; flex-wrap: wrap; gap: var(--gap-s); align-items: center; margin: var(--gap-s) 0; }
+.report-body h3 { margin: var(--gap-s) 0; font-size: var(--fs-l); }
+.report-body h4 { margin: var(--gap-m, 14px) 0 6px; font-size: var(--fs-m); color: var(--cg-ink); }
+.report-dl { display: grid; grid-template-columns: minmax(120px, 34%) 1fr; gap: 4px var(--gap-s); margin: 0; font-size: var(--fs-s); }
+.report-dl dt { color: var(--cg-muted); }
+.report-dl dd { margin: 0; }
+.report-chain { font-size: var(--fs-s); line-height: 1.6; }
+@media print {
+  body, html { background: #fff !important; color: #000 !important; }
+  #site-header, #mp-steps, #starfield, #intro, .no-print, canvas, .skip-link { display: none !important; }
+  .side-panel, .workspace-results { position: static !important; background: none !important; border: 0 !important; box-shadow: none !important;
+    backdrop-filter: none !important; max-height: none !important; overflow: visible !important; color: #000 !important; width: auto !important; }
+  .report-dl dt, .muted { color: #333 !important; }
+  .check-summary, .report-body h3, .report-body h4 { color: #000 !important; }
+  .report-body a { color: #000 !important; }
+}

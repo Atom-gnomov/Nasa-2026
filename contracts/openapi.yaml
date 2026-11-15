@@ -594,6 +594,33 @@ paths:
         "404": {$ref: "#/components/responses/NotFound"}
         "503": {$ref: "#/components/responses/Unavailable"}
 
+  /report:
+    post:
+      tags: [planning]
+      x-status: implemented
+      summary: Підсумковий звіт місії (крок 10)
+      description: |
+        Приймає те саме тіло, що й `POST /consistency`, рахує місію й перевірку **один раз** і складає звіт у логічному
+        порядку кроків майстра: розділи `sections` (назва й мета, тип, вікно запуску, тривалість, точка, склад,
+        навантаження, носій, перевірка), конфлікти, джерела (характеристики приладів і пороги NASA, які реально
+        використані), схема послідовності рішень `chain` й застереження про тимчасові коефіцієнти та відсутність
+        зльоту й повернення (M26). Поле `markdown` — готовий текст звіту. Назва місії — формальність і на розрахунки
+        не впливає.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ConsistencyRequest"}
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ReportResponse"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "503": {$ref: "#/components/responses/Unavailable"}
+
   /launch-ranking:
     post:
       tags: [planning]
@@ -1823,10 +1850,51 @@ components:
               properties:
                 lat: {type: number, minimum: -90, maximum: 90}
                 lon: {type: number, minimum: -180, maximum: 360}
+                name: {type: string, description: "Назва місця (лише для звіту)"}
             - type: "null"
         stay_days: {type: number, minimum: 0, maximum: 365, description: "Тривалість перебування, діб; без поля — `mission.days`"}
         goal: {type: string, description: "Мета місії (крок 1)"}
         name: {type: string, description: "Назва місії (формальність)"}
+    ReportResponse:
+      type: object
+      required: [name, goal, goal_label, ok, provisional, sections, conflicts, sources, chain, caveats, markdown]
+      properties:
+        name: {type: string}
+        goal: {type: [string, "null"]}
+        goal_label: {type: [string, "null"]}
+        ok: {type: boolean, description: "Немає конфліктів серйозності `error`"}
+        provisional: {type: boolean}
+        sections:
+          type: array
+          items:
+            type: object
+            required: [step, title, rows]
+            properties:
+              step: {type: integer, minimum: 1, maximum: 10}
+              title: {type: string}
+              rows:
+                type: array
+                items:
+                  type: object
+                  required: [label, value]
+                  properties:
+                    label: {type: string}
+                    value: {type: string}
+        conflicts:
+          type: array
+          items: {$ref: "#/components/schemas/ConsistencyConflict"}
+        sources:
+          type: array
+          items:
+            type: object
+            required: [title, ref, url]
+            properties:
+              title: {type: string}
+              ref: {type: string}
+              url: {type: string}
+        chain: {type: array, items: {type: string}, description: "Схема послідовності рішень: від назви до підсумкового звіту"}
+        caveats: {type: array, items: {type: string}}
+        markdown: {type: string, description: "Готовий текст звіту"}
     ConsistencyConflict:
       type: object
       required: [id, severity, step, message]

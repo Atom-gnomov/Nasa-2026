@@ -19,7 +19,7 @@ export const STEPS = [
   { n: 7, title: "Корисне навантаження", path: "/mission", ready: true },
   { n: 8, title: "Носій і політ", path: "/plan", ready: true },
   { n: 9, title: "Перевірка узгодженості", path: "/consistency", ready: true },
-  { n: 10, title: "Підсумковий звіт", path: "/plan", ready: false },
+  { n: 10, title: "Підсумковий звіт", path: "/report", ready: true },
 ];
 export const GOALS = [
   { id: "", label: "— не вибрано —" },
@@ -83,7 +83,7 @@ export function stepFilled(n, ctx) {
     case 6: return ctx.mission != null;
     case 7: return d.sizes != null;
     case 8: return Boolean(d.site);
-    case 9: return true; // перевірку можна запустити будь-коли
+    case 9: case 10: return true; // перевірка й звіт — похідні від виборів, їх можна відкрити будь-коли
     default: return false;
   }
 }
@@ -109,7 +109,7 @@ export function stepFromLocation(pathname, search = "", hash = "") {
   const m = /[?&]step=(\d{1,2})\b/.exec(search);
   if (m && Number(m[1]) >= 1 && Number(m[1]) <= STEPS.length) return Number(m[1]);
   if (pathname === "/moon") return hash === "#search" ? 5 : null;
-  return { "/search": 5, "/mission": 2, "/plan": 8, "/system": 8, "/launch-window": 3, "/consistency": 9 }[pathname] ?? null;
+  return { "/search": 5, "/mission": 2, "/plan": 8, "/system": 8, "/launch-window": 3, "/consistency": 9, "/report": 10 }[pathname] ?? null;
 }
 
 // Адреса кроку зі збереженням решти параметрів (дата, мова…).

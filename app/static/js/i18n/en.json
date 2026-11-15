@@ -698,7 +698,21 @@
     "Місія не виконується": "Mission cannot be carried out",
     "Варто виправити": "Worth fixing",
     "Зауваження": "Remark",
-    "Врахувати найдовшу ніч ({h} год) у розрахунку акумуляторів": "Account for the longest night ({h} h) in battery sizing"
+    "Врахувати найдовшу ніч ({h} год) у розрахунку акумуляторів": "Account for the longest night ({h} h) in battery sizing",
+    "Друк / PDF": "Print / PDF",
+    "Завантажити JSON": "Download JSON",
+    "Завантажити Markdown": "Download Markdown",
+    "Підсумковий звіт — Lunar Mission Builder": "Final report — Lunar Mission Builder",
+    "Скопіювати Markdown": "Copy Markdown",
+    "Усі рішення в логічному порядку кроків. Звіт оновлюється сам після кожної зміни виборів; назва місії — формальність, на розрахунки не впливає.": "All decisions in the logical order of the steps. The report updates itself after every change; the mission name is a formality and does not affect the calculations.",
+    "Конфліктів, що блокують місію, немає.": "No conflicts block the mission.",
+    "Є конфлікти, що блокують місію: виправте їх на вказаних кроках.": "Conflicts block the mission: fix them at the listed steps.",
+    "без назви": "untitled",
+    "змінити": "change",
+    "Повернутися до кроку {n}": "Back to step {n}",
+    "Послідовність рішень": "Sequence of decisions",
+    "Скопійовано.": "Copied.",
+    "Не вдалося скопіювати: скористайтеся «Завантажити Markdown».": "Could not copy: use “Download Markdown”."
   },
   "phrases": {
   "Рекомендовано {rec} діб (резерв {rp} %), заплановано {plan} діб (резерв {pp}).": "Recommended {rec} days (reserve {rp} %), planned {plan} days (reserve {pp}).",

@@ -14,6 +14,7 @@ from app.services import meta as meta_service
 from app.services import bootstrap
 from app.services import consistency as consistency_service
 from app.services import launch_ranking as launch_ranking_service
+from app.services import report as report_service
 from app.services import launch_window as launch_window_service
 from app.services import mission as mission_service
 from app.services import plan as plan_service
@@ -430,6 +431,20 @@ def consistency():
     body = request.get_json(silent=True)
     try:
         return jsonify(consistency_service.compute(body if body is not None else {}))
+    except mission_service.LaunchSiteNotFound as exc:
+        return _error(404, str(exc))
+    except ValueError as exc:  # включно з ConsistencyError, MissionError і помилками ядра
+        return _error(400, str(exc))
+    except RuntimeError as exc:  # немає ефемерид
+        return _error(503, str(exc))
+
+
+@bp.post("/report")
+def report():
+    """Підсумковий звіт місії (B24, крок 10): розділи за кроками майстра, конфлікти, джерела, готовий Markdown."""
+    body = request.get_json(silent=True)
+    try:
+        return jsonify(report_service.compute(body if body is not None else {}))
     except mission_service.LaunchSiteNotFound as exc:
         return _error(404, str(exc))
     except ValueError as exc:  # включно з ConsistencyError, MissionError і помилками ядра

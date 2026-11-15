@@ -111,8 +111,8 @@ def _mission_checks(result: Mapping, crewed: bool, stay: float, trajectory: str)
                 utilization=cost["utilization"],
             )
         )
-    rocket = (result.get("launch_system") or {}).get("rocket") or {}
-    if rocket.get("verified_by_flight") is False:
+    system = (result.get("launch_system") or {}).get("system") or {}
+    if system.get("verified_by_flight") is False:
         out.append(_conflict("rocket-unverified", "warning", 8, "Обрана ракета ще не підтверджена польотом."))
     if crewed and trajectory == "low_energy":
         lo, hi = cost["flight_time_days"]
@@ -188,8 +188,11 @@ def _light_checks(result: Mapping, tl: Mapping, night_used_h: float, supply_powe
     return out
 
 
-def compute(body: Mapping) -> dict:
-    """Перевіряє вибори майстра; `ValueError` (зокрема `ConsistencyError`, `MissionError`) — помилка вхідних даних."""
+def analyze(body: Mapping) -> tuple[dict, dict]:
+    """Перевіряє вибори майстра: (розібраний запит із розрахунком місії, відповідь перевірки).
+
+    `ValueError` (зокрема `ConsistencyError`, `MissionError`) — помилка вхідних даних. Звіт (B24) бере той самий
+    розрахунок, щоб не рахувати місію вдруге."""
     if not isinstance(body, Mapping):
         raise ConsistencyError("Тіло запиту має бути об'єктом")
     unknown = set(body) - ALLOWED
@@ -255,7 +258,7 @@ def compute(body: Mapping) -> dict:
     rank = {"error": 0, "warning": 1, "info": 2}
     conflicts.sort(key=lambda c: (rank[c["severity"]], c["step"]))
     counts = {s: sum(1 for c in conflicts if c["severity"] == s) for s in rank}
-    return {
+    out = {
         "ok": counts["error"] == 0,
         "counts": counts,
         "conflicts": conflicts,
@@ -265,3 +268,12 @@ def compute(body: Mapping) -> dict:
         "provisional": result.get("provisional", True),
         "steps_to_review": sorted({c["step"] for c in conflicts if c["severity"] != "info"}),
     }
+    parsed = {"result": result, "launch": launch, "site": site, "stay": stay, "crewed": crewed,
+              "mission_body": mission_body, "goal": body.get("goal"), "name": str(body.get("name") or "").strip(),
+              "site_name": (body.get("site") or {}).get("name") if isinstance(body.get("site"), Mapping) else None}
+    return parsed, out
+
+
+def compute(body: Mapping) -> dict:
+    """Перевіряє вибори майстра (B23); відповідь — `ConsistencyResponse`."""
+    return analyze(body)[1]

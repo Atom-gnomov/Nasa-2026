@@ -191,3 +191,17 @@ def test_real_timeline_end_to_end(client):
 def test_service_rejects_non_object():
     with pytest.raises(consistency.ConsistencyError):
         consistency.compute([])
+
+
+def test_unverified_rocket_is_flagged(client, monkeypatch):
+    _fake_timeline(monkeypatch)
+    systems = client.get("/api/launch-systems").get_json()
+    unverified = [v for v in systems if v.get("verified_by_flight") is False and v.get("capacity_basis")]
+    verified = [v for v in systems if v.get("verified_by_flight") and v.get("capacity_basis")]
+    if not unverified or not verified:
+        pytest.skip("У каталозі немає обох видів ракет")
+    base = {"datetime": DATE, "site": SITE, "goal": "ice", "name": "x", "stay_days": 3}
+    flagged = _post(client, {**base, "mission": {"launch_system_id": unverified[0]["id"]}})
+    assert "rocket-unverified" in _ids(flagged, "warning")
+    clean = _post(client, {**base, "mission": {"launch_system_id": verified[0]["id"]}})
+    assert "rocket-unverified" not in _ids(clean)

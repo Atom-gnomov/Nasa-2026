@@ -12,11 +12,12 @@ const ctx = (patch = {}) => ({
   state: { datetime: "2027-03-01T12:00Z", lat: -89.5, lon: 0, site: null }, ...patch,
 });
 
-test("є 10 кроків у порядку рішень; крок 9 готовий, крок 10 ще ні", () => {
+test("є 10 кроків у порядку рішень; усі готові", () => {
   assert.deepEqual(m.STEPS.map((s) => s.n), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-  assert.deepEqual(m.STEPS.filter((s) => !s.ready).map((s) => s.n), [10]);
+  assert.deepEqual(m.STEPS.filter((s) => !s.ready).map((s) => s.n), []);
   assert.equal(m.nextStep(8), 9);
-  assert.equal(m.nextStep(9), null);   // далі лише готові кроки
+  assert.equal(m.nextStep(9), 10);
+  assert.equal(m.nextStep(10), null);
   assert.equal(m.nextStep(3), 4);
   assert.equal(m.prevStep(1), null);
   assert.equal(m.prevStep(5), 4);
@@ -70,7 +71,7 @@ test("заповненість: мета, точка на Місяці, майд
   assert.equal(m.stepFilled(8, ctx({ launch: {}, lead: null })), false);
   assert.equal(m.stepFilled(2, ctx({ mission: null })), false);
   assert.equal(m.stepFilled(9, c), true);
-  assert.equal(m.stepFilled(10, c), false);
+  assert.equal(m.stepFilled(10, c), true);
 });
 
 test("крок за адресою: явний ?step=, інакше типовий для сторінки", () => {

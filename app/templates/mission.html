@@ -132,23 +132,8 @@
           <div class="supply-kg-row"><label for="m-kg-water">Вода</label><input type="range" id="m-kg-water" min="0" max="100" step="1" value="0" list="m-kg-water-mark"><datalist id="m-kg-water-mark"></datalist><output id="m-kg-water-out"></output><button type="button" id="m-kg-water-auto" disabled>Авто</button></div>
           <div class="supply-kg-row"><label for="m-kg-food">Їжа (з упаковкою)</label><input type="range" id="m-kg-food" min="0" max="100" step="1" value="0" list="m-kg-food-mark"><datalist id="m-kg-food-mark"></datalist><output id="m-kg-food-out"></output><button type="button" id="m-kg-food-auto" disabled>Авто</button></div>
         </div>
-        <div id="m-crew-plan" hidden>
-          <h3>Склад і підготовка</h3>
-          <ul id="m-crew-plan-notes" class="supply-summary"></ul>
-          <p class="small" id="m-training-total"></p>
-          <ul id="m-training" class="small"></ul>
-          <p class="muted small">Правила складу й години підготовки (human-rating) — тимчасові оцінки, не нормативні.</p>
-        </div>
         <p class="muted small">Потреби рахуються за рівняннями енергії NASA (стать, вік, маса, зріст, активність); кисень, вода й їжа — пропорційно до енергії. Резерв 15 % і еталонні значення — тимчасові.</p>
       </div>
-    </fieldset>
-
-    {# M27 / F25: безпілотна місія — склад техніки #}
-    <fieldset class="mission-field" id="m-robot-box" data-step="6" hidden>
-      <legend>Склад техніки</legend>
-      <p class="muted small">Безпілотна місія: оберіть типовий склад — позиції потраплять у категорію «Обладнання» (крок 7), де їх можна змінити.</p>
-      <div id="m-robot-presets" class="seg"></div>
-      <p class="small" id="m-robot-note"></p>
     </fieldset>
 
     <fieldset class="mission-field" data-step="8">

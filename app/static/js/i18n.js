@@ -7,7 +7,7 @@
 //   • вузли, які модулі вставляють або змінюють пізніше (MutationObserver) — одразу після вставки;
 //   • текст на canvas і складені в коді рядки — через t().
 // Порядок підстановки: точний збіг тексту (strings) → підрядки цілими словами, довші першими (phrases).
-// Мова — властивість користувача: ?lang=en в адресі (посилання), далі localStorage; за замовчуванням українська.
+// Мова — властивість користувача: ?lang=en в адресі (посилання), далі localStorage, далі мова системи (українська чи англійська).
 const KEY = "lse-lang";
 export const LANGS = ["uk", "en"];
 export const DEFAULT_LANG = "uk";
@@ -18,11 +18,14 @@ const SKIP = new Set(["SCRIPT", "STYLE", "TEXTAREA", "CODE", "PRE"]);
 
 export const normalize = (text) => text.replace(/\s+/g, " ").trim();
 
-// Мова: ?lang= → збережена → українська.
-export function pickLang({ search = "", stored = null } = {}) {
+// Мова: ?lang= → збережена → мова системи (languages: українська — uk, будь-яка інша — англійська) → українська.
+export function pickLang({ search = "", stored = null, languages = [] } = {}) {
   const fromUrl = new URLSearchParams(search).get("lang");
   if (LANGS.includes(fromUrl)) return fromUrl;
-  return LANGS.includes(stored) ? stored : DEFAULT_LANG;
+  if (LANGS.includes(stored)) return stored;
+  const first = languages?.[0];
+  if (typeof first === "string" && first) return /^uk(-|$)/i.test(first) ? "uk" : "en";
+  return DEFAULT_LANG;
 }
 
 const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -163,10 +166,12 @@ export const ready = (async () => {
   if (typeof document === "undefined") return;
   let stored = null;
   try { stored = localStorage.getItem(KEY); } catch { /* приватний режим */ }
-  const initial = pickLang({ search: location.search, stored });
+  const languages = navigator.languages?.length ? navigator.languages : [navigator.language];
+  const initial = pickLang({ search: location.search, stored, languages });
   const start = async () => {
     for (const b of document.querySelectorAll("[data-lang]")) b.addEventListener("click", () => setLang(b.dataset.lang));
     await setLang(initial, { persist: false });
+    window.__gate?.("i18n"); // тексти переведені — можна показувати інтерфейс
   };
   if (document.readyState === "loading") await new Promise((r) => document.addEventListener("DOMContentLoaded", r, { once: true }));
   await start();

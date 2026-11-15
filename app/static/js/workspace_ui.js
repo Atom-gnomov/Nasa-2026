@@ -189,6 +189,7 @@ function initMoon() {
     button.dataset.sceneMode = mode;
     button.setAttribute("aria-pressed", String(mode === "globe"));
     button.addEventListener("click", () => {
+      window.dispatchEvent(new CustomEvent("scene-mode", { detail: { mode } })); // глобус на льоту наближається/віддаляється
       root.classList.toggle("surface-active", mode === "surface");
       for (const b of modes.querySelectorAll("button")) {
         const active = b.dataset.sceneMode === mode;
@@ -449,3 +450,6 @@ states = readState();
 paint();
 initSceneGeometry();
 initHeaderNavigation();
+// панелі розставлено; поля сцени рахуємо одразу (не чекаючи кадру, який може затриматись важкими модулями) — і показуємо інтерфейс
+refreshSceneBounds();
+window.__gate?.("ui");

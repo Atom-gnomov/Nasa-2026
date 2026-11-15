@@ -492,7 +492,7 @@ function drawDiurnalChart(canvas, t) {
   g.clearRect(0, 0, w, h);
   const pad = { l: 40, r: 8, t: 8, b: 20 };
   const pts = t.diurnal.filter((p) => p.tbol_k != null);
-  g.font = "11px system-ui";
+  g.font = "11px ui-monospace, 'SF Mono', 'JetBrains Mono', 'Cascadia Mono', Menlo, Consolas, monospace";
   if (!pts.length) { g.fillStyle = muted; g.fillText(tr("Немає вимірювань Diviner у цій комірці"), pad.l, h / 2); return; }
   const yMax = Math.max(400, ...pts.map((p) => p.tbol_k));
   const X = (lt) => pad.l + (lt / 24) * (w - pad.l - pad.r);
@@ -861,6 +861,32 @@ async function main() {
   centerOnSelected(true);
   subscribe(() => centerOnSelected(false));
 
+  // Перехід глобус ↔ вид з поверхні: планета на льоту наближається до вибраної точки (і гасне), назад — відлітає й проявляється
+  let savedCamera = null, surfaceSince = 0;
+  window.addEventListener("scene-mode", (ev) => {
+    const toSurface = ev.detail?.mode === "surface";
+    surfaceSince = toSurface ? performance.now() : 0;
+    if (view !== "globe") return;
+    if (toSurface) {
+      const { lat, lon } = getState();
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+      savedCamera = camera.position.clone();
+      anim = {
+        from: [...w], to: [...w], camFrom: camera.position.clone(), camTo: globeCameraFor(Math.max(-85, Math.min(85, lat)), lon, 1.3),
+        tgtFrom: controls.target.clone(), t0: performance.now(), dur: 600,
+      };
+    } else if (savedCamera) {
+      anim = {
+        from: [...w], to: [...w], camFrom: camera.position.clone(), camTo: savedCamera,
+        tgtFrom: controls.target.clone(), t0: performance.now(), dur: 700,
+      };
+      savedCamera = null;
+    } else return;
+    controls.enabled = false;
+  });
+  // глобус під час «виду з поверхні» (після згасання) не малюємо — економимо відеокарту
+  const globeAsleep = () => surfaceSince > 0 && performance.now() - surfaceSince > 800;
+
   // ---------- Сонце на дату (JPL DE440) ----------
   let lastDatetime = null;
   let sysAbort = null;
@@ -1183,6 +1209,7 @@ async function main() {
   applyReliefRange();
 
   renderer.setAnimationLoop((now) => {
+    if (globeAsleep()) return;
     if (anim) {
       const t = Math.min(1, (now - anim.t0) / anim.dur);
       const e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;

@@ -292,7 +292,7 @@ function create3D(host, labelsEl) {
 const niceStep = (span, list) => list.find((s) => s >= span / 6) ?? list.at(-1);
 
 function drawBodyLabel(g, text, x, y, rgb, scale) {
-  g.font = `${12 * scale}px system-ui`;
+  g.font = `${12 * scale}px ui-monospace, 'SF Mono', 'JetBrains Mono', 'Cascadia Mono', Menlo, Consolas, monospace`;
   g.fillStyle = `rgb(${rgb})`;
   g.shadowColor = "#000"; g.shadowBlur = 3 * scale;
   g.fillText(text, x + 8 * scale, y - 8 * scale);
@@ -331,7 +331,7 @@ function createPanorama(canvas) {
         g.beginPath(); g.moveTo(x0, yOf(els[k - 1])); g.lineTo(x1, yOf(els[k])); g.stroke();
       }
       if (view.fov <= 200) {
-        g.font = `${10 * scale}px system-ui`;
+        g.font = `${10 * scale}px ui-monospace, 'SF Mono', 'JetBrains Mono', 'Cascadia Mono', Menlo, Consolas, monospace`;
         for (let k = 0; k < azs.length; k += Math.round(24 / series.stepH)) {
           const x = xOf(azs[k]), y = yOf(els[k]);
           if (x < 0 || x > W || y < 0 || y > H) continue;
@@ -363,7 +363,7 @@ function createPanorama(canvas) {
     });
     layer.getContext("2d").putImageData(imageData, 0, 0);
     g.drawImage(layer, 0, 0);
-    g.font = `${10 * scale}px system-ui`; g.fillStyle = "rgba(190,190,190,0.95)";
+    g.font = `${10 * scale}px ui-monospace, 'SF Mono', 'JetBrains Mono', 'Cascadia Mono', Menlo, Consolas, monospace`; g.fillStyle = "rgba(190,190,190,0.95)";
     let lastY = -99;
     for (const { d: dist, y } of [...ringRows].sort((a, b) => b.y - a.y)) {
       if (lastY - y < 12 * scale) continue; // не накладаємо підписи
@@ -374,7 +374,7 @@ function createPanorama(canvas) {
     // 4. рулетки: горизонт 0°, кути місця зліва, азимути знизу
     g.strokeStyle = "rgba(230,232,238,0.4)"; g.setLineDash([4 * scale, 4 * scale]); g.lineWidth = scale;
     g.beginPath(); g.moveTo(0, yOf(0)); g.lineTo(W, yOf(0)); g.stroke(); g.setLineDash([]);
-    g.font = `${10 * scale}px system-ui`; g.fillStyle = "#8a92a6";
+    g.font = `${10 * scale}px ui-monospace, 'SF Mono', 'JetBrains Mono', 'Cascadia Mono', Menlo, Consolas, monospace`; g.fillStyle = "#8a92a6";
     const vStep = niceStep(H / ppd, [1, 2, 5, 10, 15, 30]);
     for (let e = Math.ceil((view.el - H / 2 / ppd) / vStep) * vStep; e <= view.el + H / 2 / ppd; e += vStep) {
       g.fillText(`${e}°`, 3 * scale, yOf(e) - 2 * scale);
@@ -408,7 +408,7 @@ function drawUnwrapped(canvas, mask, series, i, lat) {
   const g = canvas.getContext("2d");
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, w, h);
-  g.font = "11px system-ui";
+  g.font = "11px ui-monospace, 'SF Mono', 'JetBrains Mono', 'Cascadia Mono', Menlo, Consolas, monospace";
   const pad = { l: 34, r: 8, t: 8, b: 18 };
   const { min, max, step } = panoramaRange(mask, series);
   const X = (az) => pad.l + (az / 360) * (w - pad.l - pad.r);
@@ -474,7 +474,7 @@ if (root) {
   const panorama = createPanorama(pano);
   let view3d = null, mask = null, series = null, patch = null, lat = null, light = null, lightKey = "";
   let maskKey = null, tlKey = null, terrainKey = null, abort = null, timer = null, shadowTimer = null;
-  let playing = false, visible = false, drawQueued = false;
+  let playing = false, visible = false, drawQueued = false, warmed = false;
 
   if (!webgl) for (const b of modeBtns) if (b.dataset.surface === "3d") b.style.display = "none";
 
@@ -533,12 +533,28 @@ if (root) {
     requestDraw();
   }
 
+  // Плавна зміна панелі (3D / панорама / розгортка): нова проявляється, стара гасне, а не різка заміна
+  const panes = { "3d": host3d, pano, flat };
+  function showPane(next) {
+    for (const [key, el] of Object.entries(panes)) {
+      clearTimeout(el._hide);
+      el.style.transition = "opacity .3s ease";
+      if (key === next) {
+        const wasHidden = el.style.display === "none";
+        el.style.display = "";
+        if (wasHidden) { el.style.opacity = "0"; void el.offsetWidth; }
+        el.style.opacity = "1";
+      } else if (el.style.display !== "none") {
+        el.style.opacity = "0";
+        el._hide = setTimeout(() => { el.style.display = "none"; }, 300);
+      }
+    }
+  }
+
   function setMode(next) {
     mode = next;
     for (const b of modeBtns) b.classList.toggle("active", b.dataset.surface === next);
-    host3d.style.display = next === "3d" ? "" : "none";
-    pano.style.display = next === "pano" ? "" : "none";
-    flat.style.display = next === "flat" ? "" : "none";
+    showPane(next);
     for (const b of root.querySelectorAll("[data-look], [data-zoom]")) b.disabled = next === "flat";
     ensure3D();
     view3d?.setRunning(next === "3d" && visible);
@@ -547,13 +563,14 @@ if (root) {
 
   // 3D створюється лише коли розділ уперше видно — другий WebGL-контекст не навантажує сторінку даремно
   function ensure3D() {
-    if (view3d || mode !== "3d" || !visible || !mask || !series) return;
+    if (view3d || mode !== "3d" || !(visible || warmed) || !mask || !series) return;
     view3d = create3D(host3d, labelsEl);
     if (!view3d) { setMode("pano"); return; }
     view3d.setData(mask, series, lat, patch, exag());
     lookAtBody("sun");
     lightKey = "";
     render();
+    view3d.setRunning(mode === "3d" && visible); // прогріта прихована сцена не малює
   }
 
   function lookAtBody(what) {
@@ -696,12 +713,18 @@ if (root) {
     else render(); // повертаємо тіні
   });
   new ResizeObserver(() => { if (mode !== "3d") requestDraw(); }).observe(pano);
-  new IntersectionObserver(([e]) => {
-    visible = e.isIntersecting;
+  // Розділ «видно», коли він у кадрі й увімкнено режим «Вид з поверхні» (сам блок тепер завжди в розмітці — для плавного переходу)
+  let inView = false;
+  const syncVisible = () => {
+    visible = inView && document.body.classList.contains("surface-active");
     ensure3D();
     view3d?.setRunning(mode === "3d" && visible);
     if (visible) requestDraw();
-  }).observe(root);
+  };
+  new IntersectionObserver(([e]) => { inView = e.isIntersecting; syncVisible(); }).observe(root);
+  new MutationObserver(syncVisible).observe(document.body, { attributes: true, attributeFilter: ["class"] });
+  // 3D створюємо заздалегідь, у простої: перемикання на вид з поверхні тоді миттєве
+  (window.requestIdleCallback || ((fn) => setTimeout(fn, 1500)))(() => { warmed = true; ensure3D(); }, { timeout: 4000 });
 
   exagOut.textContent = exagInput.value;
   onLangChange(() => { render(); renderStatus(); requestDraw(); }); // canvas і складені речення перемальовуються

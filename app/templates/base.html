@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Lunar Site Explorer{% endblock %}</title>
+  <title>{% block title %}Lunar Mission Builder{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/workspace.css') }}">
   {# Orbital Glass: презентаційний шар після layout-стилів. #}
@@ -21,11 +21,72 @@
       }
     }
   </script>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
+  <script>
+    // Сайт починається зі сторінки з Місяцем: перший вхід за сесію на будь-яку іншу сторінку веде на /moon (запит і хеш лишаються).
+    (function () {
+      try {
+        if (!sessionStorage.getItem("lse-started")) {
+          sessionStorage.setItem("lse-started", "1");
+          if (location.pathname !== "/moon") location.replace("/moon" + location.search + location.hash);
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <script>
+    // Мова до першого кадру: ?lang= → збережена → мова системи (uk — українська, інші — англійська). Інтерфейс не показуємо, доки
+    // i18n.js не переклав тексти, а workspace_ui.js не розставив панелі (window.__gate), — без блимання UA→EN і стрибків розкладки.
+    (function () {
+      var d = document.documentElement, lang = "uk";
+      try {
+        var m = /[?&]lang=(uk|en)\b/.exec(location.search), s = null;
+        try { s = localStorage.getItem("lse-lang"); } catch (e) {}
+        if (m) lang = m[1];
+        else if (s === "uk" || s === "en") lang = s;
+        else {
+          var l = (navigator.languages && navigator.languages[0]) || navigator.language || "uk";
+          lang = /^uk(-|$)/i.test(l) ? "uk" : "en";
+        }
+      } catch (e) {}
+      d.lang = lang;
+      d.classList.add("ui-pending");
+      var need = { i18n: 1, ui: 1 }, release = function () { d.classList.remove("ui-pending"); };
+      window.__gate = function (name) { delete need[name]; for (var k in need) return; release(); };
+      setTimeout(release, 1500); // запасний вихід, якщо модуль не відпрацював
+    })();
+  </script>
+  <script type="speculationrules">
+    {
+      "prefetch": [{ "where": { "selector_matches": ".tabs a" }, "eagerness": "eager" }],
+      "prerender": [{ "where": { "selector_matches": ".tabs a" }, "eagerness": "moderate" }]
+    }
+  </script>
+  <script>
+    // Небо починає вантажитись одразу, до розбору модулів: starfield.js бере його вже з кешу.
+    (function () { try { new Image().src = "/assets/starmap/pano.jpg"; fetch("/assets/starmap/pano.json"); } catch (e) {} })();
+  </script>
+  {# Вступна заставка: раз за сесію (або ?intro=1); клас ставиться до першого кадру, щоб інтерфейс не мигнув. #}
+  <script>
+    (function () {
+      try {
+        var d = document.documentElement, force = /[?&]intro=1/.test(location.search);
+        if (force || (!sessionStorage.getItem("lse-intro") && !matchMedia("(prefers-reduced-motion: reduce)").matches)) {
+          d.classList.add("intro-pending");
+          setTimeout(function () { d.classList.remove("intro-pending"); }, 10000);
+        }
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body class="page-{{ active_tab }}">
+  <div id="intro" aria-hidden="true">
+    <div class="intro-flash"></div>
+    <div class="intro-title">Lunar Mission Builder</div>
+    <video id="intro-anim" muted playsinline preload="auto" width="720" height="720" src="{{ url_for('static', filename='media/logo_intro.webm') }}"></video>
+  </div>
   <a href="#view" class="skip-link">Перейти до вмісту</a>
   <header class="topbar" id="site-header">
-    <a class="brand" href="{{ url_for('pages.moon') }}" aria-label="Lunar Site Explorer"><span class="brand-mark" aria-hidden="true">☾</span><span class="logo">Lunar Site Explorer</span></a>
+    <a class="brand" href="{{ url_for('pages.moon') }}" aria-label="Lunar Mission Builder" title="Lunar Mission Builder"><img class="brand-logo" src="{{ url_for('static', filename='img/logo.png') }}" alt="" width="40" height="40" decoding="async"><span class="brand-name">Lunar Mission Builder</span></a>
     <div class="header-middle" id="header-middle" tabindex="0" aria-label="Вкладки та дата, горизонтальна прокрутка">
     <nav class="tabs" aria-label="Навігація вкладок">
       <a href="{{ url_for('pages.moon') }}" class="{{ 'active' if active_tab == 'moon' }}" {% if active_tab == 'moon' %}aria-current="page"{% endif %}>Місяць</a>
@@ -139,8 +200,11 @@
   <script type="module" src="{{ url_for('static', filename='js/overlay.js') }}"></script>
   <script type="module" src="{{ url_for('static', filename='js/data_status.js') }}"></script>
   <script type="module" src="{{ url_for('static', filename='js/workspace_ui.js') }}"></script>
+  {# Переклад — одразу після розкладки панелей, до важких модулів сцен: інакше він чекає на їхнє завантаження і текст блимає UA → EN. #}
+  <script type="module" src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+  <script type="module" src="{{ url_for('static', filename='js/select_ui.js') }}"></script>
+  <script type="module" src="{{ url_for('static', filename='js/intro.js') }}"></script>
   <script type="module" src="{{ url_for('static', filename='js/starfield.js') }}"></script>
   {% block scripts %}{% endblock %}
-  <script type="module" src="{{ url_for('static', filename='js/i18n.js') }}"></script>
 </body>
 </html>

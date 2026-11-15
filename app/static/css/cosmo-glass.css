@@ -10,12 +10,12 @@
   --cg-fill-faint: rgba(255, 255, 255, .045);
   --cg-line: rgba(255, 255, 255, .26);        /* тонка світла рамка */
   --cg-line-soft: rgba(255, 255, 255, .14);
-  --cg-blur: blur(22px) saturate(140%) brightness(.78); /* приглушує яскраве тло (Місяць) за склом, щоб текст читався */
+  --cg-blur: blur(16px) saturate(140%) brightness(.78); /* приглушує яскраве тло (Місяць) за склом, щоб текст читався */
   --cg-ink: #f6f8fb;
   --cg-muted: rgba(246, 248, 251, .66);
   --cg-sun: #ff9a4d;                          /* акценти шкал: Сонце — теплий, решта — холодний лід */
   --cg-ice: #bfe6ff;
-  --cg-radius: 22px;
+  --cg-radius: 0;
   --cg-shadow: 0 10px 34px rgba(0, 0, 0, .28);
 
   /* плоскі змінні для решти шарів (де вони використовуються як колір, а не як шар фону) */
@@ -122,7 +122,7 @@ body.page-launch .lw-bar.best { color: #fff; }
 :root {
   --ctl-h: 32px;        /* кнопки, перемикачі, списки, поля */
   --ctl-icon: 28px;     /* круглі кнопки в шапках віджетів (згорнути, ⌄) */
-  --ctl-r: 10px;
+  --ctl-r: 0;            /* прямі кути */
   --ctl-fs: 12px;
   --ctl-px: 12px;
   --gap: 12px;          /* між блоками, відступ усередині панелей і груп */
@@ -261,5 +261,193 @@ select option, select optgroup { background-color: #161a24 !important; color: #f
 select optgroup { color: #aeb8cc !important; font-weight: 600; font-style: normal; }
 select option:disabled, select option[value=""] { color: #8c97ad !important; }
 select option:checked { background-color: #2a3346 !important; }
+
+/* Меню списку в стилі решти інтерфейсу (Chromium: customizable select). Системне меню не можна ні обмежити за шириною, ні
+   оформити однаково: воно вилазило за межі панелі й мало біле виділення. Тут меню — звичайний елемент: темне скло, та сама
+   рамка, прямі кути, ширина не менша за сам список, прокрутка, рядки переносяться. */
+@supports (appearance: base-select) {
+  select, select::picker(select) { appearance: base-select; }
+  /* закрите поле списку: текст по центру висоти, в один рядок (довгий — з «…»), стрілка праворуч по центру */
+  select { align-items: center; gap: 8px; white-space: nowrap; }
+  /* вбудована кнопка поля — без власної рамки, фону й відступів (інакше загальні стилі кнопок малюють у полі ще одну рамку) */
+  select > button { appearance: none !important; flex: 1 1 auto; min-width: 0; display: flex; align-items: center; height: 100% !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; border: 0 !important; background: none !important; box-shadow: none !important; color: inherit !important; font: inherit !important; text-align: left; cursor: inherit; }
+  select > button > selectedcontent { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.2; }
+  select::picker-icon { flex: none; margin-left: auto; color: var(--cg-ink-soft, #b9c4d6); transition: none; }
+  select:open::picker-icon { rotate: 180deg; }
+  select::picker(select) {
+    box-sizing: border-box; margin-block: 4px; padding: 4px;
+    min-width: anchor-size(width); width: max-content; max-width: min(380px, calc(100vw - 24px));
+    max-height: min(56vh, 420px); overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .35) transparent;
+    background: rgba(14, 18, 30, .94); border: 1px solid var(--cg-line);
+    -webkit-backdrop-filter: var(--cg-blur); backdrop-filter: var(--cg-blur);
+    border-radius: 0; box-shadow: none;
+  }
+  .ui-widget select::picker(select) { width: anchor-size(width); max-width: anchor-size(width); } /* у панелі меню — рівно по ширині списку, не виступає за панель */
+  select option {
+    box-sizing: border-box; display: flex; align-items: center; gap: 8px; padding: 6px 10px; min-height: var(--ctl-h);
+    white-space: normal; overflow-wrap: anywhere; line-height: 1.25; font-size: var(--ctl-fs); cursor: default;
+    background-color: transparent !important; color: var(--cg-ink, #f6f8fb) !important;
+  }
+  select option:hover, select option:focus-visible { background-color: var(--cg-fill-strong) !important; outline: 0; }
+  select option:checked { background-color: rgba(255, 255, 255, .12) !important; }
+  select option::checkmark { content: "✓"; order: 1; margin-left: auto; font-size: 11px; opacity: .8; }
+  select option:not(:checked)::checkmark { content: none; }
+  select optgroup { padding-block: 2px; }
+  select optgroup > legend, select optgroup::before { font-size: 11px; letter-spacing: .04em; color: #9fb0cb; }
+  select option:disabled { opacity: .55; }
+}
+
+/* однаковий вигляд полів і кнопок усюди: поле дати в шапці, кроки календаря й прості кнопки (↑ ↓ у пріоритетах тощо) —
+   той самий напівпрозорий фон і тонка рамка, що й у решти елементів керування */
+#site-header .header-middle #calendar-input { background: var(--cg-fill-faint); border-color: var(--cg-line-soft); color: var(--cg-ink); }
+#site-header .header-middle .cal-steps { background: var(--cg-fill-faint); border-color: var(--cg-line-soft); }
+#site-header .header-middle .cal-steps button { background: transparent; color: var(--cg-ink); }
+:is(#view, .ui-widget, .ui-dock) button:not([class]):not(:disabled) {
+  background: var(--cg-fill-faint); border: 1px solid var(--cg-line-soft); color: var(--cg-ink);
+}
+:is(#view, .ui-widget, .ui-dock) button:not([class]):not(:disabled):hover { background: var(--cg-fill-strong); color: #fff; }
+
+/* Одне й те саме скло на всіх сторінках: панелі «Підбору» (форма й порада ШІ) мали синій градієнт, розмиття 20 px й іншу рамку —
+   тепер, як і в решти панелей, прозоре забілення, те саме розмиття й світла рамка */
+#view :is(.ui-widget, .side-panel, .advice, .workspace-results) {
+  background: var(--cg-fill) !important; background-image: none !important;
+  border: 1px solid var(--cg-line) !important; box-shadow: none !important;
+  backdrop-filter: var(--cg-blur) !important; -webkit-backdrop-filter: var(--cg-blur) !important;
+}
+
+/* ---------- Типографіка: одна шкала на всіх сторінках ----------
+   Підписи полів — 12 px (як сам текст у полях), підказки — 12 px, заголовки блоків — 15 px, підзаголовки й назви груп — 13 px,
+   назви панелей — 13 px. Колір — лише з токенів (--cg-ink, --cg-muted): раніше кожна сторінка мала власний розмір і відтінок. */
+:root { --fs-s: 12px; --fs-m: 13px; --fs-l: 15px; }
+label { font-size: var(--fs-s) !important; font-weight: 400 !important; color: var(--cg-muted) !important; }
+small, .small, .muted, .hint, p.note { font-size: var(--fs-s) !important; font-weight: 400 !important; color: var(--cg-muted) !important; }
+h2 { font-size: var(--fs-l) !important; font-weight: 700 !important; color: var(--cg-ink) !important; }
+h3, legend { font-size: var(--fs-m) !important; font-weight: 700 !important; color: var(--cg-ink) !important; }
+legend { font-weight: 600 !important; }
+.ui-widget .widget-title, .ui-dock .dock-title { font-size: var(--fs-m) !important; font-weight: 600 !important; color: var(--cg-ink) !important; }
+details:not([data-section]):not(.help-menu) > summary { font-size: var(--fs-m) !important; font-weight: 600 !important; color: var(--cg-ink) !important; }
+/* основний текст у списках, примітках і таблицях — теж зі шкали (було 15 px, 12,5 px і три відтінки) */
+:is(.ui-widget, .workspace-results, #view) li, .compare-note { font-size: var(--fs-m) !important; color: var(--cg-ink) !important; }
+dt { font-size: var(--fs-s) !important; font-weight: 400 !important; color: var(--cg-muted) !important; }
+td { font-size: var(--fs-s) !important; }
+th { font-weight: 600 !important; }
+
+/* вимкнені кнопки — один вигляд усюди (раніше: системний червонуватий з товстою рамкою, прозорий без рамки) */
+button:disabled:not(.primary) {
+  background: var(--cg-fill-faint) !important; border: 1px solid var(--cg-line-soft) !important; color: var(--cg-muted) !important;
+  opacity: .5; cursor: not-allowed;
+}
+
+/* ---------- Вирівнювання ----------
+   Заголовок результатів — на всю ширину картки (від краю до краю, як на «Місії» й «Плані»), а його текст — на одній лінії з рештою
+   вмісту (на «Підборі» він був без вильоту й стояв на 22 px правіше); повзунки без власного поля 2 px (були зсунуті відносно підписів і полів); legend груп — рядком у потоці, тож її текст
+   на одній лінії з вмістом групи (раніше вужчий на 6 px, бо стояв у розриві рамки). */
+.workspace-results > .results-heading { margin-left: -21.6px !important; margin-right: -21.6px !important; padding-left: 21.6px !important; padding-right: 21.6px !important; }
+input[type="range"] { margin: 0 !important; }
+:is(#view, .ui-widget, .ui-dock) fieldset > legend { float: left; width: 100%; box-sizing: border-box; padding: 0 0 var(--gap-s) !important; margin: 0; }
+:is(#view, .ui-widget, .ui-dock) fieldset > legend + * { clear: both; }
+
+/* ---------- Прямі кути, без світіння ----------
+   Ефект скла лишається (прозорий білуватий фон, розмиття, тонка світла рамка); прибрано: заокруглення кутів,
+   світіння (тіні, ореоли, тіні тексту), кольорові точки біля заголовків віджетів і блоків результатів. */
+*, *::before, *::after { border-radius: 0 !important; box-shadow: none !important; text-shadow: none !important; }
+/* кнопки згортання теж квадратні (раніше круглі правилом з більшою специфічністю) */
+.widget-action, .dock-toggle, .header-icon { border-radius: 0 !important; }
+/* лише маркери даних у легенді мапи лишаються круглими (це умовні знаки точок на глобусі), але без світіння */
+.marker-legend .dot, .fallback-marker { border-radius: 50% !important; }
+/* точки біля заголовків «Метрики», «Результати» тощо */
+.ui-widget .widget-title::before, .workspace-results .results-heading h2::before { content: none !important; display: none !important; }
+/* кільце фокусу — звичайний контур (раніше було світіння) */
+:focus-visible { outline: 2px solid rgba(255, 255, 255, .85) !important; outline-offset: 1px !important; }
+/* поля й кнопки: фокус — тонка рамка всередині, а не друга рамка поруч із першою */
+select:focus-visible, input:focus-visible, textarea:focus-visible, button:focus-visible, summary:focus-visible { outline: 1px solid rgba(255, 255, 255, .85) !important; outline-offset: -1px !important; }
+
+/* ---------- Логотип у куті: лише знак, без тексту ---------- */
+#site-header .brand { padding: 0 !important; background: none !important; border: 0 !important; gap: 0 !important; flex: 0 0 auto !important; }
+#site-header .brand-logo { display: block; width: 40px; height: 40px; object-fit: contain; }
+
+/* назва сайту біля лого */
+#site-header .brand { gap: 10px !important; }
+#site-header .brand-name { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #fff; white-space: nowrap; }
+@media (max-width: 1180px) { #site-header .brand-name { display: none; } }
+
+/* ---------- Єдиний простір: сцена на всю сторінку, віджети лежать прямо на ньому ----------
+   Сцени (глобус, система, поверхня) займають весь екран позаду віджетів і шапки; окремого шару-підкладки немає. */
+body.page-moon #moon-globe, body.page-system #system-view, body.page-moon #surface {
+  top: 0 !important; bottom: 0 !important; left: 0 !important; right: 0 !important;
+  background: transparent !important; border: 0 !important; box-shadow: none !important;
+}
+body[data-expanded="left"].page-moon #moon-globe, body[data-expanded="left"].page-system #system-view, body[data-expanded="left"].page-moon #surface { left: var(--scene-left) !important; }
+body[data-expanded="right"].page-moon #moon-globe, body[data-expanded="right"].page-system #system-view, body[data-expanded="right"].page-moon #surface { right: var(--scene-right) !important; }
+
+/* ---------- Плавний перехід глобус ↔ вид з поверхні ----------
+   Обидві сцени завжди в розмітці: одна гасне, інша проявляється (замість різкого display:none/block). */
+body.page-moon #surface {
+  display: block !important; opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .45s ease, visibility 0s linear .45s, left .22s ease, right .22s ease;
+}
+body.page-moon.surface-active #surface {
+  opacity: 1; visibility: visible; pointer-events: auto;
+  transition: opacity .45s ease .15s, visibility 0s, left .22s ease, right .22s ease;
+}
+body.page-moon #moon-globe { opacity: 1; transition: opacity .45s ease .15s, visibility 0s, left .18s ease, right .18s ease !important; }
+body.page-moon.surface-active #moon-globe {
+  opacity: 0; transition: opacity .45s ease, visibility 0s linear .45s, left .18s ease, right .18s ease !important;
+}
+body.page-moon > .ui-dock { transition: opacity .35s ease .1s, visibility 0s; }
+body.page-moon.surface-active > .ui-dock {
+  display: flex !important; opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .3s ease, visibility 0s linear .3s;
+}
+body.page-moon #surface .ui-surface-dock { display: flex; }
+
+/* ---------- Перехід між сторінками ----------
+   До першого кадру інтерфейс прихований (ui-pending): його знімає, коли переклад і розкладка панелей готові; тоді він плавно
+   проявляється. Між сторінками — плавне перехрещення (View Transitions), без різкої заміни. */
+html.ui-pending body > *:not(#intro):not(#starfield) { opacity: 0; }
+body > *:not(#intro):not(#starfield) { transition: opacity .25s ease; }
+@view-transition { navigation: auto; }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .25s; }
+
+/* ---------- Вступна заставка ---------- */
+#intro { display: none; }
+html.intro-pending #intro, #intro.is-leaving {
+  display: flex; position: fixed; inset: 0; z-index: 10000; align-items: center; justify-content: center;
+  background: #000; cursor: pointer; transition: background-color 1s ease;
+}
+html.intro-playing #intro { background: rgba(0, 0, 0, .75); }
+#intro video { width: min(86vmin, 720px); height: min(86vmin, 720px); object-fit: contain; pointer-events: none; }
+/* Після відблиску на ракеті: легкий спалах у місці відблиску, лого тане, затемнення знімається — інтерфейс освітлюється */
+#intro { --s: min(86vmin, 720px); }
+#intro.is-leaving { pointer-events: none; background-color: rgba(0, 0, 0, 0); transition: background-color 1.4s ease; }
+#intro video { opacity: 0; } html.intro-playing #intro video { opacity: 1; }
+#intro.is-leaving video { opacity: 0; transform: scale(1.04); transition: opacity .5s ease, transform .6s ease; }
+#intro video, #intro .intro-title, #intro .intro-flash { will-change: opacity; transform: translateZ(0); }
+.intro-title {
+  position: absolute; left: 0; right: 0; top: calc(50% + .40 * var(--s)); text-align: center; pointer-events: none;
+  font-size: clamp(14px, 2.2vmin, 22px); font-weight: 700; letter-spacing: .32em; text-transform: uppercase; color: #fff;
+  opacity: 0; padding-left: .32em;
+}
+html.intro-playing .intro-title { animation: intro-title-in .7s ease .55s forwards; }
+#intro.is-leaving .intro-title { opacity: 0; animation: none; transition: opacity .5s ease; }
+@keyframes intro-title-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.intro-flash {
+  /* розмите біле коло (без градієнтів) із центром там, де на відео блищить кінчик ракети (≈69 % ширини, 28 % висоти знака) */
+  position: absolute; pointer-events: none; opacity: 0; border-radius: 50% !important;
+  width: calc(.7 * var(--s)); height: calc(.7 * var(--s));
+  left: calc(50% + .1875 * var(--s) - .35 * var(--s)); top: calc(50% - .2208 * var(--s) - .35 * var(--s));
+  background: rgba(255, 255, 255, .45); filter: blur(calc(.09 * var(--s)));
+}
+#intro.is-leaving .intro-flash { animation: intro-flash .9s ease-out; }
+@keyframes intro-flash { 0% { opacity: 0; } 14% { opacity: 1; } 100% { opacity: 0; } }
+/* поки грає відео, сторінка схована; потім усе плавно проявляється (планети — трохи пізніше за інтерфейс) */
+html.intro-pending body > *:not(#intro):not(#starfield) { opacity: 0; }
+html.intro-reveal body > *:not(#intro):not(#starfield) { transition: opacity 1.2s ease .15s; will-change: opacity; }
+
+/* ---------- Єдиний шрифт ----------
+   Той самий моноширинний шрифт, що й у значеннях «Метрик», — для всього тексту, полів і кнопок. */
+:root { --font: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Mono", Menlo, Consolas, monospace; }
+html, body, button, input, select, textarea, optgroup, option, summary, label, table, svg text,
+*, *::before, *::after { font-family: var(--font) !important; }
 
 @media (prefers-reduced-motion: reduce) { #starfield { transition: none; } }

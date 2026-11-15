@@ -103,7 +103,7 @@ export function drawTimeline(canvas, series, cursor = null) {
   const muted = css.getPropertyValue("--muted").trim() || "#8a92a6";
   const text = css.getPropertyValue("--text").trim() || "#e6e8ee";
   g.clearRect(0, 0, w, h);
-  g.font = "11px system-ui";
+  g.font = "11px ui-monospace, 'SF Mono', 'JetBrains Mono', 'Cascadia Mono', Menlo, Consolas, monospace";
 
   const bandH = 8, bandGap = 3;
   const pad = { l: 40, r: 8, t: 14, b: 20 + BANDS.length * (bandH + bandGap) };

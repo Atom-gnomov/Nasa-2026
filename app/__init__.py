@@ -1,5 +1,8 @@
 """Lunar Site Explorer — вебзастосунок для порівняння місць і дат посадки на Місяці."""
 
+import hashlib
+from pathlib import Path
+
 from flask import Flask
 
 from app.config import Config
@@ -14,6 +17,24 @@ def create_app(config_object: type[Config] = Config) -> Flask:
     from app.routes.pages import bp as pages_bp
 
     app.register_blueprint(pages_bp)
+
+    # Хеш вмісту в URL статичних файлів (?v=…): браузер бере їх із кешу, а після зміни файлу завантажує заново.
+    hashes: dict[tuple[str, int, int], str] = {}
+
+    @app.url_defaults
+    def add_static_hash(endpoint, values):
+        # JS-модулі без хешу: їх імпортують одне в одного за звичайним URL, а різні URL створили б два екземпляри модуля
+        if endpoint != "static" or "v" in values or not values.get("filename") or values["filename"].endswith(".js"):
+            return
+        path = Path(app.static_folder or "") / values["filename"]
+        try:
+            st = path.stat()
+        except OSError:
+            return
+        key = (str(path), st.st_mtime_ns, st.st_size)
+        if key not in hashes:
+            hashes[key] = hashlib.md5(path.read_bytes(), usedforsecurity=False).hexdigest()[:10]
+        values["v"] = hashes[key]
     app.register_blueprint(api_bp, url_prefix="/api")
 
     @app.errorhandler(404)

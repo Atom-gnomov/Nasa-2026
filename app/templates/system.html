@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Система — Lunar Site Explorer{% endblock %}
+{% block title %}Система — Lunar Mission Builder{% endblock %}
 {% block content %}
 <section class="system-layout">
   <div class="system-toolbar">
@@ -13,6 +13,7 @@
       <button type="button" data-focus="earth">Земля</button>
       <button type="button" data-focus="moon">Місяць</button>
       <button type="button" data-focus="moonview" title="Камера на лінії Земля → Місяць: видно справжню фазу">Місяць із Землі</button>
+      <button type="button" data-focus="rocket" disabled title="Камера біля ракети в справжньому масштабі: на майданчику чи в симуляції польоту">Ракета</button>
     </div>
     <label>Масштаб
       <select id="system-scale">

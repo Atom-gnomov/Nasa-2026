@@ -314,6 +314,65 @@ def transfer_arc_timed(r_moon_km, v_moon_km_s, tof_days: float, params: Transfer
     return point, points, times, speeds
 
 
+def low_energy_arc(r_moon_km, v_moon_km_s, tof_days: float | None = None, params: TransferParams = DEFAULT_PARAMS,
+                   n: int = 96) -> tuple[dict, np.ndarray, np.ndarray, np.ndarray]:
+    """Схема найекономнішого маршруту (G17): довга еліптична траса до апогею далеко за Місяцем і назад до Місяця.
+
+    Це **схема в задачі двох тіл** (Земля), а не розрахунок баллістичного перельоту через гравітацію Сонця (WSB):
+    апогей підбирається так, щоб траса вдруге перетнула орбіту Місяця рівно через `tof_days` (за замовчуванням середня
+    тривалість `TRAJECTORIES["low_energy"]`), а площина й орієнтація — так, щоб у цей момент апарат був у Місяця
+    (площина орбіти Місяця, рух за Місяцем). Повертає (інфо, точки, час від відльоту с, швидкість км/с); інфо —
+    Δv розгону з паркувальної орбіти, апогей, велика піввісь, C3. Відрізняється від прямого перельоту формою,
+    тривалістю й Δv.
+    """
+    if n < 2:
+        raise ValueError("Потрібно щонайменше 2 точки")
+    lo_d, hi_d = TRAJECTORIES["low_energy"]["duration_days"]
+    tof = float(tof_days) if tof_days is not None else (lo_d + hi_d) / 2.0
+    r_m = np.asarray(r_moon_km, dtype=float)
+    v_m = np.asarray(v_moon_km_s, dtype=float)
+    h_hat = np.cross(r_m, v_m)
+    h_hat = h_hat / np.linalg.norm(h_hat)
+    rm = float(np.linalg.norm(r_m))
+    rp = R_EARTH_KM + params.parking_altitude_km
+
+    def crossing(ra: float) -> tuple[float, float, float, float]:
+        """Час (с) від перигею до перетину орбіти Місяця на низхідній гілці, істинна аномалія, a, e."""
+        a, e = (rp + ra) / 2.0, (ra - rp) / (ra + rp)
+        cos_e = (1.0 - rm / a) / e
+        ecc_a = math.acos(max(-1.0, min(1.0, cos_e)))
+        ecc_d = 2.0 * math.pi - ecc_a
+        t = (ecc_d - e * math.sin(ecc_d)) * math.sqrt(a**3 / GM_EARTH)
+        nu_a = math.acos(max(-1.0, min(1.0, (cos_e - e) / (1.0 - e * cos_e))))
+        return t, 2.0 * math.pi - nu_a, a, e
+
+    lo, hi = rm * 1.05, 2.0e7  # км; тривалість зростає з апогеєм
+    for _ in range(200):
+        mid = (lo + hi) / 2.0
+        if crossing(mid)[0] / 86400.0 < tof:
+            lo = mid
+        else:
+            hi = mid
+    ra = (lo + hi) / 2.0
+    t_cross, nu_d, a, e = crossing(ra)
+    r_hat = r_m / rm
+    perp = np.cross(h_hat, r_hat)
+    p_hat = r_hat * math.cos(nu_d) - perp * math.sin(nu_d)  # перигей так, щоб на ν_d апарат був у напрямку Місяця
+    q_hat = np.cross(h_hat, p_hat)
+    nu = np.linspace(0.0, nu_d, n)
+    radius = a * (1 - e**2) / (1 + e * np.cos(nu))
+    points = radius[:, None] * (np.cos(nu)[:, None] * p_hat + np.sin(nu)[:, None] * q_hat)
+    ecc = np.unwrap(2.0 * np.arctan2(math.sqrt(1 - e) * np.sin(nu / 2), math.sqrt(1 + e) * np.cos(nu / 2)))
+    mean_anomaly = ecc - e * np.sin(ecc)
+    times = (mean_anomaly - mean_anomaly[0]) * math.sqrt(a**3 / GM_EARTH)
+    times = times * (tof * 86400.0 / times[-1])
+    speeds = np.sqrt(GM_EARTH * (2.0 / radius - 1.0 / a))
+    v_circ = math.sqrt(GM_EARTH / rp)
+    info = {"tof_days": tof, "dv_tli_m_s": (float(speeds[0]) - v_circ) * 1000.0, "apogee_km": ra, "semi_major_km": a,
+            "eccentricity": e, "c3_km2_s2": -GM_EARTH / a, "arrival_speed_km_s": float(speeds[-1])}
+    return info, points, times, speeds
+
+
 # --- з ефемеридами ---------------------------------------------------------------------------------------------
 
 

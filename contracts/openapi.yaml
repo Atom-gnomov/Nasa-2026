@@ -345,6 +345,7 @@ paths:
         - {name: markers, in: query, description: "0 — без маркерів (легша відповідь)", schema: {type: string, enum: ["0", "1", "false", "true"], default: "1"}}
         - {name: launch_site, in: query, description: "id з /launch-sites або auto (оптимальна точка старту): додає в extras ракету, траєкторію й модуль; для auto — також трасу площини відльоту й зведення вибору", schema: {type: string}}
         - {name: criterion, in: query, description: "Для launch_site=auto: fuel — економія пального (чекати вікна з найменшим нахилом), speed — швидкість (старт одразу, переліт 3 доби)", schema: {type: string, enum: [fuel, speed], default: fuel}}
+        - {name: trajectory, in: query, description: "Маршрут перельоту для польоту: direct — прямий (3–5 діб), low_energy — найекономніший (схема ≈ 105 діб: довга траса через апогей; G17)", schema: {type: string, enum: [direct, low_energy], default: direct}}
         - {name: launch_scope, in: query, description: "Для launch_site=auto: spaceports — космодроми каталогу, any — довільна точка Землі", schema: {type: string, enum: [spaceports, any], default: spaceports}}
       responses:
         "200":
@@ -2196,6 +2197,7 @@ components:
       properties:
         kind: {const: trajectory}
         id: {type: string}
+        route: {type: string, enum: [direct, low_energy], description: Який маршрут показано (G17)}
         frame: {const: icrf_geocentric_km}
         points_km:
           type: array

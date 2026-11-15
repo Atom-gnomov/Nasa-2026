@@ -18,7 +18,7 @@ export function parseFlightValue(value) {
 }
 
 // Запит сцени з польотом; null — політ вимкнено.
-export function flightUrl(value, ms, lat = null, lon = null) {
+export function flightUrl(value, ms, lat = null, lon = null, route = "direct") {
   const choice = parseFlightValue(value);
   if (!choice || !Number.isFinite(ms)) return null;
   const params = new URLSearchParams({
@@ -32,6 +32,7 @@ export function flightUrl(value, ms, lat = null, lon = null) {
     params.set("lat", String(lat));
     params.set("lon", String(lon));
   }
+  if (route === "low_energy") params.set("trajectory", "low_energy"); // G17: економний маршрут — інша траса й тривалість
   return `/api/scene?${params}`;
 }
 
@@ -80,6 +81,7 @@ export function choiceFact(extras, maxAlternatives = 3) {
 export function needsReload(prev, next, stepMs = 6 * 3600000) {
   if (!prev) return Boolean(next.siteId);
   if (prev.siteId !== next.siteId || prev.lat !== next.lat || prev.lon !== next.lon) return true;
+  if ((prev.route ?? "direct") !== (next.route ?? "direct")) return true; // інший маршрут — нова траса
   return Boolean(next.siteId) && Math.abs(prev.ms - next.ms) > stepMs;
 }
 
@@ -177,6 +179,13 @@ export function interpSystem(samples, ms) {
   };
 }
 
+// Крок відліків залежить від тривалості: щогодини, але не більше maxSamples відліків (економний маршрут ≈ 105 діб — раз на ~15 год;
+// Місяць і Сонце між відліками інтерполюються).
+export function sampleStepMs(totalS, maxSamples = 168) {
+  const hour = 3600000;
+  return Math.max(hour, Math.ceil((Math.max(0, Number(totalS) || 0) * 1000) / maxSamples / hour) * hour);
+}
+
 // Відліки часу для польоту: від відльоту до прибуття щогодини (+ кінець).
 export function sampleTimes(departureMs, totalS, stepMs = 3600000) {
   const end = departureMs + totalS * 1000;
@@ -256,4 +265,11 @@ export function burnSummaryRows(burn) {
   if (!validBurn(burn)) return [];
   return [["Розгін TLI", `${fmtDuration(burn.duration_s)}, ${g1(burn.accel_start_g)} → ${g1(burn.accel_end_g)} g`],
     ["Заповненість ракети", `${Math.round(burn.utilization * 100)} %${burn.overloaded ? " ⚠" : ""}`]];
+}
+
+// Швидкість симуляції (с польоту на 1 с реального часу) за тривалістю перельоту: щоб переліт займав ≈ 20 с реальних.
+export const SPEED_CHOICES = [3600, 14400, 43200, 86400, 259200];
+export function defaultSimSpeed(tofS) {
+  const want = Math.max(0, Number(tofS) || 0) / 20;
+  return SPEED_CHOICES.find((v) => v >= want) ?? SPEED_CHOICES[SPEED_CHOICES.length - 1];
 }

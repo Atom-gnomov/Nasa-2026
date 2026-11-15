@@ -256,7 +256,8 @@ def scene():
     try:
         return jsonify(models3d.scene(when, lat, lon, markers, request.args.get("launch_site") or None,
                                      request.args.get("criterion", "fuel"),
-                                     request.args.get("launch_scope", "spaceports")))
+                                     request.args.get("launch_scope", "spaceports"),
+                                     request.args.get("trajectory", "direct")))
     except models3d.LaunchSiteNotFound as exc:
         return _error(404, str(exc))
     except ValueError as exc:  # невідомі criterion / launch_scope

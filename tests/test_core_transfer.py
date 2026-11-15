@@ -215,3 +215,19 @@ def test_transfer_arc_timed_matches_time_of_flight_and_energy():
     assert np.all(np.diff(times) > 0)
     assert speeds[0] > 10.0 and speeds[-1] < 1.0  # від ~10,9 км/с на старті до ~0,2–0,5 біля Місяця
     assert np.all(np.diff(speeds) < 0.05)  # без зростання за дугою до апогею
+
+
+def test_low_energy_arc_is_a_different_long_route_ending_at_the_moon():
+    r_moon, v_moon = np.array([384400.0, 0.0, 0.0]), np.array([0.0, 1.022, 0.0])
+    info, pts, times, speeds = tr.low_energy_arc(r_moon, v_moon, 105.0, n=60)
+    direct_pt, direct_pts, direct_times, _ = tr.transfer_arc_timed(r_moon, v_moon, 4.0, n=60)
+    assert len(pts) == len(times) == len(speeds) == 60
+    assert times[0] == 0 and times[-1] == pytest.approx(105.0 * 86400.0)
+    assert np.linalg.norm(pts[-1] - r_moon) < 5.0  # кінець траси — у Місяця
+    assert np.linalg.norm(pts[0]) == pytest.approx(R_EARTH_KM + 185.0, rel=1e-3)
+    assert info["apogee_km"] > 1.0e6  # далеко за орбітою Місяця (≈ 384 тис. км)
+    assert np.max(np.linalg.norm(pts, axis=1)) > 3 * np.linalg.norm(r_moon)
+    assert times[-1] > 20 * direct_times[-1]  # переліт у десятки разів довший за прямий
+    assert 3000.0 < info["dv_tli_m_s"] < 3300.0
+    assert speeds[0] > 10.0 and speeds.min() < 1.0  # швидкість падає до мінімуму біля апогею
+    assert np.all(np.diff(times) > 0)

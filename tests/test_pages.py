@@ -144,3 +144,10 @@ def test_consistency_page_is_step_9_of_the_wizard(client):
     assert "js/consistency.js" in html and 'id="site-header"' in html
     assert "workspace-results" in html and 'class="results-heading"' in html
     assert 'id="moon-globe"' not in html
+
+
+def test_saved_plans_panel_is_in_the_wizard_bar_of_every_page(client):
+    for path in ("/moon", "/mission", "/plan", "/consistency", "/report"):
+        html = client.get(path).get_data(as_text=True)
+        assert 'id="mp-plans"' in html and "js/saved_plans.js" in html, path
+        assert "mp-plans-save" in html and "mp-plans-export" in html and "mp-plans-import" in html, path

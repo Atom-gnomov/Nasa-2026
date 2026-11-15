@@ -529,3 +529,9 @@ html, body, button, input, select, textarea, optgroup, option, summary, label, t
 
 /* Крок 7: рекомендована для мети позиція каталогу (F26) */
 .eq-row.recommended strong { color: var(--cg-ink); }
+
+/* Збережені плани (F30) */
+.mp-plans-list { list-style: none; margin: var(--gap-s) 0; padding: 0; display: grid; gap: 6px; max-height: 40vh; overflow: auto; }
+.mp-plans-list li { display: grid; gap: 2px; padding: 6px var(--gap-s); border: 1px solid var(--cg-line-soft); background: var(--cg-fill-faint); font-size: var(--fs-s); }
+.mp-plan-btns { display: flex; gap: 6px; margin-top: 2px; }
+.mp-plans-io { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--gap-s); }

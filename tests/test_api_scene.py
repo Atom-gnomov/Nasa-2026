@@ -145,3 +145,21 @@ def test_scene_flight_without_point_has_no_lander_and_unknown_site_is_404(client
 def test_system_page_has_flight_control(client):
     html = client.get("/system/earth-moon").get_data(as_text=True)
     assert 'id="system-flight"' in html and 'data-fact="flight"' in html
+
+
+def test_scene_route_choice_changes_the_flight(client):
+    base = "/api/scene?datetime=2027-07-01T00:00Z&launch_site=kourou&markers=0"
+    fast = client.get(base).get_json()
+    slow = client.get(base + "&trajectory=low_energy").get_json()
+    assert_valid(api_validator("Scene"), slow)
+    f = next(e for e in fast["extras"] if e["kind"] == "trajectory")
+    s = next(e for e in slow["extras"] if e["kind"] == "trajectory")
+    assert f["route"] == "direct" and s["route"] == "low_energy" and s["id"] == "transfer-low-energy"
+    assert f["tof_days"] <= 5.0 and 90.0 <= s["tof_days"] <= 120.0
+    assert s["times_s"][-1] == pytest.approx(s["tof_days"] * 86400.0, rel=1e-3)
+    reach = lambda t: max(sum(c * c for c in p) ** 0.5 for p in t["points_km"])  # noqa: E731
+    assert reach(s) > 3 * reach(f)
+    assert s["arrival_utc"] > f["arrival_utc"] and s["departure_utc"] == f["departure_utc"]
+    end = s["points_km"][-1]
+    assert sum((a - b) ** 2 for a, b in zip(end, s["moon_at_arrival_km"], strict=True)) ** 0.5 < 10.0
+    assert client.get(base + "&trajectory=teleport").status_code == 400

@@ -13,10 +13,10 @@ import { bindSky } from "./starfield.js";
 import { mountQualitySelect, qualitySettings } from "./three/quality.js";
 import { getState, setState, subscribe } from "./state.js";
 import { loadBurn, loadLead } from "./selection.js";
-import { effectiveSite, loadLaunch, saveLaunch } from "./pipeline.js";
+import { effectiveSite, effectiveTrajectory, loadLaunch, saveLaunch } from "./pipeline.js";
 import {
   AUTO_OPTIONS, DESCENT_REAL_S, choiceFact, descentRows, descentState, flightFact, flightUrl, interpSystem, needsReload,
-  BURN_REAL_S, burnRows, burnSummaryRows, remapNearMoon, sampleTimes, splitExtras, stateAt, telemetryRows, validBurn,
+  BURN_REAL_S, burnRows, defaultSimSpeed, burnSummaryRows, remapNearMoon, sampleStepMs, sampleTimes, splitExtras, stateAt, telemetryRows, validBurn,
 } from "./flight.js";
 import { t } from "./i18n.js";
 
@@ -409,17 +409,24 @@ async function main() {
     }
   }).catch(() => {});
 
+  // G17: маршрут перельоту — спільний вибір (швидкий — прямий, економний — довга траса); змінює траєкторію й симуляцію
+  const routeSelect = $("system-trajectory");
+  if (routeSelect) routeSelect.value = effectiveTrajectory(loadLaunch(), loadLead());
+  routeSelect?.addEventListener("change", () => { saveLaunch({ trajectory: routeSelect.value }); loadFlight(simMs, true); });
+
   async function loadFlight(ms, force = false) {
     const { lat, lon } = getState();
-    const next = { siteId: flightSelect?.value || "", ms, lat, lon };
+    const next = { siteId: flightSelect?.value || "", ms, lat, lon, route: routeSelect?.value || "direct" };
     if (!next.siteId) { flight = null; flightReq = next; return; }
     if (flightLoading || (!force && !needsReload(flightReq, next))) return;
     flightLoading = true;
     flightReq = next;
     try {
-      const res = await fetch(flightUrl(next.siteId, ms, lat, lon));
+      const res = await fetch(flightUrl(next.siteId, ms, lat, lon, next.route));
       const body = await res.json();
       flight = res.ok ? splitExtras(body.extras) : null;
+      const tof = flight?.trajectory?.times_s?.at(-1);
+      if (tof && $("system-sim-speed")) $("system-sim-speed").value = String(defaultSimSpeed(tof)); // довгий переліт — швидший час
       if (!res.ok) $("system-note").textContent = `Політ: ${body.detail ?? res.status}`;
     } catch { flight = null; } finally { flightLoading = false; }
   }
@@ -443,7 +450,8 @@ async function main() {
   // Відліки стану системи (щогодини від відльоту до прибуття) — Місяць і Сонце рухаються плавно, без запитів у кадрі
   async function prepareSamples(traj) {
     const t0 = Date.parse(traj.departure_utc);
-    const times = sampleTimes(t0, traj.times_s[traj.times_s.length - 1]);
+    const total = traj.times_s[traj.times_s.length - 1];
+    const times = sampleTimes(t0, total, sampleStepMs(total));
     const samples = [];
     for (let i = 0; i < times.length; i += 20) {
       const chunk = await Promise.all(times.slice(i, i + 20).map((ms) => fetchSystem(ms).then((st) => ({ ms, state: st }))));

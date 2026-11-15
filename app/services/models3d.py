@@ -9,7 +9,7 @@ tools/build_globe_textures.py у data_cache/), звідки вони, під я�
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import numpy as np
@@ -17,6 +17,7 @@ from flask import current_app
 from skyfield.api import wgs84
 
 from app.core import frames, launch, transfer
+from app.core.launch import TRAJECTORIES
 from app.core import launch_optimum as launch_optimum_core
 from app.core.constants import R_EARTH_KM, R_MOON_KM, R_SUN_KM
 from app.core.ephemeris import get_ephemeris
@@ -138,7 +139,7 @@ def _iso(dt: datetime) -> str:
 
 
 def _flight_extras(when: datetime, launch_site_id: str, lat: float | None, lon: float | None,
-                   criterion: str = "fuel", scope: str = "spaceports") -> list[dict]:
+                   criterion: str = "fuel", scope: str = "spaceports", route: str = "direct") -> list[dict]:
     """Ракета на майданчику, траєкторія прямого перельоту й модуль у вибраній точці (П-5, G9).
 
     `launch_site_id="auto"` — оптимальна точка старту (П-12): найкращий космодром або довільна точка Землі за
@@ -170,22 +171,40 @@ def _flight_extras(when: datetime, launch_site_id: str, lat: float | None, lon: 
             raise LaunchSiteNotFound(f"Місце старту {launch_site_id} не знайдено")
         best = min(transfer_cache.dv_curve(when_utc, FLIGHT_TOF_DAYS), key=lambda p: p.dv_total_m_s)
         inclination = launch.best_inclination_deg(site["lat"], best.min_parking_inclination_deg)
-    r_m, v_m = transfer.moon_state_icrf(eph, best.arrival_utc)
-    _, points, times_s, speeds = transfer.transfer_arc_timed(r_m, v_m, best.tof_days, n=96)
+    if route == "low_energy":  # G17: економний маршрут — інша траса, тривалість і Δv (схема задачі двох тіл)
+        depart_at = departure if launch_site_id == "auto" else when_utc
+        arrival_at = depart_at + timedelta(days=sum(TRAJECTORIES["low_energy"]["duration_days"]) / 2.0)
+        r_m, v_m = transfer.moon_state_icrf(eph, arrival_at)
+        info, points, times_s, speeds = transfer.low_energy_arc(r_m, v_m, n=140)
+        leg = {"departure_utc": _iso(depart_at), "arrival_utc": _iso(arrival_at),
+               "tof_days": round(info["tof_days"], 2),
+               "dv_tli_m_s": round(info["dv_tli_m_s"], 1), "c3_km2_s2": round(info["c3_km2_s2"], 3),
+               "dv_loi_m_s": round(max(0.0, transfer_cache.transfer_options(depart_at)["low_energy"].dv_total_m_s[0]
+                                       - info["dv_tli_m_s"]), 1),
+               "route": "low_energy", "id": "transfer-low-energy",
+               "note": ("Найекономніший маршрут (схема в задачі двох тіл): довга траса через апогей далеко за "
+                        "Місяцем, переліт ≈ 105 діб; реальний баллістичний переліт (WSB) враховує й тяжіння Сонця")}
+    else:
+        r_m, v_m = transfer.moon_state_icrf(eph, best.arrival_utc)
+        _, points, times_s, speeds = transfer.transfer_arc_timed(r_m, v_m, best.tof_days, n=96)
+        leg = {"departure_utc": _iso(best.departure_utc), "arrival_utc": _iso(best.arrival_utc),
+               "tof_days": best.tof_days, "dv_tli_m_s": round(best.dv_tli_m_s, 1),
+               "dv_loi_m_s": round(best.dv_loi_m_s, 1), "c3_km2_s2": round(best.c3_km2_s2, 3), "route": "direct",
+               "id": "transfer-direct",
+               "note": "Прямий переліт зі старту (TLI); дуга — задача двох тіл від паркувальної орбіти 185 км до "
+                       "центру Місяця в площині його орбіти; ділянку виведення не показано"}
     dep = launch.site_departure(site["lat"], inclination)
     extras = [
         {"kind": "rocket", "id": f"rocket-{site['id']}", "site_id": site["id"], "name": site["name"],
          "lat": site["lat"], "lon": site["lon"], "unit_itrs": _earth_unit(site["lat"], site["lon"])},
-        {"kind": "trajectory", "id": "transfer-direct", "frame": "icrf_geocentric_km",
+        {"kind": "trajectory", "id": leg["id"], "route": leg["route"], "frame": "icrf_geocentric_km",
          "points_km": [[round(float(c), 1) for c in p] for p in points],
          "times_s": [round(float(x), 1) for x in times_s], "speeds_km_s": [round(float(x), 4) for x in speeds],
-         "departure_utc": _iso(best.departure_utc), "arrival_utc": _iso(best.arrival_utc),
-         "tof_days": best.tof_days, "dv_tli_m_s": round(best.dv_tli_m_s, 1), "dv_loi_m_s": round(best.dv_loi_m_s, 1),
-         "c3_km2_s2": round(best.c3_km2_s2, 3), "moon_at_arrival_km": [round(float(c), 1) for c in r_m],
+         "departure_utc": leg["departure_utc"], "arrival_utc": leg["arrival_utc"],
+         "tof_days": leg["tof_days"], "dv_tli_m_s": leg["dv_tli_m_s"], "dv_loi_m_s": leg["dv_loi_m_s"],
+         "c3_km2_s2": leg["c3_km2_s2"], "moon_at_arrival_km": [round(float(c), 1) for c in r_m],
          "launch_site_id": site["id"], "inclination_deg": round(float(inclination), 3),
-         "windows_per_day": dep.windows_per_day,
-         "note": "Прямий переліт зі старту (TLI); дуга — задача двох тіл від паркувальної орбіти 185 км до центру "
-                 "Місяця в площині його орбіти; ділянку виведення не показано"},
+         "windows_per_day": dep.windows_per_day, "note": leg["note"]},
         *extras_extra,
     ]
     if lat is not None and lon is not None:
@@ -195,7 +214,10 @@ def _flight_extras(when: datetime, launch_site_id: str, lat: float | None, lon: 
 
 
 def scene(when: datetime, lat: float | None = None, lon: float | None = None, markers: bool = True,
-          launch_site: str | None = None, criterion: str = "fuel", launch_scope: str = "spaceports") -> dict:
+          launch_site: str | None = None, criterion: str = "fuel", launch_scope: str = "spaceports",
+          route: str = "direct") -> dict:
+    if route not in TRAJECTORIES:
+        raise ValueError(f"trajectory: допустимо {', '.join(TRAJECTORIES)}")
     state = system.system_state(when)
     manifest = {b["id"]: b for b in models_manifest()["bodies"]}
     sun = np.asarray(state["sun_km"])
@@ -224,6 +246,6 @@ def scene(when: datetime, lat: float | None = None, lon: float | None = None, ma
         "markers": _markers() if markers else {"earth": [], "moon": []},
         "selected": _selected(lat, lon, when) if lat is not None and lon is not None else None,
         # ракета, траєкторія й модуль (пропозиція П-5, G9) — лише коли задано launch_site
-        "extras": _flight_extras(when, launch_site, lat, lon, criterion, launch_scope) if launch_site else [],
+        "extras": _flight_extras(when, launch_site, lat, lon, criterion, launch_scope, route) if launch_site else [],
     }
     return result

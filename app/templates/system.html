@@ -23,12 +23,17 @@
     </label>
     <label title="Справжній шлях тіла з DE440 за ±½ періоду (пунктир) поверх оскулюючого еліпса"><input type="checkbox" id="system-path"> Справжній шлях</label>
     <label data-step="8" title="Звідки летіти до вибраної точки Місяця: оптимально (паливо чи швидкість; космодроми чи будь-яка точка Землі) або з вибраного космодрому. Траєкторія, Місяць у момент прибуття, ракета, траса площини відльоту й модуль">Політ із <select id="system-flight"><option value="">— вимкнено —</option></select></label>
+    <label data-step="8" title="Маршрут перельоту: швидкий — прямий (3–5 діб); економний — найекономніша траса через апогей далеко за Місяцем (схема, ≈ 105 діб). Змінює траєкторію й симуляцію польоту">Маршрут
+      <select id="system-trajectory"><option value="direct">швидкий (прямий)</option><option value="low_energy">економний (≈ 105 діб)</option></select>
+    </label>
     <span class="time-controls" id="system-sim-controls">
       <button type="button" id="system-sim" disabled title="Запустити політ ракети вздовж показаної траєкторії: вектор швидкості й телеметрія">Симуляція</button>
       <select id="system-sim-speed" aria-label="Швидкість симуляції польоту">
         <option value="3600">1 год/с</option>
         <option value="14400" selected>4 год/с</option>
         <option value="43200">12 год/с</option>
+        <option value="86400">1 доба/с</option>
+        <option value="259200">3 доби/с</option>
       </select>
     </span>
     <label title="Режим якості 3D; зберігається на цьому пристрої">Якість <select id="quality-select"></select></label>

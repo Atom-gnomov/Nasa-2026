@@ -236,6 +236,8 @@ function initSystem() {
   const flight = toolbar?.querySelector("#system-flight")?.closest("label");
   if (focus) left.append(focus);
   if (flight) left.append(flight);
+  const route = toolbar?.querySelector("#system-trajectory")?.closest("label"); // G17: маршрут поряд із вибором польоту
+  if (route) left.append(route);
   const point = element("p", "muted small", "Оберіть об'єкт або параметри польоту. Місце посадки можна вибрати на Місяці.");
   left.append(point);
   // Пере-використовуємо наявний графік /api/timeline для вибраної точки.

@@ -1,5 +1,11 @@
 {
   "strings": {
+    "немає варіанта запуску": "no launch option",
+    "Майданчик скинуто на «підібрати автоматично»: у каталозі немає ракети, що стартує з нього.": "Launch site reset to “select automatically”: no rocket in the catalog launches from it.",
+    "немає відомого майданчика": "no known launch site",
+    "не стартує з обраного майданчика": "does not launch from the chosen site",
+    "Майданчик скинуто на «підібрати автоматично»: вибрана ракета з нього не стартує.": "Launch site reset to “select automatically”: the chosen rocket does not launch from it.",
+    "Ракету скинуто на «підібрати автоматично»: вона не стартує з обраного майданчика або для неї немає майданчика.": "Rocket reset to “select automatically”: it does not launch from the chosen site, or it has no known site.",
     "Адміністративний параметр, на розрахунки не впливає.": "Administrative parameter, does not affect calculations.",
     "Підставляє тип місії, тривалість і пріоритети «Підбору».": "Sets the mission type, duration and “Selection” priorities.",
     "Район, дата й точка посадки": "Region, date and landing point",
@@ -200,7 +206,6 @@
     "виконано": "met",
     "м'які": "soft",
     "не перевірено": "unchecked",
-    "немає варіанта, що вміщує масу": "no option fits the mass",
     "діб": "days",
     "кг": "kg",
     "На Місяці": "On the Moon",

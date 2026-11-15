@@ -88,9 +88,27 @@ export function launchChoiceFromPlan(plan) {
   return { site: l.site.id, vehicle: l.vehicle.id, trajectory: l.trajectory, departure: plan.route?.departure_utc?.slice(0, 10) ?? "" };
 }
 
+// Сумісність ракети й майданчика: ракета без відомих майданчиків недоступна для плану, вибір одного звужує інше.
+// systems — /api/launch-systems (launch_site_ids), vehicle — id або "any", site — id або "".
+export function launchCompat(systems, vehicle, site) {
+  const usable = systems.filter((v) => v.capacity_basis);
+  const sitesOf = (v) => v.launch_site_ids ?? [];
+  const chosen = vehicle && vehicle !== "any" ? usable.find((v) => v.id === vehicle) : null;
+  return {
+    vehicleReason(id) { // null — можна; інакше що не так
+      const v = usable.find((x) => x.id === id);
+      if (!v) return null;
+      if (!sitesOf(v).length) return "no-site";
+      return site && !sitesOf(v).includes(site) ? "other-site" : null;
+    },
+    siteOk: (id) => (chosen ? sitesOf(chosen).includes(id) : usable.some((v) => sitesOf(v).includes(id))),
+  };
+}
+
 // Дата й час старту: «2026-12-05 14:22 UTC»; без точного моменту (немає вікна запуску) — лише дата.
-export function launchMoment(plan) {
-  const iso = plan?.route?.departure_utc;
+// Дату старту дає календар (посадка − переліт) і без ракети, тож без варіанта запуску беремо її з відповіді плану.
+export function launchMoment(plan, fallbackIso = null) {
+  const iso = plan?.route?.departure_utc ?? (plan?.launch ? null : fallbackIso);
   if (!iso) return "—";
   const date = iso.slice(0, 10), time = iso.slice(11, 16);
   return plan.launch_windows_utc?.length && time !== "00:00" ? `${date} ${time} UTC` : date;
@@ -112,8 +130,8 @@ export function planRows(response) {
         `${fmt(p.score_pct, 1)} %`,
         requirementsText(p.requirements),
         launch ? launch.site.name : "—",
-        launchMoment(p),
-        launch ? launch.vehicle.name : t("немає варіанта, що вміщує масу"),
+        launchMoment(p, response.departure_utc),
+        launch ? launch.vehicle.name : t("немає варіанта запуску"),
         fillText(launch),
         launch ? launch.trajectory : "—",
         launch ? `${fmt(launch.duration_days[0], 1)}–${fmt(launch.duration_days[1], 1)} ${t("діб")}` : "—",
@@ -235,8 +253,44 @@ function init() {
   const launch = loadLaunch();
   $("plan-trajectory").value = launch.trajectory === "low_energy" ? "low_energy" : "direct";
   $("plan-trajectory").addEventListener("change", (e) => { if (!e.target.disabled) saveLaunch({ trajectory: e.target.value }); });
-  $("plan-vehicle").addEventListener("change", (e) => saveLaunch({ vehicle: e.target.value }));
-  $("plan-site").addEventListener("change", (e) => saveLaunch({ site: e.target.value }));
+  // Ракета й майданчик узгоджуються: вибір одного вимикає несумісне в іншому, а несумісний вибір скидається на «автоматично»
+  let systems = [], sitesLoaded = false;
+  const compatNote = (text) => { $("plan-compat-note").textContent = text; $("plan-compat-note").hidden = !text; };
+  const REASON = { "no-site": "немає відомого майданчика", "other-site": "не стартує з обраного майданчика" };
+  function applyCompat() {
+    const compat = launchCompat(systems, $("plan-vehicle").value, plainSite($("plan-site").value) ? $("plan-site").value : "");
+    for (const o of $("plan-vehicle").options) {
+      if (o.value === "any") continue;
+      const reason = compat.vehicleReason(o.value);
+      o.disabled = reason !== null;
+      o.textContent = reason ? `${o.dataset.name} (${t(REASON[reason])})` : o.dataset.name;
+    }
+    for (const o of $("plan-site").options) if (o.value) o.disabled = !compat.siteOk(o.value);
+  }
+  // changed: що змінив користувач ("vehicle" | "site"); "init" — збережений вибір при завантаженні (майданчик має перевагу).
+  // Проходимо двічі: скидання одного може зробити несумісним інше; усі скидання називаємо в підказці.
+  function resolveCompat(changed) {
+    const notes = [];
+    for (let pass = 0; pass < 2; pass++) {
+      const vehicle = $("plan-vehicle").value, site = plainSite($("plan-site").value) ? $("plan-site").value : "";
+      const compat = launchCompat(systems, vehicle, site);
+      const reason = vehicle !== "any" ? compat.vehicleReason(vehicle) : null;
+      if (site && !launchCompat(systems, "any", "").siteOk(site)) { // з майданчика не стартує жодна ракета каталогу
+        $("plan-site").value = ""; saveLaunch({ site: "" });
+        notes.push(t("Майданчик скинуто на «підібрати автоматично»: у каталозі немає ракети, що стартує з нього."));
+      } else if (reason === "other-site" && changed === "vehicle") { // нова ракета не стартує з майданчика — скидаємо майданчик
+        $("plan-site").value = ""; saveLaunch({ site: "" });
+        notes.push(t("Майданчик скинуто на «підібрати автоматично»: вибрана ракета з нього не стартує."));
+      } else if (reason) { // ракета без майданчика або не з цього майданчика — скидаємо ракету
+        $("plan-vehicle").value = "any"; saveLaunch({ vehicle: "any" });
+        notes.push(t("Ракету скинуто на «підібрати автоматично»: вона не стартує з обраного майданчика або для неї немає майданчика."));
+      } else break;
+    }
+    compatNote(notes.join(" "));
+    applyCompat();
+  }
+  $("plan-vehicle").addEventListener("change", (e) => { saveLaunch({ vehicle: e.target.value }); resolveCompat("vehicle"); });
+  $("plan-site").addEventListener("change", (e) => { saveLaunch({ site: e.target.value }); resolveCompat("site"); });
   $("plan-research").addEventListener("change", () => renderRequirements());
 
   // Вимоги до місця посадки — з «Підбору» (читаємо щоразу, коли повертаємось на вкладку)
@@ -261,14 +315,23 @@ function init() {
   syncProfile();
   fetch("/api/launch-systems").then((r) => r.json()).then((list) => {
     const sel = $("plan-vehicle");
-    for (const v of list.filter((x) => x.capacity_basis)) sel.append(new Option(v.name, v.id));
+    systems = list;
+    for (const v of list.filter((x) => x.capacity_basis)) {
+      const option = new Option(v.name, v.id);
+      option.dataset.name = v.name;
+      sel.append(option);
+    }
+    for (const o of sel.options) o.dataset.name ??= o.textContent;
     if (launch.vehicle !== "any" && [...sel.options].some((o) => o.value === launch.vehicle)) sel.value = launch.vehicle;
+    if (sitesLoaded) resolveCompat("init"); else applyCompat();
   }).catch(() => {});
   fetch("/api/launch-sites").then((r) => r.json()).then((list) => {
     const sel = $("plan-site");
     for (const x of list) sel.append(Object.assign(new Option(x.name.split(" (")[0], x.id), {}));
     const chosen = plainSite(launch.site);
     if (chosen && [...sel.options].some((o) => o.value === chosen)) sel.value = chosen;
+    sitesLoaded = true;
+    if (systems.length) resolveCompat("init"); else applyCompat();
   }).catch(() => {});
   onLangChange(() => { if (last) render(last); });
 }

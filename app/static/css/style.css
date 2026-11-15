@@ -229,9 +229,10 @@ button.primary:disabled { opacity: 0.6; cursor: progress; }
 .results-table td.supply-shortage, .results-table tr.supply-shortage td:first-child { color: #ff7b7b; font-weight: 600; }
 .size-row { grid-template-columns: minmax(130px, 1.3fr) minmax(50px, 1fr) 76px; font-size: 13px; }
 
-/* G12/G16: телеметрія польоту — плаваючий віджет угорі сцени (переноситься в .system-host скриптом), видно без прокрутки */
+/* G12/G16: телеметрія польоту — плаваючий віджет угорі сцени (переноситься в .system-host скриптом), видно без прокрутки;
+   відступ — від низу шапки (з розгорнутими кроками вона вища), щоб картка не ховалась під нею */
 #flight-telemetry:not([hidden]) {
-  position: absolute; left: 50%; transform: translateX(-50%); top: 44px; z-index: 6; width: min(420px, 92%);
+  position: absolute; left: 50%; transform: translateX(-50%); top: calc(var(--header-h, 58px) + 14px); z-index: 6; width: min(420px, 92%);
   padding: 8px 14px; border: 1px solid var(--border); border-radius: 12px; background: rgba(12, 14, 22, 0.88);
   backdrop-filter: blur(6px); max-height: 38vh; overflow-y: auto;
 }

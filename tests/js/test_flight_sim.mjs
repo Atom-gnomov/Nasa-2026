@@ -219,3 +219,21 @@ test("камера під маршрут: відстань = охоплення 
   assert.ok(f.fitDistance(1900) > 1100); // довша за типовий «Огляд» (1100) — кадр розширюється
   assert.ok(f.fitDistance(300) < 1100);  // прямий політ вміщується в типовий кадр
 });
+
+test("час сцени на розгоні йде до моменту відльоту; швидкість часу наростає плавно, без стрибка", () => {
+  const t0 = Date.parse("2026-12-05T00:00:00Z");
+  assert.equal(f.burnSceneMs(t0, 1), t0); // розгін закінчується відльотом
+  assert.equal(f.burnSceneMs(t0, 0), t0 - f.BURN_LEAD_S * 1000);
+  assert.ok(f.burnSceneMs(t0, 0.3) < f.burnSceneMs(t0, 0.6)); // час тече вперед, а не стоїть
+  assert.equal(f.burnSceneMs(t0, 5), t0); // поза межами — затиснуто
+  const from = f.burnTimeRate(), target = 86400;
+  assert.equal(f.rampedSpeed(from, target, 0), from); // перелітний час стартує зі швидкості розгону
+  assert.equal(f.rampedSpeed(from, target, f.TIME_RAMP_S), target);
+  assert.equal(f.rampedSpeed(from, target, 99), target);
+  let prev = from;
+  for (let s = 0.25; s <= f.TIME_RAMP_S; s += 0.25) { // монотонно й без великих кроків між сусідніми кадрами
+    const v = f.rampedSpeed(from, target, s);
+    assert.ok(v >= prev && v - prev < (target - from) * 0.25, `s=${s}`);
+    prev = v;
+  }
+});

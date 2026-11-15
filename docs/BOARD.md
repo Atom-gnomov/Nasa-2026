@@ -96,8 +96,8 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Сварог
 
-- **Зараз:** V1 — перевірка порад ШІ на справжньому TokenHarbor (👀 PR #95)
-- **Гілка:** `svarog/V1-advice-real-service`
+- **Зараз:** —
+- **Гілка:** —
 
 ### Стрибог
 

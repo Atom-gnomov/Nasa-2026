@@ -2019,12 +2019,24 @@ components:
 
     EquipmentCatalog:
       type: object
-      required: [version, description, delivery_usd_per_kg, delivery_source, items, parameters]
+      required: [version, description, delivery_usd_per_kg, delivery_source, stages, items, parameters]
       properties:
         version: {type: integer}
         description: {type: string}
         delivery_usd_per_kg: {$ref: "#/components/schemas/Range2"}
         delivery_source: {type: object, additionalProperties: true}
+        stages:
+          type: array
+          description: "Етапи вибору спорядження (за плануванням місій NASA): назва з науковим терміном і що входить"
+          items:
+            type: object
+            required: [id, name, includes]
+            properties:
+              id: {type: string}
+              name: {type: string}
+              name_en: {type: string}
+              includes: {type: string}
+              includes_en: {type: string}
         items:
           type: array
           items:
@@ -2033,6 +2045,8 @@ components:
             properties:
               id: {type: string}
               name: {type: string}
+              name_en: {type: string}
+              stage: {type: string}
               kind: {type: string}
               mass_kg: {$ref: "#/components/schemas/Range2"}
               power_w: {oneOf: [{$ref: "#/components/schemas/Range2"}, {type: "null"}]}

@@ -240,12 +240,8 @@ test("своя маса категорії й позиції каталогу: �
   assert.deepEqual(f.equipmentItems, { viper_rover: 3, many: 50 });
   const breakdown = { life_support: [{ key: "consumables", kg: 100 }, { key: "shield", kg: 0 }, { key: "fixed", kg: 300 }] };
   const rows = m.breakdownRows(breakdown, "life_support");
-  assert.equal(rows.length, 2); assert.match(rows[0][0], /Витратні/); assert.equal(rows[0][1], "100 кг");
+  assert.equal(rows.length, 2); assert.match(rows[0][0], /Витратні матеріали \(consumables\)/); assert.equal(rows[0][1], "100 кг");
   assert.deepEqual(m.breakdownRows(null, "comfort"), []);
-  const cat = { parameters: [{ id: "oxygen_kg_per_person_day", range: [0.61, 1.08], sources: [{ title: "BVAD", url: "https://x/", quote: "q" }] },
-                             { id: "habitat_kg_per_m3", range: [9.16, 137.3], sources: [{ title: "BVAD", url: "https://y/", quote: "w" }] }] };
-  const src = m.sourceRows(cat, "life_support");
-  assert.equal(src.length, 1); assert.equal(src[0].range, "0,6–1,1"); assert.equal(src[0].url, "https://x/");
   const item = { mass_kg: [10, 15], power_w: [30, 195], supply_power_w: 40000 };
   const info = m.itemInfo(item, [1e6, 1.2e6]);
   assert.match(info, /маса 10–15 кг/); assert.match(info, /доставка ≈ \$10–18 млн/); assert.match(info, /30–195 Вт/); assert.match(info, /дає 40 кВт/);

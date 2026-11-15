@@ -16,7 +16,7 @@
   "items": [
     {
       "id": "clps_instrument",
-      "name": "Науковий прилад CLPS (початковий)",
+      "name": "Науковий прилад комерційної посадки (CLPS)",
       "kind": "instrument",
       "mass_kg": [
         10,
@@ -33,11 +33,12 @@
         "kind": "primary",
         "quote": "estimated to weigh between 10 and 15 kg"
       },
-      "name_en": "CLPS science instrument (initial)"
+      "name_en": "Science instrument on a commercial lander (CLPS)",
+      "stage": "science"
     },
     {
       "id": "viper_rover",
-      "name": "Ровер VIPER (з масою доставки)",
+      "name": "Планетохід-розвідник ресурсів VIPER",
       "kind": "rover",
       "mass_kg": [
         475,
@@ -54,11 +55,12 @@
         "kind": "primary",
         "quote": "deliver VIPER at a weight of 475 kilograms (1,047 pounds) to the lunar surface"
       },
-      "name_en": "VIPER rover (delivery mass)"
+      "name_en": "VIPER resource-prospecting rover",
+      "stage": "mobility"
     },
     {
       "id": "trident_drill",
-      "name": "Бур TRIDENT (PRIME-1)",
+      "name": "Бур-пробовідбірник реголіту й льоду TRIDENT",
       "kind": "drill",
       "mass_kg": [
         21.3,
@@ -78,11 +80,12 @@
         "kind": "primary",
         "quote": "The full drill payload has a mass of 21.3 kg. It uses 30 W power idle, 100 W when augering, and 195 W in percussive drilling mode."
       },
-      "name_en": "TRIDENT drill (PRIME-1)"
+      "name_en": "TRIDENT regolith and ice drill",
+      "stage": "isru"
     },
     {
       "id": "fsp_reactor",
-      "name": "Реактор Fission Surface Power (40 кВт(е))",
+      "name": "Реактор поверхневої енергетики Fission Surface Power, 40 кВт(е)",
       "kind": "power",
       "mass_kg": [
         6000,
@@ -99,7 +102,59 @@
         "kind": "primary",
         "quote": "40kWe Output; High Assay Low Enriched Uranium; 6,000kg Mass Target"
       },
-      "name_en": "Fission Surface Power reactor (40 kWe)"
+      "name_en": "Fission Surface Power reactor, 40 kWe",
+      "stage": "power"
+    }
+  ],
+  "stages": [
+    {
+      "id": "power",
+      "name": "Етап 1. Енергетика поверхні (Surface Power)",
+      "name_en": "Stage 1. Surface Power",
+      "includes": "Джерело енергії: ядерний реактор (Fission Surface Power) або сонячні батареї з накопичувачами енергії; розподіл і перетворення електроенергії (power management and distribution).",
+      "includes_en": "Power source: fission reactor (Fission Surface Power) or solar arrays with energy storage; power management and distribution."
+    },
+    {
+      "id": "mobility",
+      "name": "Етап 2. Мобільність (Mobility)",
+      "name_en": "Stage 2. Mobility",
+      "includes": "Планетоходи: безгерметичний (Lunar Terrain Vehicle) і герметичний (pressurized rover), планетохід-розвідник; шасі, привід, навігація.",
+      "includes_en": "Rovers: unpressurized (Lunar Terrain Vehicle), pressurized, and prospecting rovers; chassis, drive, navigation."
+    },
+    {
+      "id": "isru",
+      "name": "Етап 3. Розвідка й використання ресурсів на місці (Resource Prospecting and ISRU)",
+      "name_en": "Stage 3. Resource Prospecting and ISRU",
+      "includes": "Буріння й відбір проб, аналіз летких речовин (volatiles); виробництво кисню й води з реголіту (in-situ resource utilization).",
+      "includes_en": "Drilling and sampling, volatiles analysis; production of oxygen and water from regolith (in-situ resource utilization)."
+    },
+    {
+      "id": "science",
+      "name": "Етап 4. Наукове навантаження (Science Payloads)",
+      "name_en": "Stage 4. Science Payloads",
+      "includes": "Прилади, що доставляються посадковими апаратами: сейсмометри, ретрорефлектори, камери, спектрометри.",
+      "includes_en": "Instruments delivered by landers: seismometers, retroreflectors, cameras, spectrometers."
+    },
+    {
+      "id": "comms",
+      "name": "Етап 5. Зв'язок і навігація (Communications and Navigation)",
+      "name_en": "Stage 5. Communications and Navigation",
+      "includes": "Радіоканал Земля–Місяць (direct-to-Earth), ретранслятор, навігаційні маяки (LunaNet). Позицій із масою в каталозі поки немає — додайте масу в «Додаткова маса».",
+      "includes_en": "Earth–Moon radio link (direct-to-Earth), relay, navigation beacons (LunaNet). No items with mass in the catalog yet: add the mass in “Extra mass”."
+    },
+    {
+      "id": "eva",
+      "name": "Етап 6. Позакорабельна діяльність (Extravehicular Activity, EVA)",
+      "name_en": "Stage 6. Extravehicular Activity (EVA)",
+      "includes": "Скафандр (spacesuit) із ранцевою системою життєзабезпечення (PLSS), шлюз (airlock), ручні інструменти. Позицій із масою в каталозі поки немає — додайте масу в «Додаткова маса».",
+      "includes_en": "Spacesuit with a portable life support system (PLSS), airlock, hand tools. No items with mass in the catalog yet: add the mass in “Extra mass”."
+    },
+    {
+      "id": "logistics",
+      "name": "Етап 7. Логістика (Logistics and Cargo)",
+      "name_en": "Stage 7. Logistics and Cargo",
+      "includes": "Запасні частини, контейнери, вантажні платформи. Позицій із масою в каталозі поки немає — додайте масу в «Додаткова маса».",
+      "includes_en": "Spare parts, containers, cargo platforms. No items with mass in the catalog yet: add the mass in “Extra mass”."
     }
   ]
 }

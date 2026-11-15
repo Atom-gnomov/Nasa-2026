@@ -334,35 +334,16 @@ export function logRows(cs, maxRows = 40) {
 
 // ---------- Виноски: що куди входить і за якими джерелами (П-14) ----------
 export const BREAKDOWN_LABELS = {
-  level_estimate: "Оцінка за рівнем", custom: "Ваше значення", catalog_items: "Позиції з каталогу NASA", extra: "Додаткова маса",
-  consumables: "Витратні: кисень, вода, їжа", fixed: "Обладнання життєзабезпечення", shield: "Захист від радіації",
-  habitat_shell: "Оболонка житлового об'єму", daily_goods: "Гігієна, одяг, дозвілля",
+  level_estimate: "Оцінка за рівнем повзунка", custom: "Ваше значення", catalog_items: "Обрані позиції спорядження",
+  extra: "Додаткова маса", consumables: "Витратні матеріали (consumables): кисень, питна вода, їжа",
+  fixed: "Система життєзабезпечення й контролю середовища (ECLSS)", shield: "Радіаційний захист (radiation shielding)",
+  habitat_shell: "Герметичний житловий об'єм (pressurized habitat)", daily_goods: "Побут екіпажу: гігієна, одяг, дозвілля",
+  panels: "Сонячні батареї (solar arrays)", batteries: "Накопичувачі енергії (energy storage)",
+  structure: "Конструкція посадкового модуля (lander structure)", margin: "Запас маси (mass growth allowance)",
 };
-export const PARAM_LABELS = {
-  oxygen_kg_per_person_day: "Кисень, кг на людину на добу", water_kg_per_person_day: "Вода, кг на людину на добу",
-  food_kg_per_person_day: "Їжа з упаковкою, кг на людину на добу", habitat_kg_per_m3: "Маса оболонки, кг на м³",
-  habitable_volume_m3_per_person: "Житловий об'єм, м³ на людину", equipment_mass_kg: "Маса наукового обладнання, кг (приклади NASA)",
-};
-export const CATEGORY_PARAMS = {
-  equipment: ["equipment_mass_kg"],
-  life_support: ["oxygen_kg_per_person_day", "water_kg_per_person_day", "food_kg_per_person_day"],
-  comfort: ["habitable_volume_m3_per_person", "habitat_kg_per_m3"],
-};
-
 // «З чого складається»: рядки [назва, маса] за payload.breakdown категорії.
 export function breakdownRows(breakdown, category) {
   return (breakdown?.[category] ?? []).filter((r) => r.kg > 0.05).map((r) => [t(BREAKDOWN_LABELS[r.key] ?? r.key), fmtKg(r.kg)]);
-}
-
-// Що кажуть документи NASA: рядки {label, range, unit, title, url, quote} за джерельними параметрами категорії.
-export function sourceRows(catalog, category) {
-  const ids = CATEGORY_PARAMS[category] ?? [];
-  return (catalog?.parameters ?? []).filter((p) => ids.includes(p.id)).map((p) => {
-    const s = p.sources[0] ?? {};
-    const [lo, hi] = p.range;
-    return { label: t(PARAM_LABELS[p.id] ?? p.id), range: lo === hi ? NUM1.format(lo) : `${NUM1.format(lo)}–${NUM1.format(hi)}`,
-             title: s.title ?? "", url: s.url ?? "", quote: s.quote ?? "" };
-  });
 }
 
 // Позиція каталогу: маса, споживання, потужність, яку вона дає, і доставка на Місяць за ціною NASA OIG.
@@ -477,40 +458,36 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
       const body = $(`m-callout-${key}-body`);
       const parts = body.querySelector(".callout-parts");
       parts.replaceChildren(...breakdownRows(r.payload.breakdown, key).map(([name, kg]) => li(`${name}: ${kg}`)));
-      const src = body.querySelector(".callout-sources");
-      src.replaceChildren(...sourceRows(catalog, key).map((s) => {
-        const a = Object.assign(document.createElement("a"), { href: s.url, target: "_blank", rel: "noopener", textContent: t("джерело"), title: s.quote });
-        return li(`${s.label}: ${s.range} — `, a);
-      }));
     }
     $("m-eq-total").textContent = equipmentSummary(r.equipment);
   }
 
+  const lang = (uk, en) => (getLang() === "en" ? en ?? uk : uk);
   function renderCatalog() {
-    const box = $("m-eq-list");
     const price = catalog.delivery_usd_per_kg;
-    box.replaceChildren(...catalog.items.map((item) => {
-      const row = document.createElement("div");
-      row.className = "eq-row";
-      const name = Object.assign(document.createElement("strong"), { textContent: getLang() === "en" ? (item.name_en ?? item.name) : item.name });
-      const count = Object.assign(document.createElement("input"), { type: "number", min: 0, max: 50, step: 1, inputMode: "numeric",
-        value: form.equipmentItems[item.id] ?? 0, id: `m-eq-${item.id}` });
-      count.setAttribute("aria-label", t("Кількість"));
-      count.addEventListener("input", () => {
-        const n = clamp(Math.round(num(count.value, 0)), 0, 50);
-        if (n > 0) form.equipmentItems[item.id] = n; else delete form.equipmentItems[item.id];
-        schedule();
-      });
-      const info = Object.assign(document.createElement("span"), { className: "muted small", textContent: itemInfo(item, price) });
-      const a = Object.assign(document.createElement("a"), { href: item.source.url, target: "_blank", rel: "noopener",
-        textContent: t("джерело"), title: item.source.quote });
-      row.append(name, count, info, a);
-      return row;
-    }));
-    $("m-eq-source").replaceChildren(
-      document.createTextNode(`${t("Доставка 1 кг на Місяць")}: ${fmtUsdAny(price)} — `),
-      Object.assign(document.createElement("a"), { href: catalog.delivery_source.url, target: "_blank", rel: "noopener",
-        textContent: t("джерело"), title: catalog.delivery_source.quote }));
+    const nodes = [];
+    for (const stage of catalog.stages) {
+      const head = Object.assign(document.createElement("h5"), { textContent: lang(stage.name, stage.name_en) });
+      const includes = Object.assign(document.createElement("p"), { className: "muted small", textContent: lang(stage.includes, stage.includes_en) });
+      nodes.push(head, includes);
+      for (const item of catalog.items.filter((x) => x.stage === stage.id)) {
+        const row = document.createElement("div");
+        row.className = "eq-row";
+        const name = Object.assign(document.createElement("strong"), { textContent: lang(item.name, item.name_en) });
+        const count = Object.assign(document.createElement("input"), { type: "number", min: 0, max: 50, step: 1, inputMode: "numeric",
+          value: form.equipmentItems[item.id] ?? 0, id: `m-eq-${item.id}` });
+        count.setAttribute("aria-label", t("Кількість"));
+        count.addEventListener("input", () => {
+          const n = clamp(Math.round(num(count.value, 0)), 0, 50);
+          if (n > 0) form.equipmentItems[item.id] = n; else delete form.equipmentItems[item.id];
+          schedule();
+        });
+        const info = Object.assign(document.createElement("span"), { className: "muted small", textContent: itemInfo(item, price) });
+        row.append(name, count, info);
+        nodes.push(row);
+      }
+    }
+    $("m-eq-list").replaceChildren(...nodes);
   }
 
   function renderSupplies(r) {

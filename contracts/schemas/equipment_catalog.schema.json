@@ -4,7 +4,7 @@
   "title": "Каталог обладнання з документів NASA (app/data/equipment_catalog.json)",
   "description": "П-14: позиції обладнання для категорії «Обладнання» — маса й потужність з документів NASA, дослівна цитата й посилання. Власної ціни позиції джерела не дають: ціну доставки на Місяць рахуємо за оцінкою NASA OIG (delivery_usd_per_kg).",
   "type": "object",
-  "required": ["version", "description", "delivery_usd_per_kg", "delivery_source", "items"],
+  "required": ["version", "description", "delivery_usd_per_kg", "delivery_source", "stages", "items"],
   "additionalProperties": false,
   "properties": {
     "version": {"const": 1},
@@ -14,6 +14,21 @@
       "description": "Ціна доставки 1 кг на поверхню Місяця, $: [мін, макс]"
     },
     "delivery_source": {"$ref": "#/$defs/source"},
+    "stages": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Етапи вибору спорядження (як їх розкладають у плануванні місій NASA): назва з науковим терміном і що входить",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "includes"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+          "name": {"type": "string"}, "name_en": {"type": "string"},
+          "includes": {"type": "string"}, "includes_en": {"type": "string"}
+        }
+      }
+    },
     "items": {
       "type": "array",
       "minItems": 1,
@@ -25,6 +40,7 @@
           "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
           "name": {"type": "string"},
           "name_en": {"type": "string"},
+          "stage": {"type": "string", "description": "id етапу з stages"},
           "kind": {"enum": ["instrument", "rover", "drill", "power", "comms", "other"]},
           "mass_kg": {"$ref": "#/$defs/range", "description": "[мін, макс] кг"},
           "power_w": {"oneOf": [{"$ref": "#/$defs/range"}, {"type": "null"}], "description": "Споживання [мін, макс] Вт; null — у джерелі немає"},

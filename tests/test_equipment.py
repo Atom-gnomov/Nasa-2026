@@ -34,6 +34,14 @@ def test_catalog_matches_schema_and_every_item_quotes_its_numbers():
     assert 0 < lo <= hi and "per kg" in CATALOG["delivery_source"]["quote"]
 
 
+def test_every_item_belongs_to_a_planning_stage_with_a_scientific_name():
+    stages = {s["id"]: s for s in CATALOG["stages"]}
+    assert len(stages) >= 5 and all(s["includes"] and s["name"] and s["name_en"] for s in stages.values())
+    for item in CATALOG["items"]:
+        assert item["stage"] in stages and item["name_en"], item["id"]
+    assert {"power", "mobility", "isru", "science"} <= {i["stage"] for i in CATALOG["items"]}
+
+
 def test_summarize_multiplies_by_count_and_prices_delivery():
     items = equipment.parse_items(
         [{"id": "clps_instrument", "count": 4}, {"id": "trident_drill", "count": 1}, {"id": "viper_rover", "count": 0}],
@@ -101,6 +109,7 @@ def test_equipment_catalog_endpoint(client):
     data = res.get_json()
     assert_valid(api_validator("EquipmentCatalog"), data)
     assert {i["id"] for i in data["items"]} == {i["id"] for i in CATALOG["items"]}
+    assert [s["id"] for s in data["stages"]] == [s["id"] for s in CATALOG["stages"]]
     ids = {p["id"] for p in data["parameters"]}
     assert {"oxygen_kg_per_person_day", "habitat_kg_per_m3", "equipment_mass_kg"} <= ids
     assert all(p["sources"] and p["range"] for p in data["parameters"])

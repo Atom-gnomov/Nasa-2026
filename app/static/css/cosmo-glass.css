@@ -379,6 +379,13 @@ body:not(.page-moon):not(.page-system) #view .results-table thead th {
 .eq-row > input { grid-column: 2; grid-row: 1; width: 100%; }
 .eq-row > span, .eq-row > a { grid-column: 1 / -1; }
 
+/* рядки категорій навантаження — той самий вигляд, що й повзунки запасів: підпис, повзунок + «Авто», підпис значення нижче */
+.cat-row.disabled { opacity: .45; }
+.cat-row output.size-numbers { color: var(--cg-muted); }
+.eq-list h5 { margin: var(--gap-s) 0 0; font-size: var(--fs-s); font-weight: 700; color: var(--cg-ink); }
+.eq-list p { margin: 2px 0 4px; }
+.callout .callout-includes li { margin: 0; }
+
 /* ---------- Прямі кути, без світіння ----------
    Ефект скла лишається (прозорий білуватий фон, розмиття, тонка світла рамка); прибрано: заокруглення кутів,
    світіння (тіні, ореоли, тіні тексту), кольорові точки біля заголовків віджетів і блоків результатів. */

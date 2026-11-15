@@ -273,5 +273,8 @@ def test_category_sliders_have_own_mass_inputs_and_source_callouts():
     for key in ("equipment", "life_support", "comfort"):
         for ident in (f"m-catkg-{key}", f"m-catkg-{key}-auto", f"m-callout-{key}", f"m-callout-{key}-body"):
             assert f'id="{ident}"' in html, ident
-    assert 'id="m-eq-list"' in html and 'id="m-eq-total"' in html and 'id="m-eq-source"' in html
+    assert 'id="m-eq-list"' in html and 'id="m-eq-total"' in html
+    assert "callout-sources" not in html, "джерела у виносках не розписуємо"
+    for key in ("equipment", "life_support", "comfort"):  # однаковий вигляд: підпис, повзунок, «Авто», значення нижче
+        assert re.search(rf'<div class="supply-kg-row cat-row" id="m-row-{key}">', html), key
     assert ".callout {" in CSS and ".eq-row {" in CSS and ".size-custom {" in CSS

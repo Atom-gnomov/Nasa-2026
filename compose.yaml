@@ -1,0 +1,24 @@
+# Локальний запуск і простий хостинг на одній машині: docker compose up -d --build
+# Сайт: http://localhost:8000 ; дані NASA — у томі lse-data (готуються в фоні при першому запуску).
+services:
+  web:
+    build: .
+    image: lunar-mission-builder
+    ports:
+      - "8000:8000"
+    environment:
+      WEB_CONCURRENCY: "2"
+      # Як готувати дані (README, «Змінні середовища»): pack — готовий пакет із GitHub Release; light/full — збірка зі скриптів.
+      LSE_AUTO_PREPARE: "1"
+      LSE_AUTO_PREPARE_MODE: "pack"
+      LSE_AUTO_PREPARE_DATASETS: "temperature,system"
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - lse-data:/data
+    restart: unless-stopped
+    mem_limit: 2g
+
+volumes:
+  lse-data:

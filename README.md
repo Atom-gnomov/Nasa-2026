@@ -70,6 +70,26 @@ python tools/build_temperature_data.py                  # LRO Diviner: ~3,4 ГБ
 curl "http://127.0.0.1:5000/api/metrics?lat=-89.5&lon=0&datetime=2027-07-01T00:00&height=2"
 ```
 
+### Хостинг (Docker)
+
+Образ: `Dockerfile` (Python 3.13, gunicorn, не від root). Дані NASA лежать у томі `/data` (`LSE_CACHE_DIR`), тому переживають
+перезапуск; при першому старті вони готуються в фоні, поки сайт уже працює.
+
+```bash
+docker compose up -d --build          # сайт на http://localhost:8000, дані — у томі lse-data
+# або без compose:
+docker build -t lunar-mission-builder .
+docker run -p 8000:8000 -v lse-data:/data lunar-mission-builder
+```
+
+Ресурси (замірено без даних NASA; з даними +1–2 ГБ оцінка): 2 воркери ≈ 130 МБ пам'яті. Для демо — 1 vCPU, 1–2 ГБ ОЗП, диск 2–3 ГБ
+(з готовим пакетом даних) або ≈ 10 ГБ (з сирими даними температури й глобуса). `WEB_CONCURRENCY` — кількість воркерів (типово 2),
+`PORT` — порт (типово 8000); перевірка живості — `GET /api/meta`.
+
+Готові конфіги: `fly.toml` (Fly.io: `fly launch --no-deploy --copy-config`, `fly volumes create lse_data --size 5`, `fly deploy`)
+і `render.yaml` (Render Blueprint; постійний диск є лише в платному плані). Секрети (`SECRET_KEY`) задавайте змінними середовища
+хостингу, не в файлах.
+
 ### Змінні середовища
 
 Задаються змінними середовища або файлом `.env` (він у `.gitignore`; зразок — `.env.example`). Секрети лише тут, не в коді.

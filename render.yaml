@@ -1,0 +1,26 @@
+# Render Blueprint: New → Blueprint → вкажіть цей файл. Постійний диск на Render є лише в платних планах (starter і вище);
+# на безкоштовному даних не буде (файлова система стирається при засинанні) — для демо підійде, але дані готуватимуться щоразу.
+services:
+  - type: web
+    name: lunar-mission-builder
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter
+    region: frankfurt
+    healthCheckPath: /api/meta
+    envVars:
+      - key: PORT
+        value: "8000"
+      - key: WEB_CONCURRENCY
+        value: "2"
+      - key: LSE_CACHE_DIR
+        value: /data
+      - key: LSE_AUTO_PREPARE_MODE
+        value: pack
+      - key: SECRET_KEY
+        generateValue: true
+    disk:
+      name: lse-data
+      mountPath: /data
+      sizeGB: 5

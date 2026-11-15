@@ -40,3 +40,23 @@ jobs:
 
       - name: Тести Python і JS
         run: python -m pytest -q -rs
+
+  # Образ збирається й відповідає на /api/meta: Dockerfile не розходиться з кодом (I3). Нічого не публікується.
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Збірка образу
+        run: docker build -t lunar-mission-builder .
+
+      - name: Запуск і перевірка живості
+        run: |
+          docker run -d --name lmb -p 8000:8000 -e LSE_AUTO_PREPARE=0 lunar-mission-builder
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/api/meta >/dev/null; then echo "ok"; exit 0; fi
+            sleep 2
+          done
+          docker logs lmb
+          exit 1

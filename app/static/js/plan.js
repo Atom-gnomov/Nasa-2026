@@ -41,9 +41,10 @@ export function buildPlanRequest(form, state, searchForm = null) {
   };
   if (form.profile === "crewed" && num(form.crew) !== null) body.crew = Number(form.crew);
   if (plainSite(form.launchSite)) body.launch_site_id = form.launchSite;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(form.departure ?? "")) { // дату старту вибрано у «Вікні запуску» — не перебираємо інші
-    body.departure = `${form.departure}T00:00:00Z`;
-    body.departure_days = 1;
+  // Точку посадки вже вибрано на кроці 5 — оцінюємо лише її (не шукаємо знову по області)
+  if (form.useChosenPoint !== false && state.lat != null && state.lon != null) {
+    body.landing_point = { lat: Number(state.lat), lon: Number(state.lon) };
+    if (state.site) body.landing_point.site_id = state.site;
   }
   if (form.vehicle && form.vehicle !== "any") body.vehicle = form.vehicle;
   // Календар — дата посадки, старт підлаштовується: маршрут завжди явний (швидкий — прямий, економний — ≈ 105 діб до посадки)
@@ -88,6 +89,14 @@ export function launchChoiceFromPlan(plan) {
   return { site: l.site.id, vehicle: l.vehicle.id, trajectory: l.trajectory, departure: plan.route?.departure_utc?.slice(0, 10) ?? "" };
 }
 
+// Дата й час старту: «2026-12-05 14:22 UTC»; без точного моменту (немає вікна запуску) — лише дата.
+export function launchMoment(plan) {
+  const iso = plan?.route?.departure_utc;
+  if (!iso) return "—";
+  const date = iso.slice(0, 10), time = iso.slice(11, 16);
+  return plan.launch_windows_utc?.length && time !== "00:00" ? `${date} ${time} UTC` : date;
+}
+
 // Рядки таблиці варіантів (усі значення — текст, без undefined/NaN).
 export function planRows(response) {
   return (response?.plans ?? []).map((p) => {
@@ -104,7 +113,7 @@ export function planRows(response) {
         `${fmt(p.score_pct, 1)} %`,
         requirementsText(p.requirements),
         launch ? launch.site.name : "—",
-        p.route ? p.route.departure_utc.slice(0, 10) : "—",
+        launchMoment(p),
         launch ? launch.vehicle.name : t("немає варіанта, що вміщує масу"),
         fillText(launch),
         launch ? launch.trajectory : "—",
@@ -133,7 +142,7 @@ function init() {
 
   const read = () => ({
     profile: $("plan-profile").value, crew: $("plan-crew").value, days: $("plan-days").value,
-    launchSite: $("plan-site").value, departure: loadLaunch().departure,
+    launchSite: $("plan-site").value, useChosenPoint: !$("plan-research").checked,
     vehicle: $("plan-vehicle").value, trajectory: $("plan-trajectory").value, plans: 5,
     includeDesign: $("plan-design").checked, multiLaunch: $("plan-multi").checked,
     members: prefill?.members ?? null, supplyDays: prefill?.supplyDays ?? null, reservePct: prefill?.reservePct ?? 15,
@@ -229,18 +238,14 @@ function init() {
   $("plan-trajectory").addEventListener("change", (e) => { if (!e.target.disabled) saveLaunch({ trajectory: e.target.value }); });
   $("plan-vehicle").addEventListener("change", (e) => saveLaunch({ vehicle: e.target.value }));
   $("plan-site").addEventListener("change", (e) => saveLaunch({ site: e.target.value }));
-  const renderDeparture = () => {
-    const d = loadLaunch().departure;
-    $("plan-departure-note").hidden = !d;
-    $("plan-departure-text").textContent = d ? `${t("Дата старту з «Вікна запуску»")}: ${d}` : "";
-  };
-  $("plan-departure-reset").addEventListener("click", () => { saveLaunch({ departure: "" }); renderDeparture(); });
-  renderDeparture();
-  window.addEventListener("pageshow", renderDeparture);
+  $("plan-research").addEventListener("change", () => renderRequirements());
 
   // Вимоги до місця посадки — з «Підбору» (читаємо щоразу, коли повертаємось на вкладку)
   const renderRequirements = () => {
-    const rows = requirementsSummary(loadSearchForm() ?? SEARCH_DEFAULTS);
+    const st = getState();
+    const point = st.lat != null && st.lon != null && !$("plan-research").checked ? { lat: st.lat, lon: st.lon } : null;
+    $("plan-research-row").hidden = st.lat == null || st.lon == null;
+    const rows = requirementsSummary(loadSearchForm() ?? SEARCH_DEFAULTS, point);
     $("plan-req").replaceChildren(...rows.flatMap(([name, value]) => {
       const dt = Object.assign(document.createElement("dt"), { textContent: t(name) });
       const dd = Object.assign(document.createElement("dd"), { textContent: value });

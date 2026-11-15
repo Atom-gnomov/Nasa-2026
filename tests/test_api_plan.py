@@ -181,3 +181,31 @@ def test_plan_can_be_restricted_to_one_launch_site(client):
         if p["launch"]:
             assert p["launch"]["site"]["id"] == chosen
     assert plan(client, launch_site_id="no-such-site").status_code == 400
+
+
+def test_plan_uses_the_landing_point_chosen_on_step_5(client):
+    data = plan(client, landing_point={"lat": -85.0, "lon": 30.0}, region={"lat_min": -90, "lat_max": -60}).get_json()
+    assert_valid(api_validator("PlanResponse"), data)
+    assert data["landing_source"] == "selected" and data["landing_evaluated"] == 1
+    site = data["plans"][0]["landing"]["moon_site"]
+    assert (site["lat"], site["lon"]) == (-85.0, 30.0)
+    assert len(data["plans"]) == 1
+    assert any("кроку 5" in n for n in data["notes"])
+    assert plan(client).get_json()["landing_source"] == "search"
+
+
+@pytest.mark.parametrize("point", [{"lat": 91, "lon": 0}, {"lat": 0}, {"lat": "x", "lon": 1}, "pole"])
+def test_invalid_landing_point_is_rejected(client, point):
+    assert plan(client, landing_point=point).status_code == 400
+
+
+def test_plan_gives_the_exact_launch_time_of_day(client):
+    data = plan(client, landing_point={"lat": -85.0, "lon": 30.0}).get_json()
+    p = data["plans"][0]
+    assert_valid(api_validator("PlanResponse"), data)
+    assert "launch_windows_utc" in p
+    if p["launch_windows_utc"]:  # пряма траєкторія з космодрому, що досягає площини
+        assert p["route"]["departure_utc"] == p["launch_windows_utc"][0]
+        assert p["route"]["departure_utc"][:10] == data["departure_utc"][:10]
+        assert p["route"]["departure_utc"] != data["departure_utc"]  # не опівночі, а справжній момент
+    assert not any("далеке від дати посадки" in n for n in data["notes"])

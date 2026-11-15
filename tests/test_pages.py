@@ -76,7 +76,7 @@ def test_mission_page_renders_with_tab_and_scripts(client):
     assert 'href="/mission"' in html  # вкладка «Місія» в навігації
 
 def test_workspace_shell_is_shared_by_all_pages(client):
-    paths = ("/moon", "/system", "/search", "/mission", "/plan", "/launch-window")
+    paths = ("/moon", "/system", "/search", "/mission", "/plan")
     for path in paths:
         html = client.get(path).get_data(as_text=True)
         assert 'id="site-header"' in html, path
@@ -88,7 +88,7 @@ def test_workspace_shell_is_shared_by_all_pages(client):
 
 
 def test_analytics_pages_do_not_include_moon_canvas(client):
-    for path in ("/search", "/mission", "/plan", "/launch-window"):
+    for path in ("/search", "/mission", "/plan"):
         html = client.get(path).get_data(as_text=True)
         assert 'id="moon-globe"' not in html
         assert 'class="results-heading"' in html
@@ -101,7 +101,7 @@ def test_scene_pages_preserve_both_canvas_and_controls(client):
     assert 'id="system-view"' in system and 'id="system-sim-controls"' in system
 
 def test_header_navigation_is_one_scrollable_strip(client):
-    for page in ("/moon", "/system", "/search", "/mission", "/plan", "/launch-window"):
+    for page in ("/moon", "/system", "/search", "/mission", "/plan"):
         html = client.get(page).get_data(as_text=True)
         assert 'id="header-middle"' in html
         assert 'class="header-actions"' in html
@@ -110,7 +110,7 @@ def test_header_navigation_is_one_scrollable_strip(client):
 
 
 def test_analytics_results_share_glass_panel_class(client):
-    pages = ("/search", "/mission", "/plan", "/launch-window")
+    pages = ("/search", "/mission", "/plan")
     for url in pages:
         html = client.get(url).get_data(as_text=True)
         assert "workspace-results" in html, url
@@ -119,7 +119,7 @@ def test_analytics_results_share_glass_panel_class(client):
 
 def test_orbital_glass_theme_is_included_last(client):
     """Every tab shares the same glass theme without moving layout logic."""
-    for path in ("/moon", "/system", "/search", "/mission", "/plan", "/launch-window"):
+    for path in ("/moon", "/system", "/search", "/mission", "/plan"):
         html = client.get(path).get_data(as_text=True)
         assert "css/orbital-glass.css" in html, path
         assert html.index("css/style.css") < html.index("css/workspace.css") < html.index("css/orbital-glass.css"), path

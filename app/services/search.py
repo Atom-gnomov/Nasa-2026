@@ -62,7 +62,7 @@ def _now() -> float:
     return time.monotonic()
 
 
-def search(body: dict, start: datetime, end: datetime) -> dict:
+def search(body: dict, start: datetime, end: datetime, points: list[dict] | None = None) -> dict:
     for key in NOT_SUPPORTED:
         if body.get(key):
             raise RankError(f"{key} ще не підтримується: потрібна модель запусків (задача M10)")
@@ -93,7 +93,8 @@ def search(body: dict, start: datetime, end: datetime) -> dict:
     step_deg = _num(body, "grid_step_deg", 2.0, 0.25, 30.0)
     max_candidates = int(_num(body, "max_candidates", 200, 1, grid.MAX_CANDIDATES_LIMIT))
     limit = int(_num(body, "limit", 20, 1, 100))
-    candidates = _candidates(body, step_deg, max_candidates)
+    # points — явні кандидати (напр., вибрана на кроці 5 точка): сітку не будуємо
+    candidates = list(points) if points else _candidates(body, step_deg, max_candidates)
 
     started = _now()
     summaries, sources, stations, evaluated = [], [], [], []

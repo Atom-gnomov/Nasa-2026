@@ -41,7 +41,7 @@ test("вимоги з «Підбору» → короткий опис без п
   assert.match(rows["Мін. годин Сонця"], /100/);
   assert.equal(rows["Макс. нахил"], "8°");
   assert.equal(rows["Мін. частка Землі (м'яка)"], "30 %");
-  assert.equal(rows["Пріоритети"], "comms › energy");
+  assert.equal(rows["Пріоритети"], "Зв'язок › Енергія"); // назви факторів, а не ідентифікатори
   assert.ok(!("Мін. годин зв'язку" in rows) && !("Мін. частка Сонця (м'яка)" in rows));
   assert.deepEqual(p.requirementsSummary(null), []);
 });
@@ -63,11 +63,13 @@ test("дата старту й прибуття з «Вікна запуску»
   assert.equal(bad.departure, ""); assert.equal(bad.arrival, "");
 });
 
-test("пріоритети «Вікна запуску» з «Підбору»: Енергія → світло, Зв'язок → зв'язок, далі паливо й вікна", () => {
-  const form = { priorities: [{ id: "comms", on: true }, { id: "energy", on: true }, { id: "radiation", on: true }] };
-  assert.deepEqual(p.windowPriorities(form), ["comms", "light", "fuel", "windows"]);
-  assert.deepEqual(p.windowPriorities({ priorities: [{ id: "energy", on: false }] }), ["light", "fuel", "comms", "windows"]);
-  assert.deepEqual(p.windowPriorities(null), ["light", "fuel", "comms", "windows"]);
+
+test("вимоги: вибрана на кроці 5 точка показується замість області пошуку", () => {
+  const form = { ...structuredClone(search.DEFAULT_FORM), days: 20 };
+  const rows = Object.fromEntries(p.requirementsSummary(form, { lat: -82, lon: 28.8 }));
+  assert.equal(rows["Точка посадки (крок 5)"], "-82.00°, 28.80°");
+  assert.ok(!("Область" in rows));
+  assert.ok("Область" in Object.fromEntries(p.requirementsSummary(form)));
 });
 
 test("перебування після посадки: з «Місії» для пілотованої, інакше 7 діб; межі 1…60", () => {

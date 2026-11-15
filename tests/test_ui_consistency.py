@@ -42,7 +42,7 @@ def test_no_explanatory_paragraphs_that_repeat_metrics():
     # підсумки під графіками дублювали «Метрики» — елементи лишились порожніми (для повідомлень про помилки)
     assert re.search(r'id="timeline-summary"[^>]*></p>', moon)
     assert re.search(r'id="temp-summary"[^>]*></p>', moon)
-    for name in ("_search.html", "mission.html", "plan.html", "launch_window.html"):
+    for name in ("_search.html", "mission.html", "plan.html"):
         html = TEMPLATES[name]
         heading_hint = re.search(r'<header class="results-heading"><h2>[^<]+</h2><p', html)
         assert not heading_hint, f"{name}: підказка в заголовку результатів"

@@ -1,7 +1,7 @@
 // Єдиний конвеєр вибору між вкладками (F20): вимоги до місця посадки живуть у «Підборі», вибір польоту (майданчик,
 // траєкторія, ракета) — один для «Системи», «Плану місії» й «Вікна запуску». Те, що вибрано раніше, не вводимо знову.
 // Чисті функції — без DOM; сховище — localStorage (недоступне — не ламаємо сторінки).
-import { REGIONS, STORAGE_KEY as SEARCH_KEY, buildSearchRequest, hoursText } from "./search.js";
+import { FACTOR_LABELS, REGIONS, STORAGE_KEY as SEARCH_KEY, buildSearchRequest, hoursText } from "./search.js";
 
 export const LAUNCH_KEY = "lse-launch";
 const TRAJECTORIES = ["any", "direct", "low_energy"];
@@ -21,7 +21,7 @@ export function normalizeLaunch(raw) {
   if (typeof raw.site === "string" && (/^[a-z0-9-]+$/.test(raw.site) || AUTO.test(raw.site))) out.site = raw.site;
   if (TRAJECTORIES.includes(raw.trajectory)) out.trajectory = raw.trajectory;
   if (typeof raw.vehicle === "string" && /^[a-z0-9._-]+$/i.test(raw.vehicle)) out.vehicle = raw.vehicle;
-  // «Вікно запуску» віддає далі найкращу дату старту (YYYY-MM-DD) і прибуття (ISO) — їх підхоплюють «План місії», «Мій план»
+  // Обраний у таблиці «Носій і політ» варіант віддає далі дату старту (YYYY-MM-DD) і прибуття (ISO): «Система», перевірка, звіт
   if (typeof raw.departure === "string" && ISO_DATE.test(raw.departure)) out.departure = raw.departure;
   if (typeof raw.arrival === "string" && /^\d{4}-\d{2}-\d{2}T/.test(raw.arrival)) out.arrival = raw.arrival.slice(0, 25);
   return out;
@@ -35,17 +35,7 @@ export function saveLaunch(patch) {
 }
 
 export const isAuto = (site) => AUTO.test(site ?? "");
-// Пріоритети «Вікна запуску» (light/fuel/comms/windows) за пріоритетами «Підбору»: Енергія → світло, Зв'язок → зв'язок, далі
-// паливо й вікна на добу. Перший у списку — найважливіший (ваги ROC за порядком).
-export function windowPriorities(searchForm) {
-  const map = { energy: "light", comms: "comms" };
-  const out = [];
-  for (const p of searchForm?.priorities ?? []) if (p.on && map[p.id] && !out.includes(map[p.id])) out.push(map[p.id]);
-  for (const f of ["light", "fuel", "comms", "windows"]) if (!out.includes(f)) out.push(f);
-  return out;
-}
-
-// Скільки діб після прибуття оцінювати світло й зв'язок: тривалість перебування з «Місії» (пілотована), інакше типово 7.
+// Скільки діб після прибуття враховувати (перебування): з «Місії» для пілотованої, інакше 7 діб; межі 1…60.
 export function stayDays(mission) {
   const d = Number(mission?.days);
   return mission?.crewed && Number.isFinite(d) && d >= 1 ? Math.min(60, Math.round(d)) : 7;
@@ -76,15 +66,17 @@ const regionLabel = (form) => {
 };
 
 // Короткий опис вимог із «Підбору» для «Плану місії»: [[назва, значення], …] (без полів, де вимоги немає).
-export function requirementsSummary(form) {
+export function requirementsSummary(form, point = null) {
   if (!form || typeof form !== "object") return [];
-  const rows = [["Область", regionLabel(form)], ["Період", `${form.days ?? 30} діб`]];
+  // Точка вже вибрана на кроці 5 — показуємо її замість області пошуку (повторного пошуку немає)
+  const rows = [point ? ["Точка посадки (крок 5)", `${Number(point.lat).toFixed(2)}°, ${Number(point.lon).toFixed(2)}°`]
+    : ["Область", regionLabel(form)], ["Період", `${form.days ?? 30} діб`]];
   if (form.minSunHours > 0) rows.push(["Мін. годин Сонця", hoursText(form.minSunHours)]);
   if (form.minCommHours > 0) rows.push(["Мін. годин зв'язку", hoursText(form.minCommHours)]);
   if (form.maxSlopeDeg > 0) rows.push(["Макс. нахил", `${form.maxSlopeDeg}°`]);
   if (form.minEarthPct > 0) rows.push(["Мін. частка Землі (м'яка)", `${form.minEarthPct} %`]);
   if (form.minSunPct > 0) rows.push(["Мін. частка Сонця (м'яка)", `${form.minSunPct} %`]);
-  const on = (form.priorities ?? []).filter((p) => p.on).map((p) => p.id);
+  const on = (form.priorities ?? []).filter((p) => p.on).map((p) => FACTOR_LABELS[p.id] ?? p.id);
   if (on.length) rows.push(["Пріоритети", on.join(" › ")]);
   return rows;
 }

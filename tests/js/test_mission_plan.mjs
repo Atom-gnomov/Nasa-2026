@@ -79,7 +79,7 @@ test("крок за адресою: явний ?step=, інакше типови
   assert.equal(m.stepFromLocation("/mission", ""), 2);
   assert.equal(m.stepFromLocation("/plan", ""), 8);
   assert.equal(m.stepFromLocation("/system", ""), 8);
-  assert.equal(m.stepFromLocation("/launch-window", ""), 3);
+  assert.equal(m.stepFromLocation("/moon", "?step=3"), 3); // «Дата посадки» — календар у шапці
   assert.equal(m.stepFromLocation("/moon", "", "#search"), 5);
   assert.equal(m.stepFromLocation("/moon", "", ""), null);
   assert.equal(m.stepFromLocation("/mission", "?step=99"), 2);

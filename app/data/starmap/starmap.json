@@ -1,0 +1,16 @@
+{
+ "file": "starmap.jpg",
+ "width": 4096,
+ "height": 2048,
+ "projection": "plate carrée, ICRF/J2000; пряме сходження збільшується ліворуч, 0h по центру; північ угорі",
+ "source": {
+  "page": "https://svs.gsfc.nasa.gov/4851",
+  "url": "https://svs.gsfc.nasa.gov/vis/a000000/a004800/a004851/starmap_2020_4k.exr",
+  "title": "Deep Star Maps 2020 (SVS 4851)",
+  "stars": "Hipparcos-2, Tycho-2, Gaia DR2 (≈ 1,7 млрд зір)"
+ },
+ "credit": "NASA/Goddard Space Flight Center Scientific Visualization Studio. Gaia DR2: ESA/Gaia/DPAC.",
+ "tonemap": "asinh(40·x)/asinh(40), x — лінійна яскравість EXR",
+ "bytes": 2780657,
+ "built": "2026-11-15"
+}

@@ -1,0 +1,52 @@
+/* Адаптація під телефони (F36). Підключено останнім, після cosmo-glass.css, тому перекриває десктопні правила шапки.
+   Висоту шапки вимірює workspace_ui.js (--header-h), тож висока шапка в два-три ряди сама відсуває панелі. */
+@media (max-width: 760px) {
+  /* Шапка: ряд 1 — логотип + мова/екран/довідка; ряд 2 — вкладки (гортаються); ряд 3 — дата на всю ширину */
+  #site-header.topbar { flex-wrap: wrap; gap: 4px 6px; padding: 6px 8px; align-items: center; }
+  #site-header .brand { order: 1; flex: 1 1 auto; min-width: 0; }
+  #site-header .header-actions { order: 2; flex: 0 0 auto; }
+  #site-header .header-middle { order: 3; flex: 1 1 100%; flex-wrap: wrap; overflow: visible; white-space: normal; gap: 4px; max-width: 100%; }
+  #site-header .header-middle .tabs { flex: 1 1 100%; min-width: 0; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+  #site-header .header-middle .tabs::-webkit-scrollbar { display: none; }
+  #site-header .header-middle .tabs a, #site-header .header-middle .tabs .tab-toggle { flex: 0 0 auto; padding: 10px 11px; font-size: 13px; }
+  #site-header .header-middle .calendar { flex: 1 1 100%; width: 100%; min-width: 0; max-width: 100%; gap: 4px; flex-wrap: wrap; }
+  #site-header .header-middle .calendar > label { display: none; } /* підпис дублює крок майстра; є title на полі */
+  /* дата — окремий рядок на всю ширину; кнопки кроку (назад / уперед) — двома групами під нею */
+  #site-header .header-middle #calendar-input { order: -1; flex: 1 1 100%; width: 100%; min-width: 0; max-width: none; min-height: 42px; font-size: 16px; }
+  #site-header .header-middle .cal-steps { flex: 1 1 calc(50% - 4px); min-width: 0; }
+  #site-header .header-middle .cal-steps button { flex: 1 1 0; min-height: 38px; min-width: 0; padding: 4px 2px; font-size: 12px; }
+  #site-header .header-plans { order: 4; flex: 1 1 100%; flex-wrap: wrap; }
+  #site-header .header-actions .header-icon { width: 36px; height: 36px; }
+  #site-header .header-actions .lang-switch button { padding: 8px 9px; font-size: 12px; }
+
+  /* Смуга кроків майстра: гортається в один ряд, поточний крок з назвою */
+  .mp-steps { flex: 1 1 100%; min-width: 0; max-width: 100%; }
+  .mp-chips { overflow-x: auto; max-width: 100%; }
+  .mp-chip { min-height: 36px; flex: 0 0 auto; }
+  .mp-nav { flex: 1 1 100%; }
+  .mp-nav button, .mp-summary summary { min-height: 38px; }
+  .mp-nav .mp-next { flex: 1 1 auto; }
+
+  /* Крок 1 — банер знизу екрана як панель, а не на пів-екрана поверх вмісту */
+  .mp-goal { top: auto; bottom: 8px; left: 8px; right: 8px; width: auto; max-width: none; max-height: 78vh; overflow-y: auto; margin: 0; padding: 14px; z-index: 400; }
+  .mp-goal .mp-name { font-size: 20px; padding: 10px 12px; }
+  .mp-goal .mp-goal-select { font-size: 16px; }
+  .mp-goal .mp-goal-close { width: 100%; padding: 12px; }
+
+  /* Смуга стану даних: компактна, не перекриває пів-екрана */
+  #data-banner { font-size: 11px; padding: 4px 8px; max-height: 3.6em; overflow: hidden; }
+}
+
+/* Сенсорні екрани: достатні цілі натискання; шрифт полів ≥ 16px, щоб iOS не наближав сторінку при фокусі */
+@media (pointer: coarse), (max-width: 760px) {
+  :where(.ui-widget, .ui-dock, #view, .mission-form, .lw-controls) :where(select, input:not([type="checkbox"]):not([type="radio"]):not([type="range"])) { min-height: 40px; font-size: 16px; }
+  :where(.ui-widget, .ui-dock, #view) button { min-height: 40px; }
+  :where(.ui-widget, .ui-dock, #view) input[type="checkbox"], :where(.ui-widget, .ui-dock, #view) input[type="radio"] { width: 22px; height: 22px; }
+  input[type="range"] { min-height: 32px; }
+}
+
+/* Дуже вузькі телефони */
+@media (max-width: 380px) {
+  #site-header .brand .logo { display: none; }
+  #site-header .header-middle .cal-steps button { min-width: 30px; padding: 4px 4px; }
+}

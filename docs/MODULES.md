@@ -432,7 +432,7 @@ tests/                  → тести для всіх модулів
 **Пропозиції:**
 - …
 
-## М20. Поради ШІ — ✅ (PR #24, злито)
+## М20. Поради ШІ — ❌ прибрано (F39, PR #120; нижче — історія)
 **Файли:** `app/adapters/llm.py`, `app/core/advice_check.py`, `app/services/advice.py`, блок у `_search.html` + `search.js`, тести `tests/test_api_advice.py`, `tests/test_llm_adapter.py`, `tests/test_core_advice_check.py`, `tests/test_no_secrets.py`
 **Призначення:** пояснення й поради до готових результатів пошуку. ШІ лише тлумачить числа з `facts`, нічого не рахує; усі числа відповіді перевіряються за вхідними даними (`verified`).
 

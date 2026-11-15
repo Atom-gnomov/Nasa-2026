@@ -51,6 +51,11 @@
         }
       } catch (e) {}
       d.lang = lang;
+      // Кнопка «Місії»: смуга кроків планування розгорнута або згорнута (як wizardInitial у static/js/wizard_toggle.js)
+      try {
+        var w = sessionStorage.getItem("lse-wizard"), p = location.pathname;
+        d.dataset.wizard = (w ? w === "1" : /[?&]step=\d/.test(location.search) || /^\/(mission|plan|search|launch-window|consistency|report)$/.test(p)) ? "open" : "closed";
+      } catch (e) { d.dataset.wizard = "closed"; }
       d.classList.add("ui-pending");
       var need = { i18n: 1, ui: 1 }, release = function () { d.classList.remove("ui-pending"); };
       window.__gate = function (name) { delete need[name]; for (var k in need) return; release(); };
@@ -93,10 +98,12 @@
     <nav class="tabs" aria-label="Навігація вкладок">
       <a href="{{ url_for('pages.moon') }}" class="{{ 'active' if active_tab == 'moon' }}" {% if active_tab == 'moon' %}aria-current="page"{% endif %}>Місяць</a>
       <a href="{{ url_for('pages.system') }}" class="{{ 'active' if active_tab == 'system' }}" {% if active_tab == 'system' %}aria-current="page"{% endif %}>Система</a>
-      <a href="{{ url_for('pages.search') }}" class="{{ 'active' if active_tab == 'search' }}" {% if active_tab == 'search' %}aria-current="page"{% endif %}>Підбір</a>
-      <a href="{{ url_for('pages.mission') }}" class="{{ 'active' if active_tab == 'mission' }}" {% if active_tab == 'mission' %}aria-current="page"{% endif %}>Місія</a>
-      <a href="{{ url_for('pages.plan') }}" class="{{ 'active' if active_tab == 'plan' }}" {% if active_tab == 'plan' %}aria-current="page"{% endif %}>План місії</a>
-      <a href="{{ url_for('pages.launch_window') }}" class="{{ 'active' if active_tab == 'launch' }}" {% if active_tab == 'launch' %}aria-current="page"{% endif %}>Вікно запуску</a>
+      <a href="{{ url_for('pages.search') }}" class="tab-plan {{ 'active' if active_tab == 'search' }}" {% if active_tab == 'search' %}aria-current="page"{% endif %}>Підбір</a>
+      <a href="{{ url_for('pages.mission') }}" class="tab-plan {{ 'active' if active_tab == 'mission' }}" {% if active_tab == 'mission' %}aria-current="page"{% endif %}>Місія</a>
+      <a href="{{ url_for('pages.plan') }}" class="tab-plan {{ 'active' if active_tab == 'plan' }}" {% if active_tab == 'plan' %}aria-current="page"{% endif %}>План місії</a>
+      <a href="{{ url_for('pages.launch_window') }}" class="tab-plan {{ 'active' if active_tab == 'launch' }}" {% if active_tab == 'launch' %}aria-current="page"{% endif %}>Вікно запуску</a>
+      {# Усе, що стосується планування й місій, — під однією кнопкою: розгортає 10 кроків (Підбір, Місія, План, Вікно запуску, перевірка, звіт, мої плани) #}
+      <button type="button" id="mp-toggle" class="tab-toggle" aria-expanded="false" aria-controls="mp-steps" title="Планування місії: 10 кроків від назви до звіту. Розгортає кроки планування">Місії</button>
     </nav>
     {# Календар — спільний для всіх вкладок (модуль static/js/calendar.js) #}
     <div class="calendar">
@@ -114,6 +121,30 @@
       </div>
     </div>
     </div>{# /header-middle: вкладки і дата прокручуються тільки горизонтально #}
+    <div class="header-plans" id="header-plans">
+      <details class="mp-summary">
+        <summary>Мій план</summary>
+        <div class="mp-summary-body">
+          <p class="mp-summary-empty muted small">Поки нічого не обрано. Пройдіть кроки, і тут зберуться ваші вибори.</p>
+          <dl class="mp-summary-rows"></dl>
+        </div>
+      </details>
+      {# F30 (П-14): збережені плани — знімок виборів майстра, копія для порівняння, файл обміну (static/js/saved_plans.js) #}
+      <details class="mp-summary mp-plans" id="mp-plans">
+        <summary>Мої плани</summary>
+        <div class="mp-summary-body">
+          <button type="button" class="mp-plans-save">Зберегти поточний план</button>
+          <p class="mp-plans-empty muted small">Збережених планів ще немає. Збережіть поточні вибори, щоб повернутися до них або порівняти варіанти.</p>
+          <ul class="mp-plans-list"></ul>
+          <div class="mp-plans-io">
+            <button type="button" class="mp-plans-export">Експорт у файл</button>
+            <button type="button" class="mp-plans-import">Імпорт із файлу</button>
+            <input type="file" class="mp-plans-file" accept=".json,application/json" hidden>
+          </div>
+          <p class="mp-plans-note muted small" role="status"></p>
+        </div>
+      </details>
+    </div>
     <div class="header-actions">
       <div class="seg lang-switch" role="group" aria-label="Language">
         <button type="button" data-lang="uk" title="Ukrainian">UA</button>
@@ -137,32 +168,6 @@
     {# F21 (П-14): навігація-майстер «Планування місії» — 10 кроків над наявними вкладками (static/js/mission_plan.js) #}
     <nav class="mp-steps" id="mp-steps" aria-label="Кроки планування місії">
       <div class="mp-chips" role="list"></div>
-      <div class="mp-nav" hidden>
-        <button type="button" class="mp-prev" aria-label="Попередній крок">‹</button>
-        <button type="button" class="mp-next">Підтвердити й далі ›</button>
-      </div>
-      <details class="mp-summary">
-        <summary>Мій план</summary>
-        <div class="mp-summary-body">
-          <p class="mp-summary-empty muted small">Поки нічого не обрано. Пройдіть кроки, і тут зберуться ваші вибори.</p>
-          <dl class="mp-summary-rows"></dl>
-        </div>
-      </details>
-      {# F30 (П-14): збережені плани — знімок виборів майстра, копія для порівняння, файл обміну (static/js/saved_plans.js) #}
-      <details class="mp-summary mp-plans" id="mp-plans">
-        <summary>Мої плани</summary>
-        <div class="mp-summary-body">
-          <button type="button" class="mp-plans-save">Зберегти поточний план</button>
-          <p class="mp-plans-empty muted small">Збережених планів ще немає. Збережіть поточні вибори, щоб повернутися до них або порівняти варіанти.</p>
-          <ul class="mp-plans-list"></ul>
-          <div class="mp-plans-io">
-            <button type="button" class="mp-plans-export">Експорт у файл</button>
-            <button type="button" class="mp-plans-import">Імпорт із файлу</button>
-            <input type="file" class="mp-plans-file" accept=".json,application/json" hidden>
-          </div>
-          <p class="mp-plans-note muted small" role="status"></p>
-        </div>
-      </details>
       <div class="mp-goal" hidden>
         <label>Назва місії <small class="muted">(адміністративний параметр, на розрахунки не впливає)</small>
           <input type="text" class="mp-name" maxlength="80" placeholder="Напр., «Шеклтон-1»">
@@ -237,6 +242,7 @@
 
   <script type="module" src="{{ url_for('static', filename='js/calendar.js') }}"></script>
   <script type="module" src="{{ url_for('static', filename='js/mission_plan.js') }}"></script>
+  <script type="module" src="{{ url_for('static', filename='js/wizard_toggle.js') }}"></script>
   <script type="module" src="{{ url_for('static', filename='js/saved_plans.js') }}"></script>
   <script type="module" src="{{ url_for('static', filename='js/overlay.js') }}"></script>
   <script type="module" src="{{ url_for('static', filename='js/data_status.js') }}"></script>

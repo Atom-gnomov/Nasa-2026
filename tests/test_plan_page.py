@@ -11,5 +11,5 @@ def test_plan_page(client):
 
 
 def test_tab_is_in_navigation_and_active(client):
-    assert 'href="/plan" class="active"' in client.get("/plan").get_data(as_text=True)
+    assert 'href="/plan" class="tab-plan active"' in client.get("/plan").get_data(as_text=True)
     assert 'href="/plan"' in client.get("/moon").get_data(as_text=True)

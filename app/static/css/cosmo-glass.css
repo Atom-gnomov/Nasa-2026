@@ -535,3 +535,45 @@ html, body, button, input, select, textarea, optgroup, option, summary, label, t
 .mp-plans-list li { display: grid; gap: 2px; padding: 6px var(--gap-s); border: 1px solid var(--cg-line-soft); background: var(--cg-fill-faint); font-size: var(--fs-s); }
 .mp-plan-btns { display: flex; gap: 6px; margin-top: 2px; }
 .mp-plans-io { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--gap-s); }
+
+/* ---------- Єдина кнопка «Місії»: все планування під нею ---------- */
+#mp-steps { display: none; }
+html[data-wizard="open"] #mp-steps { display: flex; }
+/* окремі вкладки планування згорнуто під кнопку «Місії»; сторінки лишаються досяжними через кроки */
+#site-header .header-middle .tabs a.tab-plan { display: none !important; }
+#site-header .header-middle .tabs .tab-toggle {
+  box-sizing: border-box; height: var(--ctl-h); padding: 0 var(--ctl-px); font-size: var(--ctl-fs); line-height: 1; border-radius: var(--ctl-r);
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; cursor: pointer;
+  background: transparent; border: 1px solid transparent; color: var(--cg-muted); font-weight: 600;
+}
+#site-header .header-middle .tabs .tab-toggle::after { content: "▾"; opacity: .7; }
+#site-header .header-middle .tabs .tab-toggle:hover:not(.active) { background: var(--cg-fill-strong); color: #fff; }
+#site-header .header-middle .tabs .tab-toggle.active { background: rgba(255, 255, 255, .92); color: #10131a; }
+#site-header .header-middle .tabs .tab-toggle.active::after { content: "▴"; }
+
+/* кроки планування — кнопки того самого вигляду, що й вкладки шапки */
+#mp-steps .mp-chip, #site-header .header-plans .mp-summary > summary {
+  box-sizing: border-box; height: var(--ctl-h); padding: 0 var(--ctl-px); font-size: var(--ctl-fs); line-height: 1; border-radius: var(--ctl-r);
+  display: inline-flex; align-items: center; gap: 6px; background: transparent; border: 1px solid transparent; color: var(--cg-muted); box-shadow: none;
+}
+#mp-steps a.mp-chip:hover, #site-header .header-plans .mp-summary > summary:hover { background: var(--cg-fill-strong); color: #fff; }
+#mp-steps .mp-chip.done, #mp-steps .mp-chip.review { color: var(--cg-muted); border-color: transparent; }
+#mp-steps .mp-chip b { border-radius: 4px; min-width: 18px; height: 18px; background: var(--cg-fill-strong); color: inherit; }
+#mp-steps .mp-chip.done b { background: #8fd18f; color: #07110a; }
+#mp-steps .mp-chip.review b { background: #ffcf6b; color: #1d1500; }
+#mp-steps .mp-chip.current { background: rgba(255, 255, 255, .92); color: #10131a; border-color: transparent; box-shadow: none; }
+#mp-steps .mp-chip.current b { background: rgba(16, 19, 26, .18); }
+#mp-steps .mp-chips { gap: 2px; }
+/* Розгорнуті кроки — окремий ряд під календарем, а не поверх нього; відступ панелей під шапкою відповідно більший */
+html[data-wizard="open"] #site-header.topbar { flex-wrap: wrap; }
+html[data-wizard="open"] { --header-h: 108px; }
+html[data-wizard="open"] #mp-steps { min-width: 0; max-width: 100%; box-sizing: border-box; }
+html[data-wizard="open"] .mp-chips { min-width: 0; }
+
+/* «Мій план» і «Мої плани» — у верхній панелі між календарем і мовою; з'являються лише в розгорнутому режимі планування */
+#site-header .header-plans { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+html[data-wizard="closed"] #site-header .header-plans { display: none; }
+#site-header .header-plans .mp-summary > summary { list-style: none; cursor: pointer; white-space: nowrap; font-weight: 600; }
+#site-header .header-plans .mp-summary > summary::-webkit-details-marker { display: none; }
+#site-header .header-plans .mp-summary[open] > summary { background: rgba(255, 255, 255, .92) !important; color: #10131a !important; }
+#site-header .header-plans .mp-summary-body { z-index: 300; }

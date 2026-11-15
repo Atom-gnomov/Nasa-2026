@@ -44,9 +44,6 @@
  "Дата старту з «Вікна запуску»": "Launch date from “Launch window”",
  "Скинути й перебирати дати": "Reset and search dates",
  "Кроки планування місії": "Mission planning steps",
- "Попередній крок": "Previous step",
- "Підтвердити й далі ›": "Confirm and next ›",
- "Підтвердити": "Confirm",
  "Мій план": "My plan",
  "Поки нічого не обрано. Пройдіть кроки, і тут зберуться ваші вибори.": "Nothing chosen yet. Go through the steps and your choices will collect here.",
  "Назва місії": "Mission name",
@@ -744,7 +741,9 @@
     "Не вмістилось: {n}.": "Did not fit: {n}.",
     "Файл не схожий на збережені плани (не JSON).": "The file does not look like saved plans (not JSON).",
     "Файл не схожий на збережені плани місій.": "The file does not look like saved mission plans.",
-    "У файлі немає жодного дійсного плану.": "The file has no valid plan."
+    "У файлі немає жодного дійсного плану.": "The file has no valid plan.",
+    "Місії": "Missions",
+    "Планування місії: 10 кроків від назви до звіту. Розгортає кроки планування": "Mission planning: 10 steps from name to report. Expands the planning steps"
   },
   "phrases": {
   "Рекомендовано {rec} діб (резерв {rp} %), заплановано {plan} діб (резерв {pp}).": "Recommended {rec} days (reserve {rp} %), planned {plan} days (reserve {pp}).",

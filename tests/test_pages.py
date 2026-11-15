@@ -151,3 +151,15 @@ def test_saved_plans_panel_is_in_the_wizard_bar_of_every_page(client):
         html = client.get(path).get_data(as_text=True)
         assert 'id="mp-plans"' in html and "js/saved_plans.js" in html, path
         assert "mp-plans-save" in html and "mp-plans-export" in html and "mp-plans-import" in html, path
+
+
+def test_mission_toggle_button_and_initial_state_are_on_every_page(client):
+    for path in ("/moon", "/system", "/search", "/mission", "/plan", "/launch-window", "/consistency", "/report"):
+        html = client.get(path).get_data(as_text=True)
+        assert 'id="mp-toggle"' in html and "js/wizard_toggle.js" in html, path
+        assert "lse-wizard" in html and "dataset.wizard" in html, path  # початковий стан до малювання, без блимання
+        assert 'id="mp-steps"' in html and 'class="tabs"' in html, path  # нічого не видалено, лише ховається
+        tabs = html[html.index('class="tabs"'):html.index('</nav>', html.index('class="tabs"'))]
+        assert 'id="mp-toggle"' in tabs, path  # єдина кнопка планування — у смузі вкладок
+        for link in ('/search', '/mission', '/plan', '/launch-window'):  # вкладки планування сховано під неї, але є
+            assert f'href="{link}"' in tabs and 'tab-plan' in tabs, (path, link)

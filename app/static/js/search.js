@@ -5,7 +5,7 @@
 // Чисті функції (без DOM) експортовано й покрито tests/js/test_search.mjs.
 import { publishHighlights } from "./highlights.js";
 import { getState, serializeUrlState, setState, subscribe } from "./state.js";
-import { t } from "./i18n.js";
+import { onLangChange, t } from "./i18n.js";
 
 const DAY_MS = 86_400_000;
 export const STORAGE_KEY = "lse-search";
@@ -359,6 +359,7 @@ if (root) {
     renderPick();
   });
   subscribe(renderPick);
+  onLangChange(renderPick); // тексти складені в коді: після завантаження словника чи перемикання мови — заново
   renderPick();
 
   renderForm();

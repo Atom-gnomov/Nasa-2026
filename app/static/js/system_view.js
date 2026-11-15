@@ -1148,10 +1148,10 @@ function renderSources(assets) {
   const items = [];
   if (assets) {
     const { sun, earth } = assets.assets;
-    items.push([`Сонце: «Sun 3D Model» (glTF), ${sun.credit}. ${sun.note}`, sun.page]);
-    items.push([`Земля: «Earth (A)», ${earth.credit}. ${earth.note}`, earth.page]);
+    items.push([`${t("Сонце")}: «Sun 3D Model» (glTF), ${sun.credit}. ${t(sun.note)}`, sun.page]);
+    items.push([`${t("Земля")}: «Earth (A)», ${earth.credit}. ${t(earth.note)}`, earth.page]);
     const rocket = assets.assets.rocket;
-    if (rocket) items.push([`Ракета: ${rocket.credit}. ${rocket.note}`, rocket.page]);
+    if (rocket) items.push([`${t("Ракета")}: ${rocket.credit}. ${t(rocket.note)}`, rocket.page]);
   } else {
     items.push(["Моделі NASA не підготовлено — запустіть python tools/build_system_assets.py; поки тіла однотонні", "https://science.nasa.gov/3d-resources/"]);
   }
@@ -1161,9 +1161,9 @@ function renderSources(assets) {
   items.push(["Станції DSN і мінімальний кут антени 10° — каталог проєкту (app/data/dsn_stations.json)", "https://www.nasa.gov/directorates/somd/space-communications-navigation-program/deep-space-network/"]);
   list.replaceChildren(...items.map(([text, href]) => {
     const li = document.createElement("li");
-    li.append(text + " — ");
+    li.append(t(text), " — ");
     const a = document.createElement("a");
-    a.href = href; a.target = "_blank"; a.rel = "noopener"; a.textContent = "джерело";
+    a.href = href; a.target = "_blank"; a.rel = "noopener"; a.textContent = t("джерело");
     li.append(a);
     return li;
   }));

@@ -14,7 +14,7 @@ import { ME_TO_GLOBE, bindSky, mul3 } from "./starfield.js";
 import { mountFallbackMap } from "./three/fallback2d.js";
 import { mountQualitySelect, qualitySettings } from "./three/quality.js";
 import { subscribeHighlights } from "./highlights.js";
-import { t as tr } from "./i18n.js";
+import { onLangChange, t as tr } from "./i18n.js";
 import { getState, setState, subscribe } from "./state.js";
 
 const ASSETS = "/assets/globe/";
@@ -559,18 +559,20 @@ function dotTexture() {
 }
 
 // ---------- Панель джерел ----------
+let sourcesLangBound = false;
 function renderSources(meta) {
   const list = $("globe-sources-list");
   if (!list) return;
+  if (!sourcesLangBound) { sourcesLangBound = true; onLangChange(() => renderSources(meta)); }
   const items = [
-    [`Колір: CGI Moon Kit 2025 (${meta.color.width}×${meta.color.height}) — LROC WAC між 70° пн. і 70° пд., ближче до полюсів — альбедо LOLA; NASA позначає карту як візуалізаційну, не наукову`, meta.color.url],
-    [`Рельєф кулі: LOLA ${meta.relief_source.id.toUpperCase()} ${meta.relief_source.product_version}, ${(meta.relief_source.resolution_m / 1000).toFixed(1)} км/піксель (PDS)`, meta.relief_source.url],
+    [tr("Колір: CGI Moon Kit 2025 ({w}×{h}) — LROC WAC між 70° пн. і 70° пд., ближче до полюсів — альбедо LOLA; NASA позначає карту як візуалізаційну, не наукову", { w: meta.color.width, h: meta.color.height }), meta.color.url],
+    [tr("Рельєф кулі: LOLA {id} {ver}, {res} км/піксель (PDS)", { id: meta.relief_source.id.toUpperCase(), ver: meta.relief_source.product_version, res: (meta.relief_source.resolution_m / 1000).toFixed(1) }), meta.relief_source.url],
     ...(meta.polar_tiles ?? []).map((t) => [
-      `Південний полюс: LOLA ${t.id.toUpperCase()} ${t.product_version}, ${t.resolution_m} м/піксель, до ${Math.abs(t.edge_lat)}° пд.; тіні — маски горизонту ${t.horizon.azimuths} азимутів до ${t.horizon.max_distance_km} км`,
+      tr("Південний полюс: LOLA {id} {ver}, {res} м/піксель, до {lat}° пд.; тіні — маски горизонту {az} азимутів до {dist} км", { id: t.id.toUpperCase(), ver: t.product_version, res: t.resolution_m, lat: Math.abs(t.edge_lat), az: t.horizon.azimuths, dist: t.horizon.max_distance_km }),
       t.url,
     ]),
     ...(meta.skipped_polar_tiles?.length ? [[
-      `Детальний рельєф південного полюса (LOLA ${meta.skipped_polar_tiles.map((t) => `${t.resolution_m} м`).join(" і ")}) вимкнено в режимі якості «низька» — увімкніть «висока»`,
+      tr("Детальний рельєф південного полюса (LOLA {res}) вимкнено в режимі якості «низька» — увімкніть «висока»", { res: meta.skipped_polar_tiles.map((t) => `${t.resolution_m} м`).join(` ${tr("і")} `) }),
       meta.skipped_polar_tiles[0].url,
     ]] : []),
     ["Висота під курсором: найдетальніший DEM LOLA з PDS (20 м / 80 м / 474 м / 1,9 км), білінійно", "https://pds-geosciences.wustl.edu/lro/lro-l-lola-3-rdr-v1/lrolol_1xxx/data/lola_gdr/"],
@@ -583,9 +585,9 @@ function renderSources(meta) {
   ];
   list.replaceChildren(...items.map(([text, href]) => {
     const li = document.createElement("li");
-    li.append(text + " — ");
+    li.append(tr(text), " — ");
     const a = document.createElement("a");
-    a.href = href; a.target = "_blank"; a.rel = "noopener"; a.textContent = "джерело";
+    a.href = href; a.target = "_blank"; a.rel = "noopener"; a.textContent = tr("джерело");
     li.append(a);
     return li;
   }));

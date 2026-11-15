@@ -11,8 +11,7 @@ const read = (key) => { try { return JSON.parse(globalThis.localStorage?.getItem
 const write = (key, value) => { try { globalThis.localStorage?.setItem(key, JSON.stringify(value)); } catch { /* не критично */ } };
 
 // ---------- Політ: майданчик, траєкторія, ракета ----------
-export const DEFAULT_LAUNCH = { site: "", trajectory: "any", vehicle: "any", departure: "", arrival: "" };
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+export const DEFAULT_LAUNCH = { site: "", trajectory: "any", vehicle: "any" };
 
 // site: "" — не вибрано; id майданчика; або "auto:<fuel|speed>:<spaceports|any>" (оптимум, як у «Системі»).
 export function normalizeLaunch(raw) {
@@ -21,9 +20,6 @@ export function normalizeLaunch(raw) {
   if (typeof raw.site === "string" && (/^[a-z0-9-]+$/.test(raw.site) || AUTO.test(raw.site))) out.site = raw.site;
   if (TRAJECTORIES.includes(raw.trajectory)) out.trajectory = raw.trajectory;
   if (typeof raw.vehicle === "string" && /^[a-z0-9._-]+$/i.test(raw.vehicle)) out.vehicle = raw.vehicle;
-  // Обраний у таблиці «Носій і політ» варіант віддає далі дату старту (YYYY-MM-DD) і прибуття (ISO): «Система», перевірка, звіт
-  if (typeof raw.departure === "string" && ISO_DATE.test(raw.departure)) out.departure = raw.departure;
-  if (typeof raw.arrival === "string" && /^\d{4}-\d{2}-\d{2}T/.test(raw.arrival)) out.arrival = raw.arrival.slice(0, 25);
   return out;
 }
 

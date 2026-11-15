@@ -81,7 +81,7 @@ test("порівняння носіїв: заповненість у табли�
   const rows = plan.planRows({ ...response, plans: [{ ...response.plans[0], launch: { ...response.plans[0].launch, utilization: 0.5, launches: 1 } }] });
   assert.equal(rows[0].cells[7], "50 %");
   const choice = plan.launchChoiceFromPlan({ ...response.plans[0], launch: { ...response.plans[0].launch, site: { id: "kourou", name: "Kourou" }, vehicle: { id: "fh", name: "FH" } } });
-  assert.deepEqual(choice, { site: "kourou", vehicle: "fh", trajectory: "direct", departure: "2027-03-02" });
+  assert.deepEqual(choice, { site: "kourou", vehicle: "fh", trajectory: "direct" });
   assert.equal(plan.launchChoiceFromPlan(response.plans[1]), null);
 });
 

@@ -6,7 +6,7 @@ const p = await import(new URL("../../app/static/js/pipeline.js", import.meta.ur
 const search = await import(new URL("../../app/static/js/search.js", import.meta.url).href);
 
 test("політ: нормалізація — некоректне відкидається, «оптимально» і майданчик допустимі", () => {
-  assert.deepEqual(p.normalizeLaunch(null), { site: "", trajectory: "any", vehicle: "any", departure: "", arrival: "" });
+  assert.deepEqual(p.normalizeLaunch(null), { site: "", trajectory: "any", vehicle: "any" });
   assert.equal(p.normalizeLaunch({ site: "kourou" }).site, "kourou");
   assert.equal(p.normalizeLaunch({ site: "auto:fuel:spaceports" }).site, "auto:fuel:spaceports");
   assert.equal(p.normalizeLaunch({ site: "<script>", trajectory: "teleport", vehicle: "a b" }).site, "");
@@ -28,7 +28,7 @@ test("політ: конкретний майданчик відрізняєть
 });
 
 test("сховище недоступне — не падаємо, повертаємо типове", () => {
-  assert.deepEqual(p.loadLaunch(), { site: "", trajectory: "any", vehicle: "any", departure: "", arrival: "" });
+  assert.deepEqual(p.loadLaunch(), { site: "", trajectory: "any", vehicle: "any" });
   assert.doesNotThrow(() => p.saveLaunch({ site: "kourou" }));
   assert.equal(p.loadSearchForm(), null);
 });
@@ -55,14 +55,6 @@ test("вимоги «Підбору» потрапляють у запит пл�
   assert.deepEqual(body.region, { lat_min: -90, lat_max: -80 });
 });
 
-test("дата старту й прибуття з «Вікна запуску»: лише коректні формати", () => {
-  const ok = p.normalizeLaunch({ departure: "2027-03-02", arrival: "2027-03-06T14:22:00Z" });
-  assert.equal(ok.departure, "2027-03-02");
-  assert.equal(ok.arrival, "2027-03-06T14:22:00Z");
-  const bad = p.normalizeLaunch({ departure: "завтра", arrival: "x" });
-  assert.equal(bad.departure, ""); assert.equal(bad.arrival, "");
-});
-
 
 test("вимоги: вибрана на кроці 5 точка показується замість області пошуку", () => {
   const form = { ...structuredClone(search.DEFAULT_FORM), days: 20 };
@@ -78,4 +70,9 @@ test("перебування після посадки: з «Місії» для
   assert.equal(p.stayDays({ crewed: true, days: 0 }), 7);
   assert.equal(p.stayDays({ crewed: false, days: 14 }), 7);
   assert.equal(p.stayDays(null), 7);
+});
+
+test("дата старту й прибуття в спільний вибір польоту не потрапляють (старту дата завжди від посадки)", () => {
+  const out = p.normalizeLaunch({ site: "kourou", departure: "2027-03-02", arrival: "2027-03-06T14:22:00Z" });
+  assert.deepEqual(out, { site: "kourou", trajectory: "any", vehicle: "any" });
 });

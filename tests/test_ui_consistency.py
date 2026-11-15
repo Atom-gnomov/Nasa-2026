@@ -224,7 +224,7 @@ def test_one_typography_scale_and_one_disabled_look_on_every_page():
 def test_every_panel_on_every_page_uses_the_same_glass():
     """Панелі «Підбору» мали синій градієнт і блюр 20 px: тепер один фон, одне розмиття й одна рамка скрізь."""
     block = CSS[CSS.index("Одне й те саме скло"):][:700]
-    assert "#view :is(.ui-widget, .side-panel, .advice, .workspace-results)" in block
+    assert "#view :is(.ui-widget, .side-panel, .workspace-results)" in block
     assert "var(--cg-fill) !important" in block and "background-image: none !important" in block
     assert "backdrop-filter: var(--cg-blur) !important" in block and "var(--cg-line)" in block
 

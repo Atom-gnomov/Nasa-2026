@@ -170,8 +170,7 @@ body:not(.page-moon):not(.page-system) #view .results-table thead th { backgroun
 body:not(.page-moon):not(.page-system) #view .results-table tbody td { border-color: rgba(140, 160, 255, .12); }
 body:not(.page-moon):not(.page-system) #view .results-table tbody tr:hover { background: rgba(111, 124, 255, .10); }
 body:not(.page-moon):not(.page-system) #view .results-table tr.best td { color: var(--cx-cyan); }
-body:not(.page-moon):not(.page-system) #view .table-scroll,
-body.page-search #search #s-advice .widget-body #s-advice-out { background: rgba(4, 6, 24, .35); border-color: var(--cx-line); }
+body:not(.page-moon):not(.page-system) #view .table-scroll { background: rgba(4, 6, 24, .35); border-color: var(--cx-line); }
 body.page-launch .lw-scale, body.page-search #search .widget-body .prio, body.page-mission .mission-result details { background: rgba(4, 6, 24, .32); border-color: var(--cx-line); }
 body.page-mission .fill-bar span, body.page-launch .lw-bar.best .lw-fill, .bar::after {
   background: linear-gradient(90deg, var(--cx-indigo), var(--cx-cyan)); box-shadow: 0 0 14px rgba(98, 228, 255, .3);

@@ -1,4 +1,4 @@
-{# Самостійна вкладка підбору: ліва форма, центральні результати, правий віджет ШІ.
+{# Самостійна вкладка підбору: ліва форма й результати.
    Позначки точок зберігаються в sessionStorage (highlights.js) для переходу на глобус Місяця. #}
 <section id="search" class="search-layout" aria-label="Підбір точок">
   <div class="side-panel search-form" data-step="5">
@@ -82,20 +82,6 @@
         <tbody></tbody>
       </table>
     </div>
-    <section id="s-advice" class="advice">
-      <h3>Порада ШІ</h3>
-      <p class="muted small">ШІ лише пояснює результати, нічого не рахує.</p>
-      <div class="advice-controls">
-        <input type="text" id="s-advice-question" maxlength="500" placeholder="Питання до результатів (необов'язково)">
-        <select id="s-advice-audience" aria-label="Для кого відповідь">
-          <option value="planner">Для планувальника</option>
-          <option value="public">Простою мовою</option>
-        </select>
-        <button type="button" id="s-advice-ask">Запитати ШІ</button>
-      </div>
-      <p id="s-advice-status" class="globe-warn" role="status" hidden></p>
-      <div id="s-advice-out" hidden></div>
-    </section>
     <p class="muted small">★ — недомінована точка. Клік по рядку відкриває місце на глобусі.</p>
     {# TODO: місце старту / вартість / ризик у результатах — після моделі запусків #}
   </div>

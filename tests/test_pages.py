@@ -62,7 +62,7 @@ def test_search_is_a_separate_analytics_page(client):
     res = client.get("/search?lang=en&datetime=2027-07-01T00:00Z&lat=-85&lon=0")
     assert res.status_code == 200
     html = res.get_data(as_text=True)
-    for marker in ('id="search"', 'id="s-run"', 'id="s-advice"', 'href="/search"', 'workspace_ui.js'):
+    for marker in ('id="search"', 'id="s-run"', 'href="/search"', 'workspace_ui.js'):
         assert marker in html
     assert 'id="moon-globe"' not in html
     assert 'class="page-search"' in html

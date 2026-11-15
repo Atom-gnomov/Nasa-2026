@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent
 def _load_dotenv(path: Path) -> None:
     """Підвантажує KEY=VALUE з файлу .env (не в git) у змінні середовища; наявні змінні не перезаписує.
 
-    Так секрети (ключ до ШІ-сервісу) лежать лише на машині, де запущено сайт, а не в репозиторії.
+    Так налаштування й секрети лежать лише на машині, де запущено сайт, а не в репозиторії.
     """
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
@@ -44,14 +44,6 @@ class Config:
     AUTO_PREPARE_MODE = os.environ.get("LSE_AUTO_PREPARE_MODE", "pack").strip().lower()
     AUTO_PREPARE_DATASETS = tuple(
         i.strip() for i in os.environ.get("LSE_AUTO_PREPARE_DATASETS", "temperature,system").split(",") if i.strip())
-    # Поради ШІ (POST /api/advice): будь-який сервіс з OpenAI-сумісним API. Задаються лише змінними
-    # середовища або файлом .env (див. .env.example); без LSE_LLM_BASE_URL поради вимкнені.
-    LLM_BASE_URL = os.environ.get("LSE_LLM_BASE_URL") or None
-    LLM_MODEL = os.environ.get("LSE_LLM_MODEL") or None
-    LLM_API_KEY = os.environ.get("LSE_LLM_API_KEY") or None
-    LLM_TIMEOUT_S = float(os.environ.get("LSE_LLM_TIMEOUT_S", "30"))
-    # Рівень міркувань моделі (поле reasoning_effort); порожнє значення — поле не надсилається
-    LLM_REASONING_EFFORT = os.environ.get("LSE_LLM_REASONING_EFFORT", "none").strip() or None
 
 
 class TestConfig(Config):
@@ -63,7 +55,3 @@ class TestConfig(Config):
     CACHE_DIR = BASE_DIR.parent / "tests" / "_no_cache"
     DEM_DIR = BASE_DIR.parent / "tests" / "_no_dem"
     TEMP_DIR = BASE_DIR.parent / "tests" / "_no_temp"
-    # Тести ніколи не ходять у справжній ШІ-сервіс, навіть якщо в середовищі розробника є ключ
-    LLM_BASE_URL = None
-    LLM_MODEL = None
-    LLM_API_KEY = None

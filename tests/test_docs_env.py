@@ -21,5 +21,5 @@ def test_every_env_variable_in_code_is_documented_in_readme():
 
 def test_env_example_has_no_secrets_and_lists_auto_prepare():
     example = (ROOT / ".env.example").read_text(encoding="utf-8")
-    assert re.search(r"^LSE_LLM_API_KEY=\s*$", example, re.M)  # ключ порожній
+    assert not re.search(r"(KEY|TOKEN|SECRET)=\S", example)  # у прикладі немає секретів
     assert "LSE_AUTO_PREPARE=" in example and "LSE_AUTO_PREPARE_DATASETS=" in example

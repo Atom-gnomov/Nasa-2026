@@ -7,7 +7,6 @@ from werkzeug.exceptions import HTTPException
 
 from app.core import launch_system, mission_goal
 from app.services import catalogs, dsn, elevation, metrics, models3d, ranking, sites, system, temperature
-from app.services import advice as advice_service
 from app.services import search as search_service
 from app.services import events as events_service
 from app.services import meta as meta_service
@@ -346,17 +345,6 @@ def search():
     except ValueError as exc:  # включно з ranking.RankError і помилками періоду
         return _error(400, str(exc))
     except RuntimeError as exc:
-        return _error(503, str(exc))
-
-
-@bp.post("/advice")
-def advice():
-    """Поради й пояснення від відкритої LLM до готових результатів (лише тлумачення, не розрахунок)."""
-    try:
-        return jsonify(advice_service.advise(request.get_json(silent=True)))
-    except ValueError as exc:
-        return _error(400, str(exc))
-    except RuntimeError as exc:  # включно з advice.AdviceUnavailable і llm.LlmError
         return _error(503, str(exc))
 
 

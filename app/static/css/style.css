@@ -279,4 +279,4 @@ a.mp-chip:hover { color: var(--text); background: rgba(255, 255, 255, 0.06); }
 .mp-goal-info p { margin: 0 0 4px; }
 .mp-goal-site-notes { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; }
 .mp-goal-site-notes ul { margin: 4px 0 0 16px; padding: 0; }
-.lw-priorities > legend { float: none; display: block; margin-bottom: 8px; }
+.lw-priorities > legend, #plan-form fieldset > legend { float: none !important; display: block; margin-bottom: 8px; }

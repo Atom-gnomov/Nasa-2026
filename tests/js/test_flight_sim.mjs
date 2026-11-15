@@ -85,3 +85,40 @@ test("descentState: від 100 км до 0 зі зникаючою швидкі�
   for (const p of [0, 0.3, 1]) for (const [n, v] of f.descentRows(p, "89° пд.")) assert.ok(n && !/undefined|NaN/.test(v));
   assert.equal(f.descentRows(1)[0][1], "Посадка виконана");
 });
+
+// ---------- G16: розгін TLI залежить від маси ----------
+const burn = { duration_s: 600, accel_start_g: 0.35, accel_end_g: 0.71, mass_start_kg: 17000, mass_end_kg: 8400,
+               utilization: 0.97, overloaded: false };
+
+test("розгін: стан на початку, посередині й у кінці", () => {
+  assert.ok(f.validBurn(burn) && !f.validBurn(null) && !f.validBurn({ duration_s: 0 }));
+  const a = f.burnStateAt(burn, 0), mid = f.burnStateAt(burn, 0.5), end = f.burnStateAt(burn, 2);
+  assert.equal(a.accelG, 0.35); assert.equal(a.remainingS, 600);
+  assert.equal(mid.elapsedS, 300); assert.equal(mid.massKg, 12700);
+  assert.ok(end.done && end.remainingS === 0 && end.accelG === 0.71);
+});
+
+test("телеметрія розгону: тривалість, прискорення, маса, заповненість; попередження про перевантаження", () => {
+  const rows = f.burnRows(burn, 0.5);
+  const byName = Object.fromEntries(rows);
+  assert.equal(byName["Час розгону"], "5 хв 0 с");
+  assert.match(byName["Прискорення"], /^0,53 g$/);
+  assert.equal(byName["Заповненість ракети"], "97 %");
+  assert.ok(!("Увага" in byName));
+  assert.ok(f.burnRows({ ...burn, overloaded: true }, 0).some(([k]) => k === "Увага"));
+  for (const [k, v] of rows) assert.ok(k && !/undefined|NaN/.test(v), `${k}: ${v}`);
+});
+
+test("підсумок розгону для перельоту; без даних — порожньо", () => {
+  assert.deepEqual(f.burnSummaryRows(null), []);
+  const rows = f.burnSummaryRows({ ...burn, overloaded: true });
+  assert.equal(rows[0][0], "Розгін TLI");
+  assert.match(rows[0][1], /10 хв 0 с, 0,35 → 0,71 g/);
+  assert.match(rows[1][1], /97 % ⚠/);
+});
+
+test("важчий вантаж — довший розгін у даних бекенда: форма даних збігається з flight_phases", () => {
+  const light = { ...burn, duration_s: 400, accel_start_g: 0.9 }, heavy = { ...burn, duration_s: 640, accel_start_g: 0.33 };
+  assert.ok(f.burnStateAt(heavy, 0.5).elapsedS > f.burnStateAt(light, 0.5).elapsedS);
+  assert.ok(f.burnStateAt(heavy, 0).accelG < f.burnStateAt(light, 0).accelG);
+});

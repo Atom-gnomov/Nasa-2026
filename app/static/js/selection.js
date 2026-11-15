@@ -50,6 +50,12 @@ export function launchChoice(lead, missionRaw) {
   return { siteId, trajectory, source };
 }
 
+export const BURN_KEY = "lse-burn";
+// Розгін TLI з відповіді /api/mission (flight_phases.tli) — для анімації польоту у вкладці «Система» (G16).
+export const burnFromMission = (response) => response?.flight_phases?.tli ?? null;
+export const saveBurn = (burn) => write(BURN_KEY, burn);
+export const loadBurn = () => read(BURN_KEY);
+
 export const loadMissionForm = () => read(MISSION_KEY);
 export const loadLead = () => read(PLAN_LEAD_KEY);
 export const saveLead = (lead) => write(PLAN_LEAD_KEY, lead);

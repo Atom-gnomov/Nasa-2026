@@ -2,7 +2,7 @@
 // з виділеним автовибором. Усе рахує бекенд; тут форма, запит і підписи. Чисті функції — без DOM, тестуються в Node.
 import { getState, setState } from "./state.js";
 import { onLangChange, t } from "./i18n.js";
-import { leadFromPlan, loadMissionForm, planFieldsFromMission, saveLead } from "./selection.js";
+import { burnFromMission, leadFromPlan, loadMissionForm, planFieldsFromMission, saveBurn, saveLead } from "./selection.js";
 
 export const DEFAULT_FORM = {
   profile: "uncrewed", crew: null, days: 5,
@@ -45,7 +45,8 @@ export function buildPlanRequest(form, state) {
                  min_earth_fraction: form.minEarth, min_sun_fraction: form.minSun };
   for (const [key, value] of Object.entries(reqs)) if (num(value) !== null) body[key] = Number(value);
   if (form.vehicle && form.vehicle !== "any") body.vehicle = form.vehicle;
-  if (form.trajectory && form.trajectory !== "any") body.trajectories = [form.trajectory];
+  if (form.profile === "crewed") body.trajectories = ["direct"];
+  else if (form.trajectory && form.trajectory !== "any") body.trajectories = [form.trajectory];
   if (form.profile === "crewed" && Array.isArray(form.members) && form.members.length) {
     body.crew_members = form.members;
     delete body.crew;
@@ -126,7 +127,11 @@ function init() {
   });
 
   const syncProfile = () => {
-    for (const el of document.querySelectorAll(".plan-crewed")) el.hidden = $("plan-profile").value !== "crewed";
+    const crewed = $("plan-profile").value === "crewed";
+    for (const el of document.querySelectorAll(".plan-crewed")) el.hidden = !crewed;
+    // пілотована місія — лише пряма траєкторія (планувальник так і розглядає)
+    if (crewed) $("plan-trajectory").value = "direct";
+    $("plan-trajectory").disabled = crewed;
   };
 
   const render = (response) => {
@@ -134,6 +139,8 @@ function init() {
     const lead = leadFromPlan(response);
     if (lead) {
       saveLead(lead); // «Вікно запуску» підхопить майданчик і траєкторію
+      const mission = response.plans.find((p) => p.rank === response.auto_selected)?.mission ?? response.plans[0]?.mission;
+      if (mission) saveBurn(burnFromMission(mission)); // «Система» анімує розгін за масою лідера
       setState({ site: lead.moon.site, lat: lead.moon.lat, lon: lead.moon.lon }); // точка на «Місяці» — лідер плану
     }
     const sp = response.surface_period;

@@ -126,3 +126,19 @@ def test_plan_passes_crew_biometrics_and_reports_supply_shortage(client):
     if lead:
         assert lead["payload"]["crew"] == 2
         assert [w["kind"] for w in lead["crew_supplies"]["warnings"]] == ["shortage"]
+
+
+def test_crewed_plan_considers_only_the_direct_trajectory(client):
+    data = plan(client, mission_profile="crewed", days=10, departure_days=1).get_json()
+    assert any("лише пряму траєкторію" in n for n in data["notes"])
+    for p in data["plans"]:
+        if p["launch"]:
+            assert p["launch"]["trajectory"] == "direct"
+    assert data["surface_period"]["assumed_flight_days"] == 4.0
+
+
+def test_crewed_plan_rejects_the_low_energy_trajectory(client):
+    assert plan(client, mission_profile="crewed", days=10, trajectories=["low_energy"]).status_code == 400
+    assert plan(client, mission_profile="crewed", days=10, trajectories=["direct"]).status_code == 200
+    assert plan(client, crew_members=[{"sex": "male"}], mission_profile="crewed", days=5,
+                trajectories=["direct", "low_energy"]).status_code == 400

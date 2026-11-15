@@ -1818,6 +1818,35 @@ components:
       items: {type: number}
       description: "[мінімум, максимум]"
 
+    FlightPhases:
+      type: object
+      description: |
+        Розгінні ділянки польоту з урахуванням маси завантаження (G16). Швидкість на пасивній ділянці від маси не
+        залежить; від неї залежать тривалість і прискорення розгону при тязі, розрахованій на ракету.
+      required: [tli]
+      properties:
+        tli:
+          type: object
+          required: [mass_start_kg, mass_end_kg, propellant_kg, duration_s, thrust_n, accel_start_g, accel_end_g,
+                     dv_m_s, isp_s, utilization, launches, overloaded, max_g, warnings]
+          properties:
+            mass_start_kg: {type: number, description: Маса на пуск на початку розгону}
+            mass_end_kg: {type: number}
+            propellant_kg: {type: number}
+            duration_s: {type: number}
+            thrust_n: {type: number}
+            accel_start_m_s2: {type: number}
+            accel_end_m_s2: {type: number}
+            accel_start_g: {type: number}
+            accel_end_g: {type: number}
+            dv_m_s: {type: number}
+            isp_s: {type: number}
+            utilization: {type: number}
+            launches: {type: integer, minimum: 1}
+            overloaded: {type: boolean, description: "true — вантаж більший за місткість ракети"}
+            max_g: {type: number}
+            warnings: {type: array, items: {type: string}}
+
     CrewMember:
       type: object
       required: [sex]
@@ -1963,6 +1992,7 @@ components:
         launch_lat: {type: number, description: Широта старту, з якою рахувалась вартість}
         launch_site_id: {type: [string, "null"]}
         parameters_basis: {type: string, enum: [model, sourced]}
+        flight_phases: {$ref: "#/components/schemas/FlightPhases"}
         crew_supplies:
           oneOf:
             - {$ref: "#/components/schemas/CrewSupplies"}

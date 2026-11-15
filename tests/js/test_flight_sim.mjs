@@ -211,3 +211,11 @@ test("запит сцени: календар — дата посадки (ancho
   const q = new URLSearchParams(f.flightUrl("kourou", Date.UTC(2027, 6, 10), -89, 0).split("?")[1]);
   assert.equal(q.get("anchor"), "arrival");
 });
+
+test("камера під маршрут: відстань = охоплення траси × запас; без траси — 0", () => {
+  assert.equal(f.fitDistance(0), 0);
+  assert.equal(f.fitDistance(NaN), 0);
+  assert.equal(f.fitDistance(1900), 1900 * 3.4);
+  assert.ok(f.fitDistance(1900) > 1100); // довша за типовий «Огляд» (1100) — кадр розширюється
+  assert.ok(f.fitDistance(300) < 1100);  // прямий політ вміщується в типовий кадр
+});

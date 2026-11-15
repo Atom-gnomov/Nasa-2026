@@ -103,3 +103,14 @@ test("«Мій план»: лише заповнені поля; майданч�
   assert.equal(Object.fromEntries(m.summaryRows(ctx({ launch: { site: "auto:fuel:any" } })))["Майданчик"], "оптимальний");
   assert.deepEqual(m.summaryRows({ plan: m.normalizePlan(null), state: {}, launch: {} }), []);
 });
+
+test("фокус на кроці: елемент ховається, якщо він не для кроку й у ньому немає вкладених для кроку", () => {
+  assert.equal(m.stepMatches("2 4 6", 4), true);
+  assert.equal(m.stepMatches("2 4 6", 7), false);
+  assert.equal(m.stepMatches(undefined, 1), false);
+  assert.equal(m.stepMatches("10", 1), false); // 1 не збігається з 10
+  assert.equal(m.hiddenInFocus("7", false, 2), true);       // чужий крок
+  assert.equal(m.hiddenInFocus("2 4 6", false, 4), false);  // свій крок
+  assert.equal(m.hiddenInFocus("2 4 6", true, 7), false);   // контейнер із потрібним вкладеним елементом лишається
+  assert.equal(m.hiddenInFocus("2", false, 6), true);
+});

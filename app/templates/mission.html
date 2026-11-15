@@ -7,21 +7,21 @@
     <p class="muted small">Коефіцієнти моделі тимчасові: показано діапазони.</p>
 
     {# F11: повзунок «Безпілотна ↔ Пілотована» вмикає профіль місії (M17) #}
-    <fieldset class="mission-field" data-step="2 4">
+    <fieldset class="mission-field" data-step="2 4 6">
       <legend>Тип місії</legend>
-      <div class="profile-slider">
+      <div class="profile-slider" data-step="2">
         <span>Безпілотна</span>
         <input type="range" id="m-crewed" min="0" max="1" step="1" value="0" aria-label="Безпілотна або пілотована">
         <span>Пілотована</span>
       </div>
-      <div class="mission-row" id="m-crew-row" hidden>
+      <div class="mission-row" id="m-crew-row" data-step="6" hidden>
         <label>Людей <input type="number" id="m-crew" min="1" max="6" step="1" inputmode="numeric"></label>
         <span class="profile-mark small" id="m-crew-mark" hidden>задано профілем</span>
       </div>
-      <div class="mission-row" id="m-days-row" hidden>
+      <div class="mission-row" id="m-days-row" data-step="4" hidden>
         <label>Тривалість на Місяці, діб <input type="number" id="m-days" min="0" max="365" step="1" inputmode="numeric" value="14"></label>
       </div>
-      <p class="muted small" id="m-profile-note"></p>
+      <p class="muted small" id="m-profile-note" data-step="2"></p>
     </fieldset>
 
     <fieldset class="mission-field" data-step="7">
@@ -136,7 +136,7 @@
       </div>
     </fieldset>
 
-    <fieldset class="mission-field">
+    <fieldset class="mission-field" data-step="8">
       <legend>Політ</legend>
       <label>Траєкторія
         <select id="m-trajectory">

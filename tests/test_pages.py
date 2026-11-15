@@ -151,3 +151,10 @@ def test_saved_plans_panel_is_in_the_wizard_bar_of_every_page(client):
         html = client.get(path).get_data(as_text=True)
         assert 'id="mp-plans"' in html and "js/saved_plans.js" in html, path
         assert "mp-plans-save" in html and "mp-plans-export" in html and "mp-plans-import" in html, path
+
+
+def test_mission_page_marks_each_control_with_its_wizard_step(client):
+    html = client.get("/mission").get_data(as_text=True)
+    for marker in ('data-step="2 4 6"', 'class="profile-slider" data-step="2"', 'id="m-days-row" data-step="4"',
+                   'id="m-crew-row" data-step="6"', 'data-step="7"', 'data-step="8"'):
+        assert marker in html, marker

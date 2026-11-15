@@ -3,6 +3,7 @@
 // про це завжди сказано у виводі. Чисті функції (запит, формати, підписи) — без DOM, тестуються в Node.
 
 import { onLangChange, t } from "./i18n.js";
+import { burnFromMission, saveBurn } from "./selection.js";
 
 const STORAGE_KEY = "lse-mission";
 const DEBOUNCE_MS = 250;
@@ -359,6 +360,7 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
 
   function renderResult(r) {
     $("m-status").hidden = true;
+    saveBurn(burnFromMission(r)); // «Система» анімує розгін за масою цієї місії (G16)
     const notes = provisionalNotes(r);
     $("m-provisional").hidden = notes.length === 0;
     $("m-provisional").textContent = notes.join(" ");

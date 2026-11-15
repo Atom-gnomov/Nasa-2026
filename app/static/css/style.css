@@ -228,3 +228,14 @@ button.primary:disabled { opacity: 0.6; cursor: progress; }
 .results-table td.supply-reserve, .results-table tr.supply-reserve td:first-child { color: #ffcf6b; }
 .results-table td.supply-shortage, .results-table tr.supply-shortage td:first-child { color: #ff7b7b; font-weight: 600; }
 .size-row { grid-template-columns: minmax(130px, 1.3fr) minmax(50px, 1fr) 76px; font-size: 13px; }
+
+/* G12/G16: телеметрія польоту — плаваючий віджет угорі сцени (переноситься в .system-host скриптом), видно без прокрутки */
+#flight-telemetry:not([hidden]) {
+  position: absolute; left: 50%; transform: translateX(-50%); top: 44px; z-index: 6; width: min(420px, 92%);
+  padding: 8px 14px; border: 1px solid var(--border); border-radius: 12px; background: rgba(12, 14, 22, 0.88);
+  backdrop-filter: blur(6px); max-height: 38vh; overflow-y: auto;
+}
+#flight-telemetry h2 { margin: 0 0 4px; font-size: 13px; }
+#flight-telemetry dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 0; font-size: 12.5px; }
+#flight-telemetry dt { color: var(--muted); }
+#flight-telemetry dd { margin: 0; text-align: right; }

@@ -2,7 +2,7 @@
 // з виділеним автовибором. Усе рахує бекенд; тут форма, запит і підписи. Чисті функції — без DOM, тестуються в Node.
 import { getState, setState } from "./state.js";
 import { onLangChange, t } from "./i18n.js";
-import { leadFromPlan, loadMissionForm, planFieldsFromMission, saveLead } from "./selection.js";
+import { burnFromMission, leadFromPlan, loadMissionForm, planFieldsFromMission, saveBurn, saveLead } from "./selection.js";
 
 export const DEFAULT_FORM = {
   profile: "uncrewed", crew: null, days: 5,
@@ -139,6 +139,8 @@ function init() {
     const lead = leadFromPlan(response);
     if (lead) {
       saveLead(lead); // «Вікно запуску» підхопить майданчик і траєкторію
+      const mission = response.plans.find((p) => p.rank === response.auto_selected)?.mission ?? response.plans[0]?.mission;
+      if (mission) saveBurn(burnFromMission(mission)); // «Система» анімує розгін за масою лідера
       setState({ site: lead.moon.site, lat: lead.moon.lat, lon: lead.moon.lon }); // точка на «Місяці» — лідер плану
     }
     const sp = response.surface_period;

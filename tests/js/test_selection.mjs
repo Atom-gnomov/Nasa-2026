@@ -54,3 +54,11 @@ test("біометрія екіпажу з «Місії» потрапляє в 
   assert.equal(sel.planFieldsFromMission({ ...raw, useBio: false }).members, undefined);
   assert.equal(sel.planFieldsFromMission({ ...raw, crewed: false }).members, undefined);
 });
+
+test("розгін з відповіді «Місії»: беремо flight_phases.tli, без нього — null", () => {
+  assert.deepEqual(sel.burnFromMission({ flight_phases: { tli: { duration_s: 5 } } }), { duration_s: 5 });
+  assert.equal(sel.burnFromMission({}), null);
+  assert.equal(sel.burnFromMission(null), null);
+  assert.equal(sel.loadBurn(), null);
+  assert.doesNotThrow(() => sel.saveBurn({ duration_s: 5 }));
+});

@@ -12,9 +12,10 @@ import { anisotropy, createScene, hasWebGL, NO_WEBGL_MESSAGE } from "./three/sce
 import { bindSky } from "./starfield.js";
 import { mountQualitySelect, qualitySettings } from "./three/quality.js";
 import { getState, setState, subscribe } from "./state.js";
+import { loadBurn } from "./selection.js";
 import {
   AUTO_OPTIONS, DESCENT_REAL_S, choiceFact, descentRows, descentState, flightFact, flightUrl, interpSystem, needsReload,
-  remapNearMoon, sampleTimes, splitExtras, stateAt, telemetryRows,
+  BURN_REAL_S, burnRows, burnSummaryRows, remapNearMoon, sampleTimes, splitExtras, stateAt, telemetryRows, validBurn,
 } from "./flight.js";
 import { t } from "./i18n.js";
 
@@ -361,8 +362,8 @@ async function main() {
   scene.add(landRing);
   scene.add(flightLine, flightHead, moonAtArrival, rocketMesh, landerMesh, groundTrack, simRocket, velArrow);
   for (const o of [flightLine, flightHead, moonAtArrival, rocketMesh, landerMesh, groundTrack, simRocket, velArrow]) o.visible = false;
-  // elapsed — секунди польоту від відльоту; phase: cruise (переліт) → descent (спуск) → landed (посадка)
-  const sim = { on: false, elapsed: 0, traj: null, phase: "cruise", desc: 0, u0: null, samples: null, t0: 0, landedT: 0, loading: false };
+  // elapsed — секунди польоту від відльоту; phase: [burn (розгін TLI, G16)] → cruise (переліт) → descent (спуск) → landed (посадка)
+  const sim = { on: false, elapsed: 0, traj: null, phase: "cruise", burn: 0, desc: 0, u0: null, samples: null, t0: 0, landedT: 0, loading: false };
   const UP = new THREE.Vector3(0, 1, 0);
   let flight = null; // splitExtras(...) останньої відповіді
   let flightReq = null; // { siteId, ms, lat, lon } останнього запиту
@@ -399,12 +400,17 @@ async function main() {
 
   const simButton = $("system-sim");
   const telemetry = $("flight-telemetry");
+  if (telemetry) host.append(telemetry); // віджет поверх сцени, а не в правій панелі, що прокручується
   function stopSim() {
     sim.on = false;
     if (simButton) simButton.textContent = "Симуляція";
   }
+  const currentBurn = () => { const b = loadBurn(); return validBurn(b) ? b : null; };
+  // Симуляція йде або вже почалась (розгін, переліт чи спуск); «burn» до натискання кнопки — ще ні
+  const simActive = () => sim.on || sim.burn > 0 || sim.elapsed > 0 || sim.phase === "descent" || sim.phase === "landed";
   function resetSim(traj) {
-    sim.traj = traj; sim.elapsed = 0; sim.phase = "cruise"; sim.desc = 0; sim.u0 = null; sim.samples = null; sim.landedT = 0;
+    sim.traj = traj; sim.elapsed = 0; sim.burn = 0; sim.desc = 0; sim.u0 = null; sim.samples = null; sim.landedT = 0;
+    sim.phase = currentBurn() ? "burn" : "cruise"; // розгін показуємо, лише якщо відомо масу завантаження
     stopSim();
   }
   // Відліки стану системи (щогодини від відльоту до прибуття) — Місяць і Сонце рухаються плавно, без запитів у кадрі
@@ -447,15 +453,21 @@ async function main() {
     const ok = Boolean(traj && stateAt(traj, 0));
     if (simButton && !sim.loading) simButton.disabled = !ok;
     if (!ok && sim.on) stopSim();
-    const show = ok && (sim.on || sim.elapsed > 0 || sim.phase !== "cruise");
+    const burnData = currentBurn();
+    if (sim.phase === "burn" && !burnData) sim.phase = "cruise";
+    const show = ok && (sim.on || sim.elapsed > 0 || sim.burn > 0 || (sim.phase !== "cruise" && sim.phase !== "burn"));
     simRocket.visible = Boolean(show);
     velArrow.visible = Boolean(show) && sim.phase === "cruise";
-    flame.visible = Boolean(show) && sim.phase === "descent";
+    flame.visible = Boolean(show) && (sim.phase === "descent" || sim.phase === "burn");
     landRing.visible = Boolean(show) && sim.phase === "landed";
     if (telemetry) telemetry.hidden = !show;
     if (!show) return;
 
     const total = traj.times_s[traj.times_s.length - 1];
+    if (sim.on && sim.phase === "burn") {
+      sim.burn = Math.min(1, sim.burn + dtS / BURN_REAL_S);
+      if (sim.burn >= 1) sim.phase = "cruise";
+    }
     if (sim.on && sim.phase === "cruise") sim.elapsed = Math.min(total, sim.elapsed + dtS * Number($("system-sim-speed").value));
     if (sim.on && sim.phase === "descent") sim.desc = Math.min(1, sim.desc + dtS / DESCENT_REAL_S);
 
@@ -480,7 +492,7 @@ async function main() {
       setFocus("moon", true);
     }
     let rows = null;
-    if (sim.phase !== "cruise") {
+    if (sim.phase === "descent" || sim.phase === "landed") {
       const site = flight?.lander ? new THREE.Vector3(...apply3(mM.r, flight.lander.unit_me)).normalize() : sim.u0;
       const d = descentState(sim.desc);
       const dirU = sim.u0.clone().applyQuaternion(new THREE.Quaternion().slerp(
@@ -514,7 +526,12 @@ async function main() {
     velArrow.position.copy(pos);
     velArrow.setDirection(dirV);
     velArrow.setLength(lay.earth.r * 2.5, lay.earth.r * 0.7, lay.earth.r * 0.35);
-    rows ??= telemetryRows(st);
+    if (sim.phase === "burn") { // розгін: ракета стоїть у точці відльоту, полум'я горить, телеметрія — за масою вантажу
+      const flick = 0.75 + 0.25 * Math.sin(performance.now() / 45);
+      flame.scale.set(1, 1.4 * flick, 1);
+      rows = burnRows(burnData, sim.burn);
+    }
+    rows ??= [...telemetryRows(st), ...burnSummaryRows(burnData)];
     const dl = $("flight-telemetry-rows");
     dl.replaceChildren(...rows.flatMap(([name, value]) => {
       const dt = document.createElement("dt");
@@ -722,7 +739,7 @@ async function main() {
       loadFlight(simMs); // сам вирішує, чи час відійшов достатньо (needsReload)
     }
     const simTraj = flight?.trajectory;
-    if (simTraj && sim.traj === simTraj && (sim.on || sim.phase !== "cruise")) {
+    if (simTraj && sim.traj === simTraj && simActive()) {
       // Симуляція польоту: час сцени йде разом з ракетою (після прибуття завмирає) — Місяць, Земля й Сонце рухаються.
       simMs = sim.t0 + sim.elapsed * 1000;
       if (sim.samples) {
@@ -961,7 +978,7 @@ async function main() {
 
   function updateFacts(facts) {
     const f = { ...systemFacts(state), ...(orbitData ? orbitFacts(orbitData) : {}) };
-    if (playing || sim.on || sim.phase !== "cruise") f.datetime = isoUtc(simMs).replace("T", " ");
+    if (playing || simActive()) f.datetime = isoUtc(simMs).replace("T", " ");
     f.point = facts.point ?? "не вибрано (клік по Місяцю)";
     f.dsn = facts.dsn;
     const flightExtras = flight ? Object.values(flight).filter(Boolean) : [];

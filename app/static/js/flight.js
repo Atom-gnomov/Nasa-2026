@@ -217,3 +217,43 @@ export function descentRows(p, site = null) {
     ["Пройдено", `${Math.round(d.p * 100)} %`],
   ];
 }
+
+// ---- Розгін TLI з урахуванням маси завантаження (G16) -----------------------------------------------------------
+export const BURN_REAL_S = 5; // тривалість анімації розгону, с реального часу (сам розгін триває хвилини)
+const g1 = (v) => Number(v).toLocaleString("uk-UA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// Чи дані розгону придатні для анімації (відповідь /api/mission, flight_phases.tli).
+export const validBurn = (b) => Boolean(b && Number.isFinite(b.duration_s) && b.duration_s > 0 && Number.isFinite(b.accel_start_g)
+  && Number.isFinite(b.mass_start_kg) && Number.isFinite(b.mass_end_kg));
+
+// Стан розгону на частці p ∈ [0, 1]: час, залишок, маса й прискорення (лінійно між початком і кінцем).
+export function burnStateAt(burn, p) {
+  const f = Math.min(1, Math.max(0, Number(p) || 0));
+  return {
+    p: f, elapsedS: burn.duration_s * f, remainingS: burn.duration_s * (1 - f),
+    massKg: burn.mass_start_kg + (burn.mass_end_kg - burn.mass_start_kg) * f,
+    accelG: burn.accel_start_g + (burn.accel_end_g - burn.accel_start_g) * f, done: f >= 1,
+  };
+}
+
+// Рядки телеметрії під час розгону.
+export function burnRows(burn, p) {
+  const st = burnStateAt(burn, p);
+  const rows = [
+    ["Фаза", "Розгін до Місяця (TLI)"],
+    ["Час розгону", fmtDuration(st.elapsedS)],
+    ["Залишилось розгону", fmtDuration(st.remainingS)],
+    ["Прискорення", `${g1(st.accelG)} g`],
+    ["Маса ракети", `${Math.round(st.massKg).toLocaleString("uk-UA")} кг`],
+    ["Заповненість ракети", `${Math.round(burn.utilization * 100)} %`],
+  ];
+  if (burn.overloaded) rows.push(["Увага", "вантаж більший за місткість ракети"]);
+  return rows;
+}
+
+// Короткий підсумок розгону для телеметрії перельоту.
+export function burnSummaryRows(burn) {
+  if (!validBurn(burn)) return [];
+  return [["Розгін TLI", `${fmtDuration(burn.duration_s)}, ${g1(burn.accel_start_g)} → ${g1(burn.accel_end_g)} g`],
+    ["Заповненість ракети", `${Math.round(burn.utilization * 100)} %${burn.overloaded ? " ⚠" : ""}`]];
+}

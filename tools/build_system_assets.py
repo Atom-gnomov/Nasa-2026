@@ -90,6 +90,11 @@ def check_jpeg(path: Path) -> dict:
 def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     meta = {"version": int(time.time()), "assets": {}}
+    old_meta = OUT_DIR / "system.json"
+    if old_meta.exists():  # модель ракети підключає tools/import_rocket_model.py — перебудова її запис не губить
+        rocket = json.loads(old_meta.read_text(encoding="utf-8")).get("assets", {}).get("rocket")
+        if rocket and (OUT_DIR / rocket["file"]).exists():
+            meta["assets"]["rocket"] = rocket
     for key, a in ASSETS.items():
         path = OUT_DIR / a["file"]
         download(a["url"], path)

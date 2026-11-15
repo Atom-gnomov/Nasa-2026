@@ -185,3 +185,28 @@ def test_system_page_does_not_jump_on_entry():
     sv = (js / "system_view.js").read_text(encoding="utf-8")
     assert "camAnim.t0 = -1e9" in sv and "fade: false" in sv and "ctx.reveal()" in sv
     assert "fade = true" in (js / "three" / "scene.js").read_text(encoding="utf-8")
+
+
+def test_select_menu_is_a_styled_popup_inside_the_panel_and_focus_ring_is_single():
+    """Меню списку — елемент зі стилем інтерфейсу (не біле системне): не ширше списку в панелі, одна рамка фокусу."""
+    assert "@supports (appearance: base-select)" in CSS and "select::picker(select)" in CSS
+    assert re.search(r"\.ui-widget select::picker\(select\)\s*\{[^}]*width:\s*anchor-size\(width\)", CSS)
+    assert re.search(r"select:focus-visible[^{]*\{[^}]*outline-offset:\s*-1px", CSS), "фокус — тонка рамка всередині"
+    assert "button:not([class]):not(:disabled)" in CSS and "#calendar-input { background: var(--cg-fill-faint)" in CSS
+
+
+def test_site_starts_on_the_moon_page_and_flight_uses_the_rocket_model():
+    base = TEMPLATES["base.html"]
+    assert 'lse-started' in base and 'location.replace("/moon"' in base
+    sv = (ROOT / "app" / "static" / "js" / "system_view.js").read_text(encoding="utf-8")
+    assert "prepareRocketModel" in sv and "rocketMesh, simRocket" in sv and "rocket.credit" in sv
+    assert "CC BY 4.0" in (ROOT / "tools" / "import_rocket_model.py").read_text(encoding="utf-8")
+
+
+def test_rocket_is_drawn_at_true_scale_with_a_follow_camera():
+    """Ракета — справжнього розміру відносно планети (98,3 м, довідник NASA SLS), камера «Ракета» і маркер положення."""
+    sv = (ROOT / "app" / "static" / "js" / "system_view.js").read_text(encoding="utf-8")
+    assert "rocketKm / bodyKm" in sv and "98.3" in sv and 'focus === "rocket"' in sv and "rocketDot" in sv
+    assert 'data-focus="rocket"' in TEMPLATES["system.html"]
+    tool = (ROOT / "tools" / "import_rocket_model.py").read_text(encoding="utf-8")
+    assert '"length_m": 98.3' in tool and "sls_reference_guide_2022_web.pdf" in tool

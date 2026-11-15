@@ -262,6 +262,46 @@ select optgroup { color: #aeb8cc !important; font-weight: 600; font-style: norma
 select option:disabled, select option[value=""] { color: #8c97ad !important; }
 select option:checked { background-color: #2a3346 !important; }
 
+/* Меню списку в стилі решти інтерфейсу (Chromium: customizable select). Системне меню не можна ні обмежити за шириною, ні
+   оформити однаково: воно вилазило за межі панелі й мало біле виділення. Тут меню — звичайний елемент: темне скло, та сама
+   рамка, прямі кути, ширина не менша за сам список, прокрутка, рядки переносяться. */
+@supports (appearance: base-select) {
+  select, select::picker(select) { appearance: base-select; }
+  select::picker-icon { color: var(--cg-ink-soft, #b9c4d6); transition: none; }
+  select:open::picker-icon { rotate: 180deg; }
+  select::picker(select) {
+    box-sizing: border-box; margin-block: 4px; padding: 4px;
+    min-width: anchor-size(width); width: max-content; max-width: min(380px, calc(100vw - 24px));
+    max-height: min(56vh, 420px); overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .35) transparent;
+    background: rgba(14, 18, 30, .94); border: 1px solid var(--cg-line);
+    -webkit-backdrop-filter: var(--cg-blur); backdrop-filter: var(--cg-blur);
+    border-radius: 0; box-shadow: none;
+  }
+  .ui-widget select::picker(select) { width: anchor-size(width); max-width: anchor-size(width); } /* у панелі меню — рівно по ширині списку, не виступає за панель */
+  select option {
+    box-sizing: border-box; display: flex; align-items: center; gap: 8px; padding: 6px 10px; min-height: var(--ctl-h);
+    white-space: normal; overflow-wrap: anywhere; line-height: 1.25; font-size: var(--ctl-fs); cursor: default;
+    background-color: transparent !important; color: var(--cg-ink, #f6f8fb) !important;
+  }
+  select option:hover, select option:focus-visible { background-color: var(--cg-fill-strong) !important; outline: 0; }
+  select option:checked { background-color: rgba(255, 255, 255, .12) !important; }
+  select option::checkmark { content: "✓"; order: 1; margin-left: auto; font-size: 11px; opacity: .8; }
+  select option:not(:checked)::checkmark { content: none; }
+  select optgroup { padding-block: 2px; }
+  select optgroup > legend, select optgroup::before { font-size: 11px; letter-spacing: .04em; color: #9fb0cb; }
+  select option:disabled { opacity: .55; }
+}
+
+/* однаковий вигляд полів і кнопок усюди: поле дати в шапці, кроки календаря й прості кнопки (↑ ↓ у пріоритетах тощо) —
+   той самий напівпрозорий фон і тонка рамка, що й у решти елементів керування */
+#site-header .header-middle #calendar-input { background: var(--cg-fill-faint); border-color: var(--cg-line-soft); color: var(--cg-ink); }
+#site-header .header-middle .cal-steps { background: var(--cg-fill-faint); border-color: var(--cg-line-soft); }
+#site-header .header-middle .cal-steps button { background: transparent; color: var(--cg-ink); }
+:is(#view, .ui-widget, .ui-dock) button:not([class]):not(:disabled) {
+  background: var(--cg-fill-faint); border: 1px solid var(--cg-line-soft); color: var(--cg-ink);
+}
+:is(#view, .ui-widget, .ui-dock) button:not([class]):not(:disabled):hover { background: var(--cg-fill-strong); color: #fff; }
+
 /* ---------- Прямі кути, без світіння ----------
    Ефект скла лишається (прозорий білуватий фон, розмиття, тонка світла рамка); прибрано: заокруглення кутів,
    світіння (тіні, ореоли, тіні тексту), кольорові точки біля заголовків віджетів і блоків результатів. */
@@ -274,6 +314,8 @@ select option:checked { background-color: #2a3346 !important; }
 .ui-widget .widget-title::before, .workspace-results .results-heading h2::before { content: none !important; display: none !important; }
 /* кільце фокусу — звичайний контур (раніше було світіння) */
 :focus-visible { outline: 2px solid rgba(255, 255, 255, .85) !important; outline-offset: 1px !important; }
+/* поля й кнопки: фокус — тонка рамка всередині, а не друга рамка поруч із першою */
+select:focus-visible, input:focus-visible, textarea:focus-visible, button:focus-visible, summary:focus-visible { outline: 1px solid rgba(255, 255, 255, .85) !important; outline-offset: -1px !important; }
 
 /* ---------- Логотип у куті: лише знак, без тексту ---------- */
 #site-header .brand { padding: 0 !important; background: none !important; border: 0 !important; gap: 0 !important; flex: 0 0 auto !important; }

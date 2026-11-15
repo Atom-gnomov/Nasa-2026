@@ -23,6 +23,17 @@
   </script>
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
   <script>
+    // Сайт починається зі сторінки з Місяцем: перший вхід за сесію на будь-яку іншу сторінку веде на /moon (запит і хеш лишаються).
+    (function () {
+      try {
+        if (!sessionStorage.getItem("lse-started")) {
+          sessionStorage.setItem("lse-started", "1");
+          if (location.pathname !== "/moon") location.replace("/moon" + location.search + location.hash);
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <script>
     // Мова до першого кадру: ?lang= → збережена → мова системи (uk — українська, інші — англійська). Інтерфейс не показуємо, доки
     // i18n.js не переклав тексти, а workspace_ui.js не розставив панелі (window.__gate), — без блимання UA→EN і стрибків розкладки.
     (function () {

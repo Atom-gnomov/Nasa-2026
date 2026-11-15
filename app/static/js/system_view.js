@@ -359,6 +359,26 @@ async function main() {
     new THREE.MeshBasicMaterial({ color: 0x7bed9f, transparent: true, side: THREE.DoubleSide, depthWrite: false }));
   landRing.visible = false;
   scene.add(landRing);
+  // Модель ракети (SLS Block 1 Crew, CC BY 4.0; tools/import_rocket_model.py) замість конусів — на старті й у симуляції польоту.
+  // Конус лишається запасним, якщо моделі немає або вона не завантажилась.
+  // Довжина моделі, тис. км: справжня (NASA SLS Reference Guide 2022, Block 1 — 98,3 м) відносно планети в поточному масштабі
+  // сцени; 0 — моделі немає, малюємо конус завбільшки з умовний знак.
+  let rocketKm = 0;
+  const rocketH = (body, bodyKm) => (rocketKm ? body.r * (rocketKm / bodyKm) : body.r * 0.3);
+  if (assets?.assets?.rocket) { // у фоні: сцена не чекає на 7 МБ моделі
+    new GLTFLoader().loadAsync(`/assets/system/${assets.assets.rocket.file}?v=${ver}`).then((gltf) => {
+      const model = prepareRocketModel(THREE, gltf.scene);
+      for (const cone of [rocketMesh, simRocket]) { cone.material.visible = false; cone.add(model.clone(true)); }
+      rocketKm = (assets.assets.rocket.length_m ?? 98.3) / 1e6;
+    }).catch(() => { /* лишаємо конуси */ });
+  }
+  // Ракета в справжньому масштабі менша за піксель: поки камера далеко, її положення показує яскрава точка
+  const rocketDotGeo = new THREE.BufferGeometry();
+  rocketDotGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(3), 3));
+  const rocketDot = new THREE.Points(rocketDotGeo, new THREE.PointsMaterial({ color: 0xffe14d, size: 7, sizeAttenuation: false, depthTest: false }));
+  rocketDot.frustumCulled = false;
+  rocketDot.visible = false;
+  scene.add(rocketDot);
   scene.add(flightLine, flightHead, moonAtArrival, rocketMesh, landerMesh, groundTrack, simRocket, velArrow);
   for (const o of [flightLine, flightHead, moonAtArrival, rocketMesh, landerMesh, groundTrack, simRocket, velArrow]) o.visible = false;
   // elapsed — секунди польоту від відльоту; phase: cruise (переліт) → descent (спуск) → landed (посадка)
@@ -471,7 +491,7 @@ async function main() {
     const dirV = dirScene(st.dir);
     const u = s > lay.moon.r * 1e-4 ? rel.clone().normalize() : dirV.clone().negate();
     if (s < lay.moon.r * 7) pos = lay.moon.pos.clone().addScaledVector(u, remapNearMoon(s, lay.moon.r));
-    let h = lay.earth.r * 0.3;
+    let h = rocketH(lay.earth, R_EARTH);
     let nose = dirV;
 
     if (sim.phase === "cruise" && sim.elapsed >= total) {
@@ -485,7 +505,7 @@ async function main() {
       const d = descentState(sim.desc);
       const dirU = sim.u0.clone().applyQuaternion(new THREE.Quaternion().slerp(
         new THREE.Quaternion().setFromUnitVectors(sim.u0, site), easeInOut(d.p))).normalize();
-      const hDesc = lay.moon.r * 0.14;
+      const hDesc = rocketKm ? rocketH(lay.moon, R_MOON) : lay.moon.r * 0.14;
       h = THREE.MathUtils.lerp(h, hDesc, Math.min(1, d.p * 6)); // ракета «стискається» до масштабу Місяця
       const rOrbit = lay.moon.r * 1.35, rSurface = lay.moon.r + h * 0.5;
       pos = lay.moon.pos.clone().addScaledVector(dirU, THREE.MathUtils.lerp(rOrbit, rSurface, d.e));
@@ -567,7 +587,7 @@ async function main() {
     }
     if (flight.rocket) {
       const up = new THREE.Vector3(...apply3(eM.r, flight.rocket.unit_itrs)).normalize();
-      const h = lay.earth.r * 0.3;
+      const h = rocketH(lay.earth, R_EARTH);
       rocketMesh.scale.set(h, h, h);
       rocketMesh.position.copy(lay.earth.pos).addScaledVector(up, lay.earth.r + h * 0.5);
       rocketMesh.quaternion.setFromUnitVectors(UP, up);
@@ -766,6 +786,7 @@ async function main() {
     updateFlight(lay, eM, mM);
     updateSim(lay, dt / 1000, mM);
     updateCamera(lay, now);
+    updateRocketUi();
     controls.update();
     updateLabels(lay);
     updateFacts(facts);
@@ -893,7 +914,18 @@ async function main() {
     return facts;
   }
 
+  // Ракета, на яку можна навести камеру: симуляція, інакше ракета на майданчику
+  function rocketTarget() {
+    const mesh = simRocket.visible ? simRocket : rocketMesh.visible ? rocketMesh : null;
+    return mesh ? { pos: mesh.position, h: mesh.scale.x } : null;
+  }
+
   function focusFrame(lay) {
+    if (focus === "rocket") {
+      const t = rocketTarget();
+      if (t) return { target: t.pos.clone(), dist: t.h * 4 };
+      focus = "overview";
+    }
     if (focus === "overview") return lay.overview;
     if (focus === "moonview") {
       // Камера на лінії «Місяць → Земля»: Місяць видно так, як із центру Землі (справжня фаза).
@@ -904,10 +936,25 @@ async function main() {
     return { target: b.pos, dist: b.r * (focus === "sun" ? 5 : 4.5) };
   }
 
+  // Кнопка «Ракета» доступна, коли є ракета; маркер видно, доки сама ракета займає менше ~10 пікселів
+  const focusRocketBtn = document.querySelector('[data-focus="rocket"]');
+  function updateRocketUi() {
+    const t = rocketTarget();
+    if (focusRocketBtn) focusRocketBtn.disabled = !t;
+    if (!t) { rocketDot.visible = false; if (focus === "rocket") setFocus("overview"); return; }
+    const dist = camera.position.distanceTo(t.pos);
+    const px = (t.h / Math.max(dist, 1e-12)) * (renderer.domElement.clientHeight / (2 * Math.tan((camera.fov * Math.PI) / 360)));
+    rocketDot.visible = Boolean(rocketKm) && px < 10;
+    if (rocketDot.visible) rocketDotGeo.attributes.position.set([t.pos.x, t.pos.y, t.pos.z]), rocketDotGeo.attributes.position.needsUpdate = true;
+  }
+
   function updateCamera(lay, now) {
     const f = focusFrame(lay);
     const body = focus === "overview" ? "earth" : focus === "moonview" ? "moon" : focus;
-    controls.minDistance = lay[body].r * 1.15;
+    const rt = focus === "rocket" ? rocketTarget() : null;
+    controls.minDistance = rt ? rt.h * 0.6 : lay[body === "rocket" ? "earth" : body].r * 1.15;
+    const near = rt ? Math.max(rt.h * 0.02, 1e-9) : 0.001; // зблизька ракета (≈ 1e-4 одиниць) не має відсікатися
+    if (camera.near !== near) { camera.near = near; camera.updateProjectionMatrix(); }
     controls.maxDistance = 3e6;
     controls.enableRotate = !f.dir; // у вигляді «з Землі» напрямок зафіксовано, лишається масштаб
     if (camAnim) {
@@ -979,6 +1026,56 @@ async function main() {
   ctx.reveal(); // тіла вже обчислені — полотно проявляється плавно, а не виринає разом із зсувом
 }
 
+// Модель ракети (glTF) → група висотою 1 із центром у початку координат і носом уздовж +Y (як у конуса, якого вона замінює).
+// Висота — найдовша вісь, ніс — вужчий кінець (двигуни й бокові прискорювачі широкі); матеріали — без освітлення (у сцені немає світла).
+export function prepareRocketModel(THREE, root) {
+  const group = new THREE.Group();
+  const holder = new THREE.Group();
+  holder.add(root);
+  group.add(holder);
+  group.updateMatrixWorld(true);
+  const size = new THREE.Box3().setFromObject(group).getSize(new THREE.Vector3());
+  if (size.x > size.y && size.x >= size.z) holder.rotation.z = Math.PI / 2; // найдовша вісь X → Y
+  else if (size.z > size.y && size.z >= size.x) holder.rotation.x = -Math.PI / 2; // Z → Y
+  group.updateMatrixWorld(true);
+  // ширина біля кінців: якщо вужчий нижній кінець — розвертаємо
+  const box = new THREE.Box3().setFromObject(group);
+  const height = box.max.y - box.min.y;
+  const v = new THREE.Vector3();
+  const spread = { low: [Infinity, -Infinity, Infinity, -Infinity], high: [Infinity, -Infinity, Infinity, -Infinity] };
+  group.traverse((o) => {
+    if (!o.isMesh) return;
+    const pos = o.geometry.attributes.position;
+    const step = Math.max(1, Math.floor(pos.count / 4000));
+    for (let i = 0; i < pos.count; i += step) {
+      v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld);
+      const part = v.y < box.min.y + height * 0.12 ? spread.low : v.y > box.max.y - height * 0.12 ? spread.high : null;
+      if (!part) continue;
+      part[0] = Math.min(part[0], v.x); part[1] = Math.max(part[1], v.x);
+      part[2] = Math.min(part[2], v.z); part[3] = Math.max(part[3], v.z);
+    }
+  });
+  const width = (p) => Math.max(p[1] - p[0], p[3] - p[2]);
+  if (Number.isFinite(width(spread.low)) && width(spread.low) < width(spread.high)) holder.rotation.x += Math.PI; // ніс униз → вгору
+  group.updateMatrixWorld(true);
+  const fitted = new THREE.Box3().setFromObject(group);
+  const k = 1 / Math.max(fitted.max.y - fitted.min.y, 1e-9);
+  holder.scale.multiplyScalar(k);
+  group.updateMatrixWorld(true);
+  const center = new THREE.Box3().setFromObject(group).getCenter(new THREE.Vector3());
+  holder.position.sub(center);
+  group.traverse((o) => {
+    if (!o.isMesh) return;
+    const mats = (Array.isArray(o.material) ? o.material : [o.material]).map((m) => {
+      const basic = new THREE.MeshBasicMaterial({ color: m.color ?? 0xffffff, map: m.map ?? null, side: THREE.DoubleSide, transparent: Boolean(m.transparent), opacity: m.opacity ?? 1 });
+      m.dispose?.();
+      return basic;
+    });
+    o.material = Array.isArray(o.material) ? mats : mats[0];
+  });
+  return group;
+}
+
 function renderSources(assets) {
   const list = $("system-sources");
   if (!list) return;
@@ -987,6 +1084,8 @@ function renderSources(assets) {
     const { sun, earth } = assets.assets;
     items.push([`Сонце: «Sun 3D Model» (glTF), ${sun.credit}. ${sun.note}`, sun.page]);
     items.push([`Земля: «Earth (A)», ${earth.credit}. ${earth.note}`, earth.page]);
+    const rocket = assets.assets.rocket;
+    if (rocket) items.push([`Ракета: ${rocket.credit}. ${rocket.note}`, rocket.page]);
   } else {
     items.push(["Моделі NASA не підготовлено — запустіть python tools/build_system_assets.py; поки тіла однотонні", "https://science.nasa.gov/3d-resources/"]);
   }

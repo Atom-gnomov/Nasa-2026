@@ -138,8 +138,12 @@ def _iso(dt: datetime) -> str:
     return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+ANCHORS = ("departure", "arrival")
+
+
 def _flight_extras(when: datetime, launch_site_id: str, lat: float | None, lon: float | None,
-                   criterion: str = "fuel", scope: str = "spaceports", route: str = "direct") -> list[dict]:
+                   criterion: str = "fuel", scope: str = "spaceports", route: str = "direct",
+                   anchor: str = "departure") -> list[dict]:
     """Ракета на майданчику, траєкторія прямого перельоту й модуль у вибраній точці (П-5, G9).
 
     `launch_site_id="auto"` — оптимальна точка старту (П-12): найкращий космодром або довільна точка Землі за
@@ -147,6 +151,11 @@ def _flight_extras(when: datetime, launch_site_id: str, lat: float | None, lon: 
     й зведення вибору з альтернативами. Траєкторія — дуга задачі двох тіл (docs/MATH.md, §21.5)."""
     eph = get_ephemeris()
     when_utc = when.astimezone(timezone.utc) if when.tzinfo else when.replace(tzinfo=timezone.utc)
+    if anchor == "arrival":  # календар — дата посадки: старт обчислюється назад від неї (умови Місяця головні)
+        if route == "low_energy":
+            when_utc = when_utc - timedelta(days=sum(TRAJECTORIES["low_energy"]["duration_days"]) / 2.0)
+        else:
+            when_utc = transfer_cache.best_arrival_anchored(when_utc, np.arange(3.0, 5.0 + 1e-9, 0.25)).departure_utc
     extras_extra: list[dict] = []
     if launch_site_id == "auto":
         choice = launch_optimum.plan(when_utc, criterion, scope)
@@ -215,9 +224,11 @@ def _flight_extras(when: datetime, launch_site_id: str, lat: float | None, lon: 
 
 def scene(when: datetime, lat: float | None = None, lon: float | None = None, markers: bool = True,
           launch_site: str | None = None, criterion: str = "fuel", launch_scope: str = "spaceports",
-          route: str = "direct") -> dict:
+          route: str = "direct", anchor: str = "departure") -> dict:
     if route not in TRAJECTORIES:
         raise ValueError(f"trajectory: допустимо {', '.join(TRAJECTORIES)}")
+    if anchor not in ANCHORS:
+        raise ValueError(f"anchor: допустимо {', '.join(ANCHORS)}")
     state = system.system_state(when)
     manifest = {b["id"]: b for b in models_manifest()["bodies"]}
     sun = np.asarray(state["sun_km"])
@@ -246,6 +257,7 @@ def scene(when: datetime, lat: float | None = None, lon: float | None = None, ma
         "markers": _markers() if markers else {"earth": [], "moon": []},
         "selected": _selected(lat, lon, when) if lat is not None and lon is not None else None,
         # ракета, траєкторія й модуль (пропозиція П-5, G9) — лише коли задано launch_site
-        "extras": _flight_extras(when, launch_site, lat, lon, criterion, launch_scope, route) if launch_site else [],
+        "extras": (_flight_extras(when, launch_site, lat, lon, criterion, launch_scope, route, anchor)
+                   if launch_site else []),
     }
     return result

@@ -76,7 +76,7 @@ def test_plan_rejects_bad_input(client, extra):
 
 
 def test_plan_searches_the_best_departure_date(client):
-    data = plan(client, departure_days=3, departure="2027-01-01T00:00:00Z").get_json()
+    data = plan(client, anchor="departure", departure_days=3, departure="2027-01-01T00:00:00Z").get_json()
     assert_valid(api_validator("PlanResponse"), data)
     lead = data["plans"][0]
     window = lead["departure_window"]
@@ -94,20 +94,47 @@ def test_plan_departure_days_out_of_range(client):
     assert plan(client, departure_days=61).status_code == 400
 
 
-def test_surface_period_follows_arrival_by_default(client):
-    data = plan(client, departure="2027-01-01T00:00:00Z").get_json()
+def test_calendar_is_the_landing_date_and_departure_is_computed_backwards(client):
+    data = plan(client, start="2027-03-10T00:00:00Z", end="2027-03-20T00:00:00Z").get_json()
     assert_valid(api_validator("PlanResponse"), data)
     sp = data["surface_period"]
-    assert sp["after_arrival"] is True and sp["assumed_flight_days"] == 4.0
+    assert sp["anchor"] == "landing" and sp["after_arrival"] is False
+    assert sp["start"] == "2027-03-10T00:00:00Z" and data["period"]["start"] == sp["start"]
+    assert 3.0 <= sp["assumed_flight_days"] <= 5.0
+    from datetime import datetime, timedelta
+    dep = datetime.fromisoformat(data["departure_utc"].replace("Z", "+00:00"))
+    land = datetime.fromisoformat(sp["start"].replace("Z", "+00:00"))
+    assert abs((land - dep).total_seconds() / 86400.0 - sp["assumed_flight_days"]) < 0.01
+    arrival = datetime.fromisoformat(data["plans"][0]["route"]["arrival_utc"][0].replace("Z", "+00:00"))
+    assert abs((arrival - land).total_seconds()) <= timedelta(days=2).total_seconds()
+    assert any("дата посадки" in n for n in data["notes"])
+    assert data["period"]["period_h"] == 240.0  # довжина періоду з start..end збережена
+
+
+def test_landing_anchor_ignores_the_date_search(client):
+    data = plan(client, departure_days=5).get_json()
+    assert data["plans"][0]["departure_window"] is None
+    assert data["surface_period"]["anchor"] == "landing"
+
+
+def test_low_energy_goes_back_105_days_from_the_landing_date(client):
+    slow = plan(client, trajectories=["low_energy"]).get_json()
+    assert slow["surface_period"]["assumed_flight_days"] == 105.0
+    assert slow["departure_utc"] < slow["surface_period"]["start"]
+
+
+def test_legacy_departure_anchor_still_shifts_the_surface_period_after_arrival(client):
+    data = plan(client, anchor="departure", departure="2027-01-01T00:00:00Z").get_json()
+    sp = data["surface_period"]
+    assert sp["anchor"] == "departure" and sp["after_arrival"] is True and sp["assumed_flight_days"] == 4.0
     assert sp["start"] == "2027-01-05T00:00:00Z"
-    assert data["period"]["start"] == sp["start"]  # /search оцінював саме цей період
-    assert (data["period"]["period_h"]) == 240.0  # довжина періоду з start..end збережена
+    assert plan(client, anchor="whenever").status_code == 400
 
 
 def test_surface_period_can_stay_as_requested_and_follows_trajectory(client):
-    data = plan(client, surface_after_arrival=False).get_json()
+    data = plan(client, anchor="departure", surface_after_arrival=False).get_json()
     assert data["surface_period"]["start"] == "2027-01-01T00:00:00Z" and not data["surface_period"]["after_arrival"]
-    slow = plan(client, trajectories=["low_energy"]).get_json()
+    slow = plan(client, anchor="departure", trajectories=["low_energy"]).get_json()
     assert slow["surface_period"]["assumed_flight_days"] == 105.0
     assert plan(client, surface_after_arrival="yes").status_code == 400
 
@@ -134,7 +161,7 @@ def test_crewed_plan_considers_only_the_direct_trajectory(client):
     for p in data["plans"]:
         if p["launch"]:
             assert p["launch"]["trajectory"] == "direct"
-    assert data["surface_period"]["assumed_flight_days"] == 4.0
+    assert 3.0 <= data["surface_period"]["assumed_flight_days"] <= 5.0
 
 
 def test_crewed_plan_rejects_the_low_energy_trajectory(client):

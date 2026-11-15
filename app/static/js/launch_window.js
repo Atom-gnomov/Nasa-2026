@@ -29,10 +29,11 @@ export function addDays(isoDate, n) {
 }
 
 // Запит до /api/launch-window з вибору користувача й спільного стану; null — бракує точки чи майданчика.
-export function launchWindowUrl({ siteId, lat, lon, datetime, days = 30, trajectory = "direct", priorities = FACTORS, landedDays = null }) {
+export function launchWindowUrl({ siteId, lat, lon, datetime, days = 30, trajectory = "direct", priorities = FACTORS, landedDays = null, leadDays = 0 }) {
   if (!siteId || lat == null || lon == null || !datetime) return null;
   const n = Math.min(Math.max(Math.round(Number(days)) || 1, 1), MAX_DAYS);
-  const start = String(datetime).slice(0, 10);
+  // Календар — дата посадки: перебираємо відльоти, починаючи за leadDays діб до неї (час перельоту), а не від самої дати
+  const start = addDays(String(datetime).slice(0, 10), -Math.max(0, Math.round(Number(leadDays)) || 0));
   const params = new URLSearchParams({
     launch_site: siteId, lat: String(lat), lon: String(lon),
     start, end: addDays(start, n - 1), trajectory, priorities: priorities.join(","),
@@ -58,6 +59,7 @@ export function scaleItems(win) {
   const best = win?.best?.date;
   return (win?.days ?? []).map((d) => ({
     date: d.date,
+    arrivalDate: d.arrival ? String(d.arrival).slice(0, 10) : d.date,
     label: shortDate(d.date),
     pct: Math.max(0, Math.min(100, d.score_pct)),
     best: d.date === best,
@@ -75,6 +77,7 @@ export function tableRows(win) {
   const best = win?.best?.date;
   return (win?.days ?? []).map((d) => ({
     date: d.date,
+    arrivalDate: d.arrival ? String(d.arrival).slice(0, 10) : d.date,
     best: d.date === best,
     cells: [
       d.date,
@@ -152,7 +155,7 @@ function init() {
       b.style.setProperty("--h", `${it.pct}%`);
       b.title = it.title;
       b.innerHTML = `<span class="lw-fill"></span><span class="lw-pct">${Math.round(it.pct)}</span><span class="lw-date">${it.label}</span>`;
-      b.addEventListener("click", () => setState({ datetime: calendarDatetime(it.date) }));
+      b.addEventListener("click", () => setState({ datetime: calendarDatetime(it.arrivalDate) }));
       return b;
     }));
     const siteName = sites.find((s) => s.id === win.launch_site_id)?.name ?? win.launch_site_id;
@@ -170,7 +173,7 @@ function init() {
       const b = document.createElement("button");
       b.type = "button";
       b.textContent = "У календар";
-      b.addEventListener("click", () => setState({ datetime: calendarDatetime(r.date) }));
+      b.addEventListener("click", () => setState({ datetime: calendarDatetime(r.arrivalDate) }));
       td.append(b);
       tr.append(td);
       return tr;
@@ -183,6 +186,7 @@ function init() {
     const url = launchWindowUrl({
       siteId: siteSel.value, lat: s.lat, lon: s.lon, datetime: s.datetime,
       days: $("lw-days").value, trajectory: $("lw-trajectory").value, priorities, landedDays,
+      leadDays: $("lw-trajectory").value === "low_energy" ? 105 : 5,
     });
     if (!url) {
       status.textContent = "Виберіть точку посадки на вкладці «Місяць» і майданчик старту.";

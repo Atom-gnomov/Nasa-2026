@@ -62,7 +62,7 @@ test("словник en.json: вигляд і цілісність", () => {
 
 test("регресія на справжньому словнику: статичні рядки інтерфейсу", () => {
   assert.equal(tr("Місяць"), "Moon");
-  assert.equal(tr("Дата (UTC)"), "Date (UTC)");
+  assert.equal(tr("Дата посадки (UTC)"), "Landing date (UTC)");
   assert.equal(tr("Сонце й енергія"), "Sun and energy");
   assert.equal(tr("Рельєф: низини / височини"), "Relief: lowlands / highlands");
   assert.equal(tr("Виберіть місце на Місяці"), "Select a site on the Moon");

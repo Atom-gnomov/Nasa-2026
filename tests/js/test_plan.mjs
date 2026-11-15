@@ -119,11 +119,18 @@ test("запит: пілотована — завжди пряма траєкт�
   assert.deepEqual(plan.buildPlanRequest({ ...plan.DEFAULT_FORM, trajectory: "any" }, state).trajectories, ["direct"]);
 });
 
-test("запит: дата старту з «Вікна запуску» — одна дата, без перебору; без неї перебір лишається", () => {
-  const withDate = plan.buildPlanRequest({ ...plan.DEFAULT_FORM, departure: "2027-03-02" }, state);
-  assert.equal(withDate.departure, "2027-03-02T00:00:00Z");
-  assert.equal(withDate.departure_days, 1);
-  const without = plan.buildPlanRequest({ ...plan.DEFAULT_FORM, departure: "" }, state);
-  assert.ok(!("departure" in without));
-  assert.equal(without.departure_days, 1); // старт підлаштовується під дату посадки — перебору дат немає
+test("запит: вибрана на кроці 5 точка посадки передається, пошук по області не робиться; прапорець повертає пошук", () => {
+  const withPoint = plan.buildPlanRequest({ ...plan.DEFAULT_FORM }, { datetime: "2027-03-01T06:00Z", lat: -82, lon: 28.8, site: "shackleton" });
+  assert.deepEqual(withPoint.landing_point, { lat: -82, lon: 28.8, site_id: "shackleton" });
+  const research = plan.buildPlanRequest({ ...plan.DEFAULT_FORM, useChosenPoint: false }, { datetime: "2027-03-01T06:00Z", lat: -82, lon: 28.8 });
+  assert.ok(!("landing_point" in research));
+  assert.ok(!("landing_point" in plan.buildPlanRequest({ ...plan.DEFAULT_FORM }, state)));
+  assert.equal(withPoint.departure_days, 1);
+  assert.ok(!("departure" in withPoint)); // дата старту завжди обчислюється від дати посадки
+});
+
+test("дата й час старту в таблиці: момент UTC, якщо є вікно запуску; без нього — лише дата", () => {
+  assert.equal(plan.launchMoment({ route: { departure_utc: "2026-12-05T14:22:10Z" }, launch_windows_utc: ["2026-12-05T14:22:10Z"] }), "2026-12-05 14:22 UTC");
+  assert.equal(plan.launchMoment({ route: { departure_utc: "2026-12-05T00:00:00Z" }, launch_windows_utc: [] }), "2026-12-05");
+  assert.equal(plan.launchMoment({ route: null }), "—");
 });

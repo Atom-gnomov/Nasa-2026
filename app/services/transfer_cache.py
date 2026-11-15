@@ -46,6 +46,17 @@ def transfer_options(departure: datetime) -> dict:
     return _options(_key(departure))
 
 
+@lru_cache(maxsize=MAX_DATES)
+def _moon_state(key: str) -> tuple:
+    r, v = transfer.moon_state_icrf(get_ephemeris(), _when(key))
+    return tuple(float(x) for x in r), tuple(float(x) for x in v)
+
+
+def moon_state(when: datetime) -> tuple[tuple, tuple]:
+    """Положення (км) і швидкість (км/с) Місяця в ICRF у момент `when` — один раз на момент (спільна пам'ять)."""
+    return _moon_state(_key(when))
+
+
 def cache_info() -> dict:
     return {"curve": _curve.cache_info()._asdict(), "options": _options.cache_info()._asdict()}
 

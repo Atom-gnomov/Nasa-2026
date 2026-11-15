@@ -96,10 +96,9 @@
       <a href="{{ url_for('pages.search') }}" class="{{ 'active' if active_tab == 'search' }}" {% if active_tab == 'search' %}aria-current="page"{% endif %}>Підбір</a>
       <a href="{{ url_for('pages.mission') }}" class="{{ 'active' if active_tab == 'mission' }}" {% if active_tab == 'mission' %}aria-current="page"{% endif %}>Місія</a>
       <a href="{{ url_for('pages.plan') }}" class="{{ 'active' if active_tab == 'plan' }}" {% if active_tab == 'plan' %}aria-current="page"{% endif %}>План місії</a>
-      <a href="{{ url_for('pages.launch_window') }}" class="{{ 'active' if active_tab == 'launch' }}" {% if active_tab == 'launch' %}aria-current="page"{% endif %}>Вікно запуску</a>
     </nav>
     {# Календар — спільний для всіх вкладок (модуль static/js/calendar.js) #}
-    <div class="calendar">
+    <div class="calendar" data-step="3">
       <label for="calendar-input" title="Дата посадки на Місяць (UTC): умови Місяця головні, дата старту підлаштовується під неї">Дата посадки (UTC)</label>
       <div class="seg cal-steps" role="group" aria-label="Крок назад">
         <button type="button" data-cal-step="lunar" data-cal-dir="-1" title="Назад на 1 лунну добу (29,53 доби)" aria-label="−29,53 доби"><span class="cal-step-full">−29,53 доби</span><span class="cal-step-short" aria-hidden="true">−29,53д</span></button>

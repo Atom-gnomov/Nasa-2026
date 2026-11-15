@@ -48,12 +48,6 @@ def search():
     return render_template("search.html", active_tab="search")
 
 
-@bp.get("/launch-window")
-def launch_window():
-    """Вкладка «Вікно запуску»: шкала дат старту з оцінкою у %, найкраща дата виділена (F7)."""
-    return render_template("launch_window.html", active_tab="launch")
-
-
 @bp.get("/system")
 @bp.get("/system/<mode>")
 def system(mode: str = "earth-moon"):

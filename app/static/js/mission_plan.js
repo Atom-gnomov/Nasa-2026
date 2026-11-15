@@ -12,7 +12,7 @@ export const PLAN_KEY = "lse-mission-plan";
 export const STEPS = [
   { n: 1, title: "Назва й мета", path: "/moon", ready: true },
   { n: 2, title: "Тип місії", path: "/mission", ready: true },
-  { n: 3, title: "Вікно запуску", path: "/launch-window", ready: true },
+  { n: 3, title: "Дата посадки", path: "/moon", ready: true }, // календар у шапці; старт підлаштовується під неї
   { n: 4, title: "Тривалість", path: "/mission", ready: true },
   { n: 5, title: "Район і точка посадки", path: "/search", ready: true },
   { n: 6, title: "Екіпаж або техніка", path: "/mission", ready: true },
@@ -53,7 +53,7 @@ export function stepData(n, ctx) {
   switch (n) {
     case 1: return { name: plan.name || "", goal: plan.goal || "" };
     case 2: return { crewed: Boolean(mission?.crewed) };
-    case 3: return { date: String(state.datetime ?? "").slice(0, 10), trajectory: launch.trajectory ?? "any", departure: launch.departure ?? "" };
+    case 3: return { date: String(state.datetime ?? "").slice(0, 10) };
     case 4: return { crewed: Boolean(mission?.crewed), days: mission?.days ?? null };
     case 5: return { lat: state.lat ?? null, lon: state.lon ?? null, site: state.site ?? null,
                      requirements: search ? { days: search.days, regionKey: search.regionKey, minSunHours: search.minSunHours,
@@ -109,7 +109,7 @@ export function stepFromLocation(pathname, search = "", hash = "") {
   const m = /[?&]step=(\d{1,2})\b/.exec(search);
   if (m && Number(m[1]) >= 1 && Number(m[1]) <= STEPS.length) return Number(m[1]);
   if (pathname === "/moon") return hash === "#search" ? 5 : null;
-  return { "/search": 5, "/mission": 2, "/plan": 8, "/system": 8, "/launch-window": 3, "/consistency": 9, "/report": 10 }[pathname] ?? null;
+  return { "/search": 5, "/mission": 2, "/plan": 8, "/system": 8, "/consistency": 9, "/report": 10 }[pathname] ?? null;
 }
 
 // ---- Мета місії → типові вибори наступних кроків (F22; дані — GET /api/mission-goals, M25) ------------------------------
@@ -166,7 +166,6 @@ export function summaryRows(ctx) {
   if (search) rows.push(["Період пошуку", `${search.days} діб`]);
   const site = launch.site || lead?.siteId;
   if (site) rows.push(["Майданчик", site.startsWith("auto:") ? "оптимальний" : site]);
-  if (launch.departure) rows.push(["Дата старту", launch.departure]);
   if (launch.vehicle && launch.vehicle !== "any") rows.push(["Ракета", launch.vehicle]);
   if (launch.trajectory && launch.trajectory !== "any") rows.push(["Траєкторія", launch.trajectory === "direct" ? "пряма" : "найекономніша"]);
   return rows.map(([k, v]) => [t(k), v]);

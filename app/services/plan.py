@@ -13,6 +13,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 
+from app.core import launch as launch_core
 from app.core.launch import TRAJECTORIES
 from app.services import launch_ranking, launch_window, mission, search, transfer_cache
 
@@ -21,7 +22,8 @@ SEARCH_KEYS = {"region", "include_catalog", "grid_step_deg", "max_candidates", "
                "min_sun_fraction", "mission_profile", "crew", "earth_target"}
 PLAN_KEYS = {"start", "end", "departure", "days", "sizes", "vehicle", "trajectories", "launch_priorities",
              "launch_mode", "include_design_targets", "allow_multiple_launches", "landing_candidates", "limit",
-             "departure_days", "surface_after_arrival", "anchor", "launch_site_id", "crew_members", "supply_days",
+             "departure_days", "surface_after_arrival", "anchor", "launch_site_id", "landing_point", "crew_members",
+             "supply_days",
              "reserve_fraction"}
 ALLOWED = SEARCH_KEYS | PLAN_KEYS
 MAX_LANDING_CANDIDATES = 10
@@ -101,6 +103,38 @@ def _departure_for_landing(landing: datetime, body: Mapping) -> tuple[datetime, 
         return landing - timedelta(days=tof), tof
     best = transfer_cache.best_arrival_anchored(landing, DIRECT_TOF_GRID)
     return best.departure_utc, float(best.tof_days)
+
+
+def _landing_point(body: Mapping) -> list[dict] | None:
+    """Вибрана на кроці 5 точка посадки (landing_point) — єдиний кандидат: повторного пошуку по області немає."""
+    raw = body.get("landing_point")
+    if raw is None:
+        return None
+    if not isinstance(raw, Mapping):
+        raise PlanError("landing_point має бути об'єктом {lat, lon}")
+    lat, lon = raw.get("lat"), raw.get("lon")
+    for name, value, lo, hi in (("lat", lat, -90, 90), ("lon", lon, -180, 360)):
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not lo <= value <= hi:
+            raise PlanError(f"landing_point.{name} має бути числом у межах {lo}…{hi}")
+    site_id = raw.get("site_id")
+    name = raw.get("name")
+    return [{"site_id": site_id if isinstance(site_id, str) else None, "name": name if isinstance(name, str) else None,
+             "lat": float(lat), "lon": float(lon)}]
+
+
+def _launch_moment(option: dict, departure: datetime, route: str) -> list[str]:
+    """Моменти доби старту (UTC), коли майданчик проходить через площину перельоту: «коли саме запускати». Площина —
+    орбітальна площина Місяця в момент прибуття; порожньо, якщо широта майданчика перевищує нахил площини (доворот)."""
+    arrival = departure + timedelta(days=sum(TRAJECTORIES[route]["duration_days"]) / 2.0)
+    r_m, v_m = transfer_cache.moon_state(arrival)
+    normal = [r_m[1] * v_m[2] - r_m[2] * v_m[1], r_m[2] * v_m[0] - r_m[0] * v_m[2], r_m[0] * v_m[1] - r_m[1] * v_m[0]]
+    day = departure.astimezone(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    site = option["site"]
+    try:
+        windows = launch_core.launch_windows(float(site["lat"]), float(site["lon"]), normal, day, days=1.0)
+    except ValueError:
+        return []
+    return [_iso(w.time_utc) for w in windows]
 
 
 def _mission_body(body: Mapping, night_h: float | None) -> dict:
@@ -204,7 +238,10 @@ def compute(body: Mapping, start: datetime, end: datetime) -> dict:
         departure_days = 1  # старт підлаштовується під дату посадки (умови Місяця головні): перебору інших дат немає
     # crew без профілю стосується лише маси корисного навантаження; /search приймає його тільки з профілем
     search_body = {k: body[k] for k in SEARCH_KEYS if k in body and (k != "crew" or "mission_profile" in body)}
-    found = search.search({**search_body, "limit": SEARCH_LIMIT}, surface_start, surface_end)
+    chosen = _landing_point(body)
+    if chosen:  # F34: точку вже вибрано на кроці 5 — оцінюємо лише її
+        search_body = {**search_body, "include_catalog": False}
+    found = search.search({**search_body, "limit": SEARCH_LIMIT}, surface_start, surface_end, points=chosen)
     chains = sorted(found["chains"], key=_landing_order)
     hard_ok = bool(chains) and chains[0]["feasible"]
     selected = chains[:n_landing]
@@ -236,9 +273,13 @@ def compute(body: Mapping, start: datetime, end: datetime) -> dict:
             "mission": None,
             "score_pct": round(chain["score_pct"] * launch_score / 100.0, 2),
         }
+        plan["launch_windows_utc"] = []
         if option:
+            dep_dt = datetime.fromisoformat(ranked["departure_utc"].replace("Z", "+00:00"))
+            moments = _launch_moment(option, dep_dt, option["trajectory"])  # коли саме запускати цього дня
+            plan["launch_windows_utc"] = moments
             plan["route"] = {**_route(chain, option, ranked["transfers"][option["trajectory"]]),
-                             "departure_utc": ranked["departure_utc"]}
+                             "departure_utc": moments[0] if moments else ranked["departure_utc"]}
         plans.append(plan)
 
     plans.sort(key=lambda p: (not p["requirements"]["feasible"], len(p["requirements"]["violations"]),
@@ -249,17 +290,19 @@ def compute(body: Mapping, start: datetime, end: datetime) -> dict:
     notes = []
     if restricted:
         notes.append("Для пілотованої місії розглянуто лише пряму траєкторію (3–5 діб).")
+    if chosen:
+        pt = chosen[0]
+        notes.append(f"Точку посадки взято з кроку 5 ({pt['lat']:.2f}°, {pt['lon']:.2f}°): пошуку по області немає.")
     if anchor == "landing" and explicit_departure is None:
         notes.append(f"Календар — дата посадки ({surface_start.date()}): старт обчислено за {flight_days:.2f} доби до "
                      f"неї ({_iso(departure)[:10]}).")
     if after_arrival or anchor == "landing":
         for p in plans:
             if p["route"]:
-                actual = datetime.fromisoformat(p["route"]["arrival_utc"][0].replace("Z", "+00:00"))
-                if abs((actual - surface_start).total_seconds()) > 86400.0 * 1.5:
-                    notes.append(f"План {p['rank']}: прибуття {p['route']['arrival_utc'][0][:10]} відрізняється від "
-                                 f"дати посадки ({surface_start.date()}) більш ніж на 1,5 доби — світло й зв'язок "
-                                 "оцінено для дати посадки.")
+                a0, a1 = (datetime.fromisoformat(x.replace("Z", "+00:00")) for x in p["route"]["arrival_utc"])
+                if not a0 - timedelta(days=1.5) <= surface_start <= a1 + timedelta(days=1.5):
+                    notes.append(f"План {p['rank']}: прибуття {a0.date()}…{a1.date()} далеке від дати посадки "
+                                 f"({surface_start.date()}) — світло й зв'язок оцінено для дати посадки.")
     if plans and plans[0]["launch"]:
         lead = plans[0]
         try:
@@ -277,6 +320,7 @@ def compute(body: Mapping, start: datetime, end: datetime) -> dict:
                            "anchor": anchor},
         "departure_utc": _iso(departure),
         "grid": found["grid"],
+        "landing_source": "selected" if chosen else "search",
         "landing_evaluated": len(found["chains"]),
         "hard_requirements_met": hard_ok,
         "auto_selected": plans[0]["rank"] if plans else None,

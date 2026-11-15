@@ -16,7 +16,7 @@ export const STEPS = [
   { n: 3, title: "Дата посадки", path: "/moon", ready: true, mergedInto: 5 },
   { n: 4, title: "Тривалість", path: "/mission", ready: true, onlyCrewed: true }, // без людей тривалість не потрібна
   { n: 5, title: "Район, дата й точка посадки", path: "/search", ready: true },
-  { n: 6, title: "Екіпаж або техніка", path: "/mission", ready: true },
+  { n: 6, title: "Екіпаж або техніка", path: "/mission", ready: true, onlyCrewed: true }, // без людей крок порожній
   { n: 7, title: "Корисне навантаження", path: "/mission", ready: true },
   { n: 8, title: "Носій і політ", path: "/plan", ready: true },
   { n: 9, title: "Перевірка узгодженості", path: "/consistency", ready: true },
@@ -102,7 +102,7 @@ export function confirmStep(n, ctx) {
   return plan;
 }
 
-// Кроки, видимі у смузі: без злитих і без «Тривалості» для безпілотної місії. Номер на кнопці — місце в цьому списку.
+// Кроки, видимі у смузі: без злитих і без «Тривалості» та «Екіпажу» для безпілотної місії. Номер на кнопці — місце в цьому списку.
 export const stepVisible = (step, mission) => step.ready && !step.mergedInto && !(step.onlyCrewed && !mission?.crewed);
 export const visibleSteps = (mission) => STEPS.filter((s) => stepVisible(s, mission));
 export const displayNumber = (n, mission) => visibleSteps(mission).findIndex((s) => s.n === n) + 1;

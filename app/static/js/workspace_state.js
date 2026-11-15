@@ -12,9 +12,9 @@ export function normalizeWidgetStates(raw = {}, present = SIDES) {
   return result;
 }
 
-// Телефон (≤ 760px): на сторінках зі сценою перший вхід — обидві панелі згорнуті, щоб глобус був видний;
+// Телефон і планшет у портреті (≤ 900px): на сторінках зі сценою перший вхід — обидві панелі згорнуті, щоб глобус був видний;
 // панель відкривається однією кнопкою (›/‹) і лишається збереженою на сесію. Є збережений стан — не чіпаємо.
-export const PHONE_MAX_WIDTH = 760;
+export const PHONE_MAX_WIDTH = 900; // дві панелі по 285px залишають глобусу < 200px уже на 768
 export function phoneDefaultStates(saved, present, viewportWidth, hasScene) {
   const empty = !saved || Object.keys(saved).length === 0;
   if (!hasScene || !empty || !(Number(viewportWidth) <= PHONE_MAX_WIDTH)) return saved;

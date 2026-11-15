@@ -443,8 +443,8 @@ body.page-moon #surface .ui-surface-dock { display: flex; }
 /* ---------- Перехід між сторінками ----------
    До першого кадру інтерфейс прихований (ui-pending): його знімає, коли переклад і розкладка панелей готові; тоді він плавно
    проявляється. Між сторінками — плавне перехрещення (View Transitions), без різкої заміни. */
-html.ui-pending body > *:not(#intro):not(#starfield) { opacity: 0; }
-body > *:not(#intro):not(#starfield) { transition: opacity .25s ease; }
+html.ui-pending body > *:not(#intro):not(#starfield):not(#boot-loader) { opacity: 0; }
+body > *:not(#intro):not(#starfield):not(#boot-loader) { transition: opacity .25s ease; }
 @view-transition { navigation: auto; }
 ::view-transition-old(root), ::view-transition-new(root) { animation-duration: .25s; }
 
@@ -577,3 +577,14 @@ html[data-wizard="closed"] #site-header .header-plans { display: none; }
 #site-header .header-plans .mp-summary > summary::-webkit-details-marker { display: none; }
 #site-header .header-plans .mp-summary[open] > summary { background: rgba(255, 255, 255, .92) !important; color: #10131a !important; }
 #site-header .header-plans .mp-summary-body { z-index: 300; }
+
+/* ---------- Екран завантаження: логотип крутиться, поки сторінка й дані не готові ---------- */
+#boot-loader { display: none; }
+html.boot-loading #boot-loader {
+  display: flex; position: fixed; inset: 0; z-index: 9000; align-items: center; justify-content: center;
+  background: #04060f; transition: opacity .4s ease;
+}
+#boot-loader.is-done { opacity: 0; pointer-events: none; }
+#boot-loader img { width: 96px; height: 96px; animation: boot-spin 1.6s linear infinite; }
+@keyframes boot-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { #boot-loader img { animation: none; } }

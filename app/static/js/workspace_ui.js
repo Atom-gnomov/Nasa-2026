@@ -1,6 +1,6 @@
 // Спільна оболонка робочого простору. DOM/ID існуючих модулів НЕ замінюємо:
 // переміщуємо наявні вузли до фіксованих віджетів, зберігаючи обробники та canvas.
-import { expandedWidget, fitSideWidgets, normalizeWidgetStates, sceneInsets, widgetTransition } from "./workspace_state.js";
+import { expandedWidget, fitSideWidgets, normalizeWidgetStates, phoneDefaultStates, sceneInsets, widgetTransition } from "./workspace_state.js";
 
 const page = document.body.className.match(/page-(moon|system|search|mission|launch|plan)/)?.[1];
 const widgets = {};
@@ -66,8 +66,10 @@ function createDock(name, items, owner = root) {
     toggle.setAttribute("aria-label", toggle.title);
     toggle.setAttribute("aria-expanded", String(open));
   };
-  try { applyDockState(sessionStorage.getItem(storageKey) === "collapsed"); }
-  catch { applyDockState(false); }
+  // телефон: без збереженого вибору док згорнуто, щоб не закривати сцену (розгортається кнопкою ⌃)
+  const phone = window.innerWidth <= 760;
+  try { const stored = sessionStorage.getItem(storageKey); applyDockState(stored ? stored === "collapsed" : phone); }
+  catch { applyDockState(phone); }
   toggle.addEventListener("click", () => {
     const collapsed = !dock.classList.contains("is-collapsed");
     applyDockState(collapsed);
@@ -306,6 +308,7 @@ function readState() {
   } catch { /* приватний режим */ }
   // Режиму «розгорнуто» більше немає: старі збережені стани скидаємо до звичайного.
   for (const k of Object.keys(saved)) if (saved[k] === "expanded") saved[k] = "normal";
+  saved = phoneDefaultStates(saved, present, window.innerWidth, page === "moon" || page === "system");
   return normalizeWidgetStates(saved, present);
 }
 

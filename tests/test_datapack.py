@@ -277,3 +277,21 @@ def test_build_data_pack_zips_only_processed_files_and_updates_manifest(tmp_path
     assert datapack.is_published(packs[0]) and packs[0]["size_bytes"] == built["size_bytes"]
     with pytest.raises(SystemExit):  # набір не зібрано — чесна відмова, а не порожній архів
         bdp.build_zip("globe", tmp_path / "out", cache)
+
+
+def test_globe_pack_keeps_only_the_dem_files_the_elevation_service_needs(tmp_path):
+    """Пакет глобуса: із `src/` — лише DEM 16 км і 80 м (сервіс висот), решта сирих завантажень не входить."""
+    from tools import build_data_pack as bdp
+
+    cache = tmp_path / "cache"
+    globe = cache / "globe"
+    (globe / "src").mkdir(parents=True)
+    for name in ("globe.json", "color.jpg", "height.bin"):
+        (globe / name).write_bytes(b"x")
+    for name in ("ldem_16.img", "ldem_16.lbl", "ldem_80s_80m.img", "ldem_80s_80m.lbl",
+                 "ldem_64.img", "ldem_875s_20m.img"):
+        (globe / "src" / name).write_bytes(b"d")
+    built = bdp.build_zip("globe", tmp_path / "out", cache)
+    with zipfile.ZipFile(built["path"]) as zf:
+        assert sorted(zf.namelist()) == ["color.jpg", "globe.json", "height.bin", "src/ldem_16.img", "src/ldem_16.lbl",
+                                         "src/ldem_80s_80m.img", "src/ldem_80s_80m.lbl"]

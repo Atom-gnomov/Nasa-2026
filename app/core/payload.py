@@ -56,6 +56,7 @@ class PayloadBudget:
     days: float
     masses_kg: dict[str, float]  # equipment, life_support, comfort, power_system, structure, margin
     power_w: float  # постійне споживання категорій
+    power_by_category_w: dict[str, float]  # споживання кожної категорії (equipment, life_support, comfort)
     heat_w: float  # майже вся електрична потужність стає теплом
     panel_kg: float
     battery_kg: float
@@ -91,12 +92,14 @@ def _sizes(sizes: Mapping[str, str | float] | None) -> dict[str, float]:
 
 
 def payload_budget(sizes: Mapping[str, str | float] | None = None, crew: int = 0, days: float = 0.0,
-                   longest_night_h: float = 0.0, params: PayloadParams = DEFAULT_PARAMS) -> PayloadBudget:
+                   longest_night_h: float = 0.0, params: PayloadParams = DEFAULT_PARAMS,
+                   consumables_kg: float | None = None) -> PayloadBudget:
     """Маса, потужність і тепло корисного навантаження.
 
     sizes — розмір категорій (за замовчуванням «basic»); crew — людей (0 — безпілотна: життєзабезпечення й
     зручності = 0); days — тривалість перебування, діб; longest_night_h — найдовша ніч (годин), під яку
-    підбираються акумулятори (0 — без акумуляторів).
+    підбираються акумулятори (0 — без акумуляторів); consumables_kg — маса витратних (O₂, вода, їжа) з моделі екіпажу
+    (M24): замінює оцінку `consumables_kg_per_person_day · люди · доби`.
     """
     s = _sizes(sizes)
     if isinstance(crew, bool) or not isinstance(crew, int) or not 0 <= crew <= MAX_CREW:
@@ -109,14 +112,19 @@ def payload_budget(sizes: Mapping[str, str | float] | None = None, crew: int = 0
     equipment = _lerp(params.equipment_mass_kg, s["equipment"])
     life_support = comfort = 0.0
     power = _lerp(params.equipment_power_w, s["equipment"])
+    power_by = {"equipment": power, "life_support": 0.0, "comfort": 0.0}
     if crew > 0:
         ls, cf = s["life_support"], s["comfort"]
-        life_support = (crew * days * _lerp(params.consumables_kg_per_person_day, ls)
+        consumables = (crew * days * _lerp(params.consumables_kg_per_person_day, ls)
+                       if consumables_kg is None else consumables_kg)
+        life_support = (consumables
                         + crew * _lerp(params.ls_fixed_kg_per_person, ls)
                         + _lerp(params.ls_shield_kg, ls))
         comfort = (crew * _lerp(params.comfort_volume_m3_per_person, cf) * params.habitat_kg_per_m3
                    + crew * days * _lerp(params.comfort_kg_per_person_day, cf))
-        power += crew * (_lerp(params.ls_power_w_per_person, ls) + _lerp(params.comfort_power_w_per_person, cf))
+        power_by["life_support"] = crew * _lerp(params.ls_power_w_per_person, ls)
+        power_by["comfort"] = crew * _lerp(params.comfort_power_w_per_person, cf)
+        power += power_by["life_support"] + power_by["comfort"]
 
     panel = power / params.panel_w_per_kg
     battery = power * longest_night_h / (params.battery_wh_per_kg * params.battery_depth_of_discharge)
@@ -130,7 +138,7 @@ def payload_budget(sizes: Mapping[str, str | float] | None = None, crew: int = 0
         sizes=s, crew=crew, days=float(days),
         masses_kg={"equipment": equipment, "life_support": life_support, "comfort": comfort,
                    "power_system": panel + battery, "structure": structure, "margin": margin},
-        power_w=power, heat_w=power, panel_kg=panel, battery_kg=battery,
+        power_w=power, power_by_category_w=power_by, heat_w=power, panel_kg=panel, battery_kg=battery,
         payload_kg=payload, total_kg=total, total_range_kg=(total * lo, total * hi),
     )
 

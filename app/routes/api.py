@@ -346,8 +346,10 @@ def launch_window():
     start, end = _parse_datetime(request.args["start"]), _parse_datetime(request.args["end"])
     try:
         priorities = launch_window_service.parse_priorities(request.args.get("priorities"))
+        landed_days = _parse_optional_float("landed_days", launch_window_service.LANDED_DAYS, 1.0,
+                                            launch_window_service.MAX_LANDED_DAYS)
         return jsonify(launch_window_service.launch_window(
-            site_id, lat, lon, start, end, request.args.get("trajectory", "direct"), priorities))
+            site_id, lat, lon, start, end, request.args.get("trajectory", "direct"), priorities, landed_days))
     except launch_window_service.LaunchSiteNotFound as exc:
         return _error(404, str(exc))
     except ValueError as exc:

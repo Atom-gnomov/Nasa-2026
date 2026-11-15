@@ -2,7 +2,7 @@
 {% block title %}План місії — Lunar Mission Builder{% endblock %}
 {% block content %}
 <section class="lw-layout">
-  <form id="plan-form" class="lw-controls" autocomplete="off">
+  <form id="plan-form" class="lw-controls" autocomplete="off" data-step="8">
     <h2>План місії</h2>
     <fieldset class="lw-priorities" id="plan-req-box">
       <legend>Місце посадки: вимоги</legend>
@@ -24,6 +24,7 @@
       <label>Майданчик старту
         <select id="plan-site"><option value="">підібрати автоматично</option></select>
       </label>
+      <p id="plan-departure-note" class="muted lw-note" hidden><span id="plan-departure-text"></span> <button type="button" id="plan-departure-reset">Скинути й перебирати дати</button></p>
       <label>Дат старту перебрати <input type="number" id="plan-departure-days" value="7" min="1" max="60" step="1"></label>
       <label>Ракета
         <select id="plan-vehicle"><option value="any" selected>підібрати автоматично</option></select>

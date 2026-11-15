@@ -11,7 +11,8 @@ const read = (key) => { try { return JSON.parse(globalThis.localStorage?.getItem
 const write = (key, value) => { try { globalThis.localStorage?.setItem(key, JSON.stringify(value)); } catch { /* не критично */ } };
 
 // ---------- Політ: майданчик, траєкторія, ракета ----------
-export const DEFAULT_LAUNCH = { site: "", trajectory: "any", vehicle: "any" };
+export const DEFAULT_LAUNCH = { site: "", trajectory: "any", vehicle: "any", departure: "", arrival: "" };
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 // site: "" — не вибрано; id майданчика; або "auto:<fuel|speed>:<spaceports|any>" (оптимум, як у «Системі»).
 export function normalizeLaunch(raw) {
@@ -20,6 +21,9 @@ export function normalizeLaunch(raw) {
   if (typeof raw.site === "string" && (/^[a-z0-9-]+$/.test(raw.site) || AUTO.test(raw.site))) out.site = raw.site;
   if (TRAJECTORIES.includes(raw.trajectory)) out.trajectory = raw.trajectory;
   if (typeof raw.vehicle === "string" && /^[a-z0-9._-]+$/i.test(raw.vehicle)) out.vehicle = raw.vehicle;
+  // «Вікно запуску» віддає далі найкращу дату старту (YYYY-MM-DD) і прибуття (ISO) — їх підхоплюють «План місії», «Мій план»
+  if (typeof raw.departure === "string" && ISO_DATE.test(raw.departure)) out.departure = raw.departure;
+  if (typeof raw.arrival === "string" && /^\d{4}-\d{2}-\d{2}T/.test(raw.arrival)) out.arrival = raw.arrival.slice(0, 25);
   return out;
 }
 
@@ -31,6 +35,22 @@ export function saveLaunch(patch) {
 }
 
 export const isAuto = (site) => AUTO.test(site ?? "");
+// Пріоритети «Вікна запуску» (light/fuel/comms/windows) за пріоритетами «Підбору»: Енергія → світло, Зв'язок → зв'язок, далі
+// паливо й вікна на добу. Перший у списку — найважливіший (ваги ROC за порядком).
+export function windowPriorities(searchForm) {
+  const map = { energy: "light", comms: "comms" };
+  const out = [];
+  for (const p of searchForm?.priorities ?? []) if (p.on && map[p.id] && !out.includes(map[p.id])) out.push(map[p.id]);
+  for (const f of ["light", "fuel", "comms", "windows"]) if (!out.includes(f)) out.push(f);
+  return out;
+}
+
+// Скільки діб після прибуття оцінювати світло й зв'язок: тривалість перебування з «Місії» (пілотована), інакше типово 7.
+export function stayDays(mission) {
+  const d = Number(mission?.days);
+  return mission?.crewed && Number.isFinite(d) && d >= 1 ? Math.min(60, Math.round(d)) : 7;
+}
+
 // Конкретний майданчик (не «оптимально»); інакше null.
 export const plainSite = (site) => (site && !isAuto(site) ? site : null);
 

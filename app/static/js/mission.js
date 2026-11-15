@@ -452,6 +452,10 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
     if (launch.trajectory !== "any") form.trajectory = launch.trajectory;
     if (launch.vehicle !== "any" && has("m-system", launch.vehicle)) form.systemId = launch.vehicle;
     if (plainSite(launch.site) && has("m-site", launch.site)) form.siteId = launch.site;
+    // Те, що вже вибрано в «Місії», віддаємо в спільний вибір польоту, якщо там ще порожньо (майданчик, ракета)
+    const shared = loadLaunch();
+    if (!shared.site && form.siteId) saveLaunch({ site: form.siteId });
+    if (shared.vehicle === "any" && form.systemId) saveLaunch({ vehicle: form.systemId });
     renderForm();
     calculate();
   })();

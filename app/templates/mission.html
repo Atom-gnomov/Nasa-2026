@@ -7,7 +7,7 @@
     <p class="muted small">Коефіцієнти моделі тимчасові: показано діапазони.</p>
 
     {# F11: повзунок «Безпілотна ↔ Пілотована» вмикає профіль місії (M17) #}
-    <fieldset class="mission-field">
+    <fieldset class="mission-field" data-step="2 4">
       <legend>Тип місії</legend>
       <div class="profile-slider">
         <span>Безпілотна</span>
@@ -24,7 +24,7 @@
       <p class="muted small" id="m-profile-note"></p>
     </fieldset>
 
-    <fieldset class="mission-field">
+    <fieldset class="mission-field" data-step="7">
       <legend>Розмір категорій навантаження</legend>
       <label class="size-row">Обладнання
         <input type="range" id="m-size-equipment" min="0" max="3" step="1" value="1">
@@ -46,7 +46,7 @@
     </fieldset>
 
     {# M24 / F19: біометрія екіпажу → запаси #}
-    <fieldset class="mission-field" id="m-bio-box" hidden>
+    <fieldset class="mission-field" id="m-bio-box" data-step="6" hidden>
       <legend>Екіпаж: дані людей і запаси</legend>
       <label class="check"><input type="checkbox" id="m-bio"> Задати стать, вік, масу, зріст і активність кожної людини</label>
       <div id="m-bio-fields" hidden>

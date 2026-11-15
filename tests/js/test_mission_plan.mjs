@@ -12,20 +12,21 @@ const ctx = (patch = {}) => ({
   state: { datetime: "2027-03-01T12:00Z", lat: -89.5, lon: 0, site: null }, ...patch,
 });
 
-test("є 10 кроків; крок 3 злито з кроком 5, «Тривалість» лише для пілотованої місії", () => {
+test("є 10 кроків; крок 3 злито з кроком 5, «Тривалість» і «Екіпаж» лише для пілотованої місії", () => {
   assert.deepEqual(m.STEPS.map((s) => s.n), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
   assert.deepEqual(m.STEPS.filter((s) => !s.ready).map((s) => s.n), []);
   const crewed = { crewed: true }, uncrewed = { crewed: false };
-  assert.deepEqual(m.visibleSteps(uncrewed).map((s) => s.n), [1, 2, 5, 6, 7, 8, 9, 10]);
+  assert.deepEqual(m.visibleSteps(uncrewed).map((s) => s.n), [1, 2, 5, 7, 8, 9, 10]);
   assert.deepEqual(m.visibleSteps(crewed).map((s) => s.n), [1, 2, 4, 5, 6, 7, 8, 9, 10]);
-  assert.deepEqual(m.visibleSteps(null).map((s) => s.n), [1, 2, 5, 6, 7, 8, 9, 10]);
+  assert.deepEqual(m.visibleSteps(null).map((s) => s.n), [1, 2, 5, 7, 8, 9, 10]);
   assert.equal(m.displayNumber(5, uncrewed), 3);
   assert.equal(m.displayNumber(5, crewed), 4);
   assert.equal(m.displayNumber(4, uncrewed), 0); // прихований крок номера не має
   assert.equal(m.nextStep(2, uncrewed), 5);
   assert.equal(m.nextStep(2, crewed), 4);
   assert.equal(m.nextStep(4, crewed), 5);
-  assert.equal(m.nextStep(3, uncrewed), 6); // 3 — псевдонім 5
+  assert.equal(m.nextStep(3, uncrewed), 7); // 3 — псевдонім 5; крок 6 без людей прихований
+  assert.equal(m.prevStep(7, uncrewed), 5);
   assert.equal(m.nextStep(8), 9);
   assert.equal(m.nextStep(9), 10);
   assert.equal(m.nextStep(10), null);

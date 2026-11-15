@@ -1,0 +1,24 @@
+{
+ "file": "pano.jpg",
+ "width": 4096,
+ "height": 2048,
+ "projection": "рівнопроміжна, північ угорі",
+ "orientation": {
+  "north": "up",
+  "ra_direction": "right",
+  "ra_center_deg": 179.5,
+  "plane_score": 62.02,
+  "plane_score_best": 62.59,
+  "center_minus_anticenter": 8.48,
+  "candidates_considered": 15
+ },
+ "orientation_note": "Оцінка за формою галактичної площини й яскравістю центру/антицентру; панорама стилізована, для астрометрії не придатна (на відміну від starmap.jpg, NASA SVS).",
+ "credit": {
+  "title": "Sky Pano - Milkyway",
+  "author": "MozillaHubs (https://sketchfab.com/mozillareality)",
+  "license": "CC-BY-NC-SA-4.0 (http://creativecommons.org/licenses/by-nc-sa/4.0/)",
+  "source": "https://sketchfab.com/3d-models/sky-pano-milkyway-0016725c047a4ea18cd0b5e5ef2fe441"
+ },
+ "terms": "CC BY-NC-SA 4.0: вказувати авторство; лише некомерційне використання; зміни — на тих же умовах",
+ "built": "2026-11-15"
+}

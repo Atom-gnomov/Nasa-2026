@@ -429,7 +429,7 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
   })();
   let abort = null;
   let timer = null;
-  const markData = (option) => { option.setAttribute("translate", "no"); return option; }; // назви з каталогів
+  const markData = (option) => option; // назви з каталогів перекладає i18n.js підрядками (див. phrases)
   const save = () => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(form)); } catch { /* приватний режим */ }
     window.dispatchEvent(new Event("lse-mission-changed")); // смуга кроків ховає «Тривалість» для безпілотної місії

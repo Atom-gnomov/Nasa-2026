@@ -81,11 +81,11 @@ export function fillText(launch) {
   return launch.launches > 1 ? `${pct} · ${launch.launches} ${t("пуски")}` : pct;
 }
 
-// Вибір носія з таблиці (F27): майданчик, ракета, траєкторія й дата старту — у спільний вибір польоту (F20).
+// Вибір носія з таблиці (F27): майданчик, ракета й траєкторія — у спільний вибір польоту (F20). Дату старту не передаємо: вона завжди обчислюється від дати посадки.
 export function launchChoiceFromPlan(plan) {
   const l = plan?.launch;
   if (!l) return null;
-  return { site: l.site.id, vehicle: l.vehicle.id, trajectory: l.trajectory, departure: plan.route?.departure_utc?.slice(0, 10) ?? "" };
+  return { site: l.site.id, vehicle: l.vehicle.id, trajectory: l.trajectory };
 }
 
 // Сумісність ракети й майданчика: ракета без відомих майданчиків недоступна для плану, вибір одного звужує інше.

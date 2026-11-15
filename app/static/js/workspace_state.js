@@ -12,6 +12,15 @@ export function normalizeWidgetStates(raw = {}, present = SIDES) {
   return result;
 }
 
+// Телефон (≤ 760px): на сторінках зі сценою перший вхід — обидві панелі згорнуті, щоб глобус був видний;
+// панель відкривається однією кнопкою (›/‹) і лишається збереженою на сесію. Є збережений стан — не чіпаємо.
+export const PHONE_MAX_WIDTH = 760;
+export function phoneDefaultStates(saved, present, viewportWidth, hasScene) {
+  const empty = !saved || Object.keys(saved).length === 0;
+  if (!hasScene || !empty || !(Number(viewportWidth) <= PHONE_MAX_WIDTH)) return saved;
+  return Object.fromEntries(present.map((side) => [side, "collapsed"]));
+}
+
 export function widgetTransition(raw, side, action, present = SIDES) {
   const next = normalizeWidgetStates(raw, present);
   if (!present.includes(side) || !["collapse", "expand"].includes(action)) return next;

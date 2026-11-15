@@ -33,9 +33,17 @@
   .mp-goal .mp-goal-select { font-size: 16px; }
   .mp-goal .mp-goal-close { width: 100%; padding: 12px; }
 
+  /* Нижній док сцени: на всю ширину екрана (інакше його звужують відступи згорнутих бокових панелей) */
+  body.page-moon > .ui-dock.ui-tabbed-dock, body.page-system > .ui-dock.ui-tabbed-dock { left: 8px; right: 8px; width: auto; max-width: none; margin-inline: 0; max-height: 45vh; }
+  body.page-moon .ui-dock .dock-content, body.page-system .ui-dock .dock-content { padding: 8px 10px; }
+  .ui-dock .globe-toolbar, .ui-dock .system-toolbar { flex-wrap: wrap; row-gap: 6px; }
+
   /* Смуга стану даних: компактна, не перекриває пів-екрана */
   #data-banner { font-size: 11px; padding: 4px 8px; max-height: 3.6em; overflow: hidden; }
 }
+
+/* Згорнутий док справді ховає вміст (тема cosmo-glass задає display:flex !important і ламала згортання) */
+.ui-dock.is-collapsed .dock-content { display: none !important; }
 
 /* Сенсорні екрани: достатні цілі натискання; шрифт полів ≥ 16px, щоб iOS не наближав сторінку при фокусі */
 @media (pointer: coarse), (max-width: 760px) {

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { expandedWidget, fitSideWidgets, normalizeWidgetStates, sceneInsets, widgetTransition } from "../../app/static/js/workspace_state.js";
+import { expandedWidget, fitSideWidgets, normalizeWidgetStates, phoneDefaultStates, sceneInsets, widgetTransition } from "../../app/static/js/workspace_state.js";
 
 test("згортання і повернення не зачіпають другу панель", () => {
   const a = widgetTransition({left:"normal",right:"normal"},"left","collapse");
@@ -70,4 +70,11 @@ test("expanded scene still honors the half-screen boundary", () => {
 test("mobile fallback never creates an unusably thin 3D canvas", () => {
   assert.deepEqual(sceneInsets(390, 290, 66), { left: 0, right: 0, compact: true });
   assert.deepEqual(sceneInsets(0, 0, 0), { left: 0, right: 0, compact: true });
+});
+
+test("телефон: перший вхід на сторінку зі сценою — панелі згорнуті, збережений стан не чіпаємо", () => {
+  assert.deepEqual(phoneDefaultStates({}, ["left", "right"], 390, true), { left: "collapsed", right: "collapsed" });
+  assert.deepEqual(phoneDefaultStates({ left: "normal" }, ["left", "right"], 390, true), { left: "normal" });
+  assert.deepEqual(phoneDefaultStates({}, ["left", "right"], 1280, true), {});
+  assert.deepEqual(phoneDefaultStates({}, ["left"], 390, false), {});
 });

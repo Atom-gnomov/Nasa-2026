@@ -74,6 +74,20 @@ export function requirementsText(req) {
   return parts.join(" · ");
 }
 
+// Заповненість ракети (місткість): відсоток і, коли треба, кілька пусків — для порівняння носіїв (F27).
+export function fillText(launch) {
+  if (!launch || !Number.isFinite(launch.utilization)) return "—";
+  const pct = `${fmt(launch.utilization * 100, 0)} %`;
+  return launch.launches > 1 ? `${pct} · ${launch.launches} ${t("пуски")}` : pct;
+}
+
+// Вибір носія з таблиці (F27): майданчик, ракета, траєкторія й дата старту — у спільний вибір польоту (F20).
+export function launchChoiceFromPlan(plan) {
+  const l = plan?.launch;
+  if (!l) return null;
+  return { site: l.site.id, vehicle: l.vehicle.id, trajectory: l.trajectory, departure: plan.route?.departure_utc?.slice(0, 10) ?? "" };
+}
+
 // Рядки таблиці варіантів (усі значення — текст, без undefined/NaN).
 export function planRows(response) {
   return (response?.plans ?? []).map((p) => {
@@ -92,6 +106,7 @@ export function planRows(response) {
         launch ? launch.site.name : "—",
         p.route ? p.route.departure_utc.slice(0, 10) : "—",
         launch ? launch.vehicle.name : t("немає варіанта, що вміщує масу"),
+        fillText(launch),
         launch ? launch.trajectory : "—",
         launch ? `${fmt(launch.duration_days[0], 1)}–${fmt(launch.duration_days[1], 1)} ${t("діб")}` : "—",
         launch ? usd(launch.launch_cost_usd) : "—",
@@ -114,6 +129,7 @@ function init() {
   const actions = $("plan-actions");
   let controller = null;
   let last = null;
+  let chosenRank = null; // F27: варіант, який користувач обрав у таблиці; без вибору йде автовибір
 
   const read = () => ({
     profile: $("plan-profile").value, crew: $("plan-crew").value, days: $("plan-days").value,
@@ -133,10 +149,10 @@ function init() {
 
   const render = (response) => {
     last = response;
-    const leader = leadFromPlan(response);
+    const leader = leadFromPlan(response, chosenRank);
     if (leader) {
       saveLead(leader); // «Система» й «Вікно запуску» покажуть цей майданчик і траєкторію, якщо вибір не зроблено вручну
-      const mission = response.plans.find((p) => p.rank === response.auto_selected)?.mission ?? response.plans[0]?.mission;
+      const mission = (response.plans.find((p) => p.rank === (chosenRank ?? response.auto_selected)) ?? response.plans[0])?.mission;
       if (mission) saveBurn(burnFromMission(mission)); // «Система» анімує розгін за масою лідера
       setState({ site: leader.moon.site, lat: leader.moon.lat, lon: leader.moon.lon }); // точка на «Місяці» — лідер плану
     }
@@ -148,6 +164,7 @@ function init() {
     table.tBodies[0].replaceChildren(...planRows(response).map((r) => {
       const tr = document.createElement("tr");
       if (r.lead) tr.className = "best";
+      if (r.rank === (chosenRank ?? response.auto_selected)) tr.classList.add("chosen");
       if (!r.feasible) tr.classList.add("infeasible");
       for (const c of r.cells) {
         const td = document.createElement("td");
@@ -162,7 +179,14 @@ function init() {
         setState({ lat: r.lat, lon: r.lon, site: response.plans[r.rank - 1].landing.moon_site.site_id ?? null });
         window.location.href = `/moon${window.location.search}`;
       });
-      td.append(b);
+      const choice = launchChoiceFromPlan(response.plans[r.rank - 1]);
+      const pick = document.createElement("button");
+      pick.type = "button";
+      pick.textContent = t(tr.classList.contains("chosen") ? "Обрано" : "Обрати");
+      pick.disabled = !choice || tr.classList.contains("chosen");
+      pick.title = t("Цей варіант піде далі: у «Систему», перевірку й звіт");
+      pick.addEventListener("click", () => { chosenRank = r.rank; saveLaunch(choice); render(response); });
+      td.append(pick, " ", b);
       tr.append(td);
       return tr;
     }));
@@ -183,6 +207,7 @@ function init() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail ?? `HTTP ${res.status}`);
       status.textContent = data.grid.truncated ? t("Сітку оцінено не повністю: вичерпано бюджет часу.") : "";
+      chosenRank = null;
       render(data);
     } catch (err) {
       if (err.name !== "AbortError") status.textContent = `${t("Помилка")}: ${err.message}`;

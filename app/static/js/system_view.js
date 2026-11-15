@@ -17,6 +17,7 @@ import { effectiveSite, effectiveTrajectory, loadLaunch, saveLaunch } from "./pi
 import {
   AUTO_OPTIONS, DESCENT_REAL_S, choiceFact, descentRows, descentState, flightFact, flightUrl, interpSystem, needsReload,
   BURN_REAL_S, burnRows, defaultSimSpeed, burnSummaryRows, remapNearMoon, sampleStepMs, sampleTimes, splitExtras, stateAt, telemetryRows, validBurn,
+  timeInitial, timeOnFlightStart, timeOnFlightEnd, timeOnPlayPress,
 } from "./flight.js";
 import { t } from "./i18n.js";
 
@@ -435,9 +436,25 @@ async function main() {
   const simButton = $("system-sim");
   const telemetry = $("flight-telemetry");
   if (telemetry) host.append(telemetry); // віджет поверх сцени, а не в правій панелі, що прокручується
+  // Час сцени (▶) і політ: час стоїть на паузі, поки йде політ, і вмикається знову після нього (flight.js, timeOn*)
+  const playButton = $("system-play");
+  let timeState = timeInitial();
+  function applyTime(next) {
+    timeState = next;
+    playing = next.playing;
+    playButton.textContent = next.playing ? "⏸" : "▶";
+    playButton.setAttribute("aria-pressed", String(next.resume)); // «увімкнеться після польоту»
+    playButton.title = next.resume ? "Час увімкнеться після польоту" : "";
+  }
   function stopSim() {
+    const wasOn = sim.on;
     sim.on = false;
     if (simButton) simButton.textContent = "Симуляція";
+    if (wasOn) {
+      const before = playing;
+      applyTime(timeOnFlightEnd({ ...timeState, playing }));
+      if (!before && playing) loadState(simMs); // час знову йде з моменту посадки
+    }
   }
   const currentBurn = () => { const b = loadBurn(); return validBurn(b) ? b : null; };
   // Симуляція йде або вже почалась (розгін, переліт чи спуск); «burn» до натискання кнопки — ще ні
@@ -465,6 +482,8 @@ async function main() {
     const traj = flight?.trajectory;
     if (!stateAt(traj, 0)) return;
     if (sim.phase === "landed") resetSim(traj); // повтор після посадки — з початку
+    // Час ставимо на паузу одразу: поки він іде, політ перераховується під новий момент і симуляція не встигає стартувати
+    applyTime(timeOnFlightStart({ ...timeState, playing }));
     if (!sim.samples) {
       sim.loading = true;
       simButton.disabled = true;
@@ -472,12 +491,14 @@ async function main() {
       try { Object.assign(sim, await prepareSamples(traj)); } catch { sim.samples = null; sim.t0 = Date.parse(traj.departure_utc); }
       sim.loading = false;
       simButton.disabled = false;
-      if (flight?.trajectory !== traj) { simButton.textContent = "Симуляція"; return; } // політ змінили, поки вантажили
+      if (flight?.trajectory !== traj) { // політ змінили, поки вантажили
+        simButton.textContent = "Симуляція";
+        applyTime(timeOnFlightEnd({ ...timeState, playing }));
+        return;
+      }
     }
     sim.on = true;
-    simButton.textContent = "Стоп";
-    playing = false; // час сцени веде симуляція
-    $("system-play").textContent = "▶";
+    simButton.textContent = "Стоп"; // час сцени веде симуляція (часова вже на паузі)
   });
 
   const easeInOut = (x) => (x < 0.5 ? 2 * x * x : 1 - ((-2 * x + 2) ** 2) / 2);
@@ -724,10 +745,9 @@ async function main() {
     scale = ev.target.value;
     setFocus(focus, true);
   });
-  $("system-play").addEventListener("click", () => {
-    playing = !playing;
-    $("system-play").textContent = playing ? "⏸" : "▶";
-    if (!playing) setState({ datetime: isoUtc(simMs).slice(0, 16) + "Z" }); // синхронізуємо календар і оверлей
+  playButton.addEventListener("click", () => {
+    applyTime(timeOnPlayPress({ ...timeState, playing, flight: sim.on }));
+    if (!playing && !sim.on) setState({ datetime: isoUtc(simMs).slice(0, 16) + "Z" }); // синхронізуємо календар і оверлей
   });
   $("system-now").addEventListener("click", () => {
     simMs = Date.now();
@@ -774,7 +794,7 @@ async function main() {
       loadFlight(simMs); // сам вирішує, чи час відійшов достатньо (needsReload)
     }
     const simTraj = flight?.trajectory;
-    if (simTraj && sim.traj === simTraj && simActive()) {
+    if (simTraj && sim.traj === simTraj && simActive() && !playing) {
       // Симуляція польоту: час сцени йде разом з ракетою (після прибуття завмирає) — Місяць, Земля й Сонце рухаються.
       simMs = sim.t0 + sim.elapsed * 1000;
       if (sim.samples) {

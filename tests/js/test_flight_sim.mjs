@@ -155,6 +155,58 @@ test("відліки польоту: прямий — щогодини, екон
   assert.equal(f.sampleStepMs(0), 3600000);
 });
 
+test("час і політ: ▶ ставиться на паузу на час польоту й вмикається після нього", () => {
+  let st = f.timeInitial();
+  st = f.timeOnPlayPress(st); // ввімкнули час
+  assert.deepEqual(st, { playing: true, resume: false, flight: false });
+  st = f.timeOnFlightStart(st); // старт польоту: час на паузі, запам'ятали
+  assert.deepEqual(st, { playing: false, resume: true, flight: true });
+  st = f.timeOnFlightEnd(st); // посадка: час знову йде
+  assert.deepEqual(st, { playing: true, resume: false, flight: false });
+});
+
+test("час і політ: час був вимкнений — після польоту лишається вимкненим; ▶ під час польоту — відкладене ввімкнення", () => {
+  let st = f.timeOnFlightStart(f.timeInitial());
+  assert.equal(st.resume, false);
+  assert.deepEqual(f.timeOnFlightEnd(st), { playing: false, resume: false, flight: false });
+  st = f.timeOnPlayPress(st); // натиснули ▶ під час польоту
+  assert.deepEqual(st, { playing: false, resume: true, flight: true });
+  assert.equal(f.timeOnPlayPress(st).resume, false, "повторне натискання скасовує");
+  assert.equal(f.timeOnFlightEnd(st).playing, true);
+});
+
+// ---------- G17: маршрут перельоту впливає на політ ----------
+test("запит сцени: економний маршрут додає trajectory=low_energy, прямий — ні", () => {
+  const direct = new URLSearchParams(f.flightUrl("kourou", Date.UTC(2027, 6, 1), -89, 0).split("?")[1]);
+  assert.equal(direct.has("trajectory"), false);
+  const slow = new URLSearchParams(f.flightUrl("kourou", Date.UTC(2027, 6, 1), -89, 0, "low_energy").split("?")[1]);
+  assert.equal(slow.get("trajectory"), "low_energy");
+});
+
+test("інший маршрут — нове завантаження польоту, навіть якщо місце й час ті самі", () => {
+  const prev = { siteId: "kourou", lat: -89, lon: 0, ms: 1e12, route: "direct" };
+  assert.equal(f.needsReload(prev, { ...prev }), false);
+  assert.equal(f.needsReload(prev, { ...prev, route: "low_energy" }), true);
+  assert.equal(f.needsReload({ siteId: "kourou", lat: -89, lon: 0, ms: 1e12 }, { ...prev }), false); // без route = direct
+});
+
+test("швидкість симуляції за тривалістю перельоту: ≈ 20 с реальних; 105 діб — швидше, ніж 4 доби", () => {
+  assert.equal(f.defaultSimSpeed(4 * 86400), 43200);   // 4 доби / 20 с = 4,8 год/с → 12 год/с
+  assert.equal(f.defaultSimSpeed(105 * 86400), 259200); // 105 діб / 20 с → 3 доби/с
+  assert.equal(f.defaultSimSpeed(0), 3600);
+  assert.ok(f.defaultSimSpeed(105 * 86400) > f.defaultSimSpeed(4 * 86400));
+});
+
+test("відліки польоту: прямий — щогодини, економний 105 діб — рідше, але не більше ~168 відліків", () => {
+  assert.equal(f.sampleStepMs(4.5 * 86400), 3600000);
+  const long = f.sampleStepMs(105 * 86400);
+  assert.ok(long > 3600000 && long % 3600000 === 0);
+  const times = f.sampleTimes(0, 105 * 86400, long);
+  assert.ok(times.length <= 170, String(times.length));
+  assert.equal(times.at(-1), 105 * 86400 * 1000);
+  assert.equal(f.sampleStepMs(0), 3600000);
+});
+
 test("запит сцени: календар — дата посадки (anchor=arrival)", () => {
   const q = new URLSearchParams(f.flightUrl("kourou", Date.UTC(2027, 6, 10), -89, 0).split("?")[1]);
   assert.equal(q.get("anchor"), "arrival");

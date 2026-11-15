@@ -18,8 +18,8 @@ export const STEPS = [
   { n: 6, title: "Екіпаж або техніка", path: "/mission", ready: true },
   { n: 7, title: "Корисне навантаження", path: "/mission", ready: true },
   { n: 8, title: "Носій і політ", path: "/plan", ready: true },
-  { n: 9, title: "Перевірка узгодженості", path: "/plan", ready: false },
-  { n: 10, title: "Підсумковий звіт", path: "/plan", ready: false },
+  { n: 9, title: "Перевірка узгодженості", path: "/consistency", ready: true },
+  { n: 10, title: "Підсумковий звіт", path: "/report", ready: true },
 ];
 export const GOALS = [
   { id: "", label: "— не вибрано —" },
@@ -61,8 +61,11 @@ export function stepData(n, ctx) {
                        minSunPct: search.minSunPct, priorities: (search.priorities ?? []).filter((p) => p.on).map((p) => p.id) } : null };
     case 6: return { crewed: Boolean(mission?.crewed), crew: mission?.crew ?? null, bio: Boolean(mission?.useBio),
                      members: mission?.useBio ? mission.members : null };
-    case 7: return { sizes: mission?.sizes ?? null };
+    case 7: return { sizes: mission?.sizes ?? null, items: mission?.equipmentItems ?? null, categoryKg: mission?.categoryKg ?? null };
     case 8: return { site: launch.site || lead?.siteId || "", vehicle: launch.vehicle ?? "any", trajectory: launch.trajectory ?? "any" };
+    // перевірка й звіт залежать від усіх виборів: змінились після підтвердження — потребують перегляду
+    case 9: return [1, 2, 3, 4, 5, 6, 7, 8].map((k) => stepData(k, ctx));
+    case 10: return stepData(9, ctx);
     default: return {};
   }
 }
@@ -80,6 +83,7 @@ export function stepFilled(n, ctx) {
     case 6: return ctx.mission != null;
     case 7: return d.sizes != null;
     case 8: return Boolean(d.site);
+    case 9: case 10: return true; // перевірка й звіт — похідні від виборів, їх можна відкрити будь-коли
     default: return false;
   }
 }
@@ -105,7 +109,7 @@ export function stepFromLocation(pathname, search = "", hash = "") {
   const m = /[?&]step=(\d{1,2})\b/.exec(search);
   if (m && Number(m[1]) >= 1 && Number(m[1]) <= STEPS.length) return Number(m[1]);
   if (pathname === "/moon") return hash === "#search" ? 5 : null;
-  return { "/search": 5, "/mission": 2, "/plan": 8, "/system": 8, "/launch-window": 3 }[pathname] ?? null;
+  return { "/search": 5, "/mission": 2, "/plan": 8, "/system": 8, "/launch-window": 3, "/consistency": 9, "/report": 10 }[pathname] ?? null;
 }
 
 // Адреса кроку зі збереженням решти параметрів (дата, мова…).

@@ -148,6 +148,21 @@
           <dl class="mp-summary-rows"></dl>
         </div>
       </details>
+      {# F30 (П-14): збережені плани — знімок виборів майстра, копія для порівняння, файл обміну (static/js/saved_plans.js) #}
+      <details class="mp-summary mp-plans" id="mp-plans">
+        <summary>Мої плани</summary>
+        <div class="mp-summary-body">
+          <button type="button" class="mp-plans-save">Зберегти поточний план</button>
+          <p class="mp-plans-empty muted small">Збережених планів ще немає. Збережіть поточні вибори, щоб повернутися до них або порівняти варіанти.</p>
+          <ul class="mp-plans-list"></ul>
+          <div class="mp-plans-io">
+            <button type="button" class="mp-plans-export">Експорт у файл</button>
+            <button type="button" class="mp-plans-import">Імпорт із файлу</button>
+            <input type="file" class="mp-plans-file" accept=".json,application/json" hidden>
+          </div>
+          <p class="mp-plans-note muted small" role="status"></p>
+        </div>
+      </details>
       <div class="mp-goal" hidden>
         <label>Назва місії <small class="muted">(адміністративний параметр, на розрахунки не впливає)</small>
           <input type="text" class="mp-name" maxlength="80" placeholder="Напр., «Шеклтон-1»">
@@ -222,6 +237,7 @@
 
   <script type="module" src="{{ url_for('static', filename='js/calendar.js') }}"></script>
   <script type="module" src="{{ url_for('static', filename='js/mission_plan.js') }}"></script>
+  <script type="module" src="{{ url_for('static', filename='js/saved_plans.js') }}"></script>
   <script type="module" src="{{ url_for('static', filename='js/overlay.js') }}"></script>
   <script type="module" src="{{ url_for('static', filename='js/data_status.js') }}"></script>
   <script type="module" src="{{ url_for('static', filename='js/workspace_ui.js') }}"></script>

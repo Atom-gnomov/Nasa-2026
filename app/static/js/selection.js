@@ -31,8 +31,10 @@ export function planFieldsFromMission(raw) {
 }
 
 // Відповідь /api/plan → що запам'ятати про лідера плану (майданчик, ракета, траєкторія, точка на Місяці).
-export function leadFromPlan(response) {
-  const plan = (response?.plans ?? []).find((p) => p.rank === response.auto_selected) ?? response?.plans?.[0];
+// rank — номер варіанта, який обрав користувач у таблиці порівняння (F27); без нього — автовибір планувальника.
+export function leadFromPlan(response, rank = null) {
+  const plans = response?.plans ?? [];
+  const plan = (rank != null && plans.find((p) => p.rank === rank)) || plans.find((p) => p.rank === response?.auto_selected) || plans[0];
   if (!plan) return null;
   const site = plan.landing.moon_site;
   return {

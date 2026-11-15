@@ -12,7 +12,9 @@ from app.services import search as search_service
 from app.services import events as events_service
 from app.services import meta as meta_service
 from app.services import bootstrap
+from app.services import consistency as consistency_service
 from app.services import launch_ranking as launch_ranking_service
+from app.services import report as report_service
 from app.services import launch_window as launch_window_service
 from app.services import mission as mission_service
 from app.services import plan as plan_service
@@ -112,6 +114,12 @@ def data_prepare():
 def list_launch_systems():
     """Єдиний каталог засобів запуску: системи D6 і ракети D7 у стислому вигляді (поле `catalog`)."""
     return jsonify([launch_system.from_catalog(row, cat).to_dict() for cat, row in catalogs.load_vehicles()])
+
+
+@bp.get("/equipment-catalog")
+def equipment_catalog():
+    """Обладнання з документів NASA (маса, потужність, цитата) і джерельні параметри D4 для виносок у «Місії»."""
+    return jsonify(catalogs.equipment_catalog_with_parameters())
 
 
 @bp.get("/launch-sites")
@@ -416,6 +424,34 @@ def mission():
         return _error(404, str(exc))
     except ValueError as exc:  # включно з mission_service.MissionError і помилками ядра
         return _error(400, str(exc))
+
+
+@bp.post("/consistency")
+def consistency():
+    """Перевірка узгодженості виборів майстра планування (B23, крок 9): конфлікти з серйозністю й кроком виправлення."""
+    body = request.get_json(silent=True)
+    try:
+        return jsonify(consistency_service.compute(body if body is not None else {}))
+    except mission_service.LaunchSiteNotFound as exc:
+        return _error(404, str(exc))
+    except ValueError as exc:  # включно з ConsistencyError, MissionError і помилками ядра
+        return _error(400, str(exc))
+    except RuntimeError as exc:  # немає ефемерид
+        return _error(503, str(exc))
+
+
+@bp.post("/report")
+def report():
+    """Підсумковий звіт місії (B24, крок 10): розділи за кроками майстра, конфлікти, джерела, готовий Markdown."""
+    body = request.get_json(silent=True)
+    try:
+        return jsonify(report_service.compute(body if body is not None else {}))
+    except mission_service.LaunchSiteNotFound as exc:
+        return _error(404, str(exc))
+    except ValueError as exc:  # включно з ConsistencyError, MissionError і помилками ядра
+        return _error(400, str(exc))
+    except RuntimeError as exc:  # немає ефемерид
+        return _error(503, str(exc))
 
 
 @bp.post("/launch-ranking")

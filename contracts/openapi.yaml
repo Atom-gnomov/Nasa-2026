@@ -155,6 +155,22 @@ paths:
                 type: array
                 items: {$ref: "#/components/schemas/LaunchSite"}
 
+  /equipment-catalog:
+    get:
+      tags: [planning]
+      x-status: implemented
+      summary: Обладнання з документів NASA (маса, потужність, цитата) і джерельні параметри для виносок
+      description: |
+        Каталог `app/data/equipment_catalog.json` (П-14): позиції для категорії «Обладнання» з масою, споживанням,
+        цитатою й посиланням; ціна доставки на Місяць (`delivery_usd_per_kg`, NASA OIG); `parameters` — джерельні
+        діапазони D4 (життєзабезпечення, зручності, енергетика) для виносок «що куди входить».
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/EquipmentCatalog"}
+
   /launch-systems:
     get:
       tags: [planning]
@@ -549,6 +565,62 @@ paths:
               schema: {$ref: "#/components/schemas/MissionResponse"}
         "400": {$ref: "#/components/responses/BadRequest"}
         "404": {$ref: "#/components/responses/NotFound"}
+
+  /consistency:
+    post:
+      tags: [planning]
+      x-status: implemented
+      summary: Перевірка узгодженості виборів майстра планування (крок 9)
+      description: |
+        Бере ті самі вибори, що й `POST /mission` (поле `mission`), і додає дату запуску, точку посадки й тривалість
+        перебування. Рахує місію, а далі шукає суперечності: запаси проти тривалості, маса проти місткості ракети,
+        освітлення й видимість Землі на період перебування (`/timeline` від прильоту до кінця перебування),
+        найдовша ніч проти розрахунку акумуляторів, довгий переліт для екіпажу. Пороги освітлення й видимості Землі —
+        лише з профілю місії (джерела NASA, `limit_id` у `values`); нових чисел перевірка не вигадує. Кожен конфлікт має
+        серйозність (`error` — місія не виконується, `warning` — варто виправити, `info` — зауваження) і `step` — номер
+        кроку майстра, де це виправити. Перевірки, яких не було чим виконати (немає дати, точки чи ефемерид), —
+        в `skipped`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ConsistencyRequest"}
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ConsistencyResponse"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "503": {$ref: "#/components/responses/Unavailable"}
+
+  /report:
+    post:
+      tags: [planning]
+      x-status: implemented
+      summary: Підсумковий звіт місії (крок 10)
+      description: |
+        Приймає те саме тіло, що й `POST /consistency`, рахує місію й перевірку **один раз** і складає звіт у логічному
+        порядку кроків майстра: розділи `sections` (назва й мета, тип, вікно запуску, тривалість, точка, склад,
+        навантаження, носій, перевірка), конфлікти, джерела (характеристики приладів і пороги NASA, які реально
+        використані), схема послідовності рішень `chain` й застереження про тимчасові коефіцієнти та відсутність
+        зльоту й повернення (M26). Поле `markdown` — готовий текст звіту. Назва місії — формальність і на розрахунки
+        не впливає.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ConsistencyRequest"}
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ReportResponse"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "503": {$ref: "#/components/responses/Unavailable"}
 
   /launch-ranking:
     post:
@@ -1765,6 +1837,119 @@ components:
             fits_single_launch: {type: boolean}
             note: {type: [string, "null"]}
 
+    ConsistencyRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        mission: {$ref: "#/components/schemas/MissionRequest"}
+        datetime: {type: string, description: "Дата й час запуску, ISO 8601 (UTC)"}
+        site:
+          oneOf:
+            - type: object
+              required: [lat, lon]
+              additionalProperties: false
+              properties:
+                lat: {type: number, minimum: -90, maximum: 90}
+                lon: {type: number, minimum: -180, maximum: 360}
+                name: {type: string, description: "Назва місця (лише для звіту)"}
+            - type: "null"
+        stay_days: {type: number, minimum: 0, maximum: 365, description: "Тривалість перебування, діб; без поля — `mission.days`"}
+        goal: {type: string, description: "Мета місії (крок 1)"}
+        name: {type: string, description: "Назва місії (формальність)"}
+    ReportResponse:
+      type: object
+      required: [name, goal, goal_label, ok, provisional, sections, conflicts, sources, chain, caveats, markdown]
+      properties:
+        name: {type: string}
+        goal: {type: [string, "null"]}
+        goal_label: {type: [string, "null"]}
+        ok: {type: boolean, description: "Немає конфліктів серйозності `error`"}
+        provisional: {type: boolean}
+        sections:
+          type: array
+          items:
+            type: object
+            required: [step, title, rows]
+            properties:
+              step: {type: integer, minimum: 1, maximum: 10}
+              title: {type: string}
+              rows:
+                type: array
+                items:
+                  type: object
+                  required: [label, value]
+                  properties:
+                    label: {type: string}
+                    value: {type: string}
+        conflicts:
+          type: array
+          items: {$ref: "#/components/schemas/ConsistencyConflict"}
+        sources:
+          type: array
+          items:
+            type: object
+            required: [title, ref, url]
+            properties:
+              title: {type: string}
+              ref: {type: string}
+              url: {type: string}
+        chain: {type: array, items: {type: string}, description: "Схема послідовності рішень: від назви до підсумкового звіту"}
+        caveats: {type: array, items: {type: string}}
+        markdown: {type: string, description: "Готовий текст звіту"}
+    ConsistencyConflict:
+      type: object
+      required: [id, severity, step, message]
+      properties:
+        id: {type: string, description: "Стабільний ідентифікатор перевірки"}
+        severity: {enum: [error, warning, info]}
+        step: {type: integer, minimum: 1, maximum: 10, description: "Крок майстра, де це виправити"}
+        message: {type: string}
+        values: {type: object, description: "Числа, на яких побудовано висновок (для підсвічування в інтерфейсі)"}
+    ConsistencyResponse:
+      type: object
+      required: [ok, counts, conflicts, skipped, window, suggested, provisional, steps_to_review]
+      properties:
+        ok: {type: boolean, description: "Немає конфліктів серйозності `error`"}
+        counts:
+          type: object
+          required: [error, warning, info]
+          properties:
+            error: {type: integer}
+            warning: {type: integer}
+            info: {type: integer}
+        conflicts:
+          type: array
+          items: {$ref: "#/components/schemas/ConsistencyConflict"}
+        skipped:
+          type: array
+          items:
+            type: object
+            required: [id, reason]
+            properties:
+              id: {type: string}
+              reason: {type: string}
+        window:
+          oneOf:
+            - type: object
+              description: "Період перебування, за яким перевірено освітлення й Землю"
+              required: [start, end, basis]
+              properties:
+                start: {type: string}
+                end: {type: string}
+                basis: {type: string}
+                sun_fraction: {type: number}
+                earth_fraction: {type: number}
+                longest_night_h: {type: number}
+            - type: "null"
+        suggested:
+          type: object
+          description: "Поля `mission`, які варто виправити (напр., `longest_night_h`)"
+          additionalProperties: {type: number}
+        provisional: {type: boolean}
+        steps_to_review:
+          type: array
+          items: {type: integer}
+          description: "Кроки з `error` чи `warning` — їх майстер позначає «потребує перегляду»"
     MissionRequest:
       type: object
       additionalProperties: false
@@ -1806,6 +1991,40 @@ components:
             запаси O₂, води й їжі за формулами з docs/RESOURCES.md §10; ці запаси входять у масу навантаження.
           items: {$ref: "#/components/schemas/CrewMember"}
         supply_days: {type: number, minimum: 0, maximum: 365, description: "На скільки діб везуть запаси; за замовчуванням — тривалість з рекомендованим резервом"}
+        equipment_items:
+          type: array
+          maxItems: 12
+          description: |
+            Позиції обладнання з каталогу NASA (`GET /equipment-catalog`): {id, count}. Маса й споживання категорії
+            «Обладнання» — сума за позиціями (середнє діапазону маси), а не оцінка за рівнем; позиція, що дає потужність
+            (реактор), зменшує розмір панелей і акумуляторів. Відповідь має блок `equipment` з масою й доставкою.
+          items:
+            type: object
+            required: [id]
+            additionalProperties: false
+            properties:
+              id: {type: string}
+              count: {type: integer, minimum: 0, maximum: 50, default: 1}
+        category_kg:
+          type: object
+          additionalProperties: false
+          description: |
+            Довільна маса категорії, кг (замінює оцінку за рівнем): equipment, life_support, comfort. Для обладнання
+            з `equipment_items` — додаткова маса понад позиції. life_support і comfort потребують екіпажу.
+          properties:
+            equipment: {type: number, minimum: 0, maximum: 100000}
+            life_support: {type: number, minimum: 0, maximum: 100000}
+            comfort: {type: number, minimum: 0, maximum: 100000}
+        supply_kg:
+          type: object
+          additionalProperties: false
+          description: |
+            Довільні обсяги запасів, кг (П-14): окремо для кожного запасу; перекривають `supply_days` для вказаних запасів,
+            решта рахується як зазвичай. Відповідь містить баланс по кожному запасу, добу вичерпання й гроші на надлишок.
+          properties:
+            oxygen: {type: number, minimum: 0, maximum: 100000}
+            water: {type: number, minimum: 0, maximum: 100000}
+            food: {type: number, minimum: 0, maximum: 100000}
         reserve_fraction: {type: number, minimum: 0, maximum: 2, default: 0.15, description: "Рекомендований запас понад потребу (частка) ⚠️ тимчасово"}
         parameters_basis:
           type: string
@@ -1894,6 +2113,52 @@ components:
         loaded_kg: {type: object, additionalProperties: {type: number}, description: "Завезені запаси, кг: oxygen, water, food"}
         required_kg: {type: object, additionalProperties: {type: number}}
         loaded_total_kg: {type: number}
+        resources:
+          type: object
+          description: "По кожному запасу (oxygen, water, food): завезено, потрібно, рекомендовано, на скільки діб вистачить, доба вичерпання, баланс, надлишок, нестача"
+          additionalProperties:
+            type: object
+            required: [loaded_kg, required_kg, recommended_kg, rate_kg_per_day, covers_days, runs_out_day, balance_kg, excess_kg, deficit_kg, custom]
+            properties:
+              loaded_kg: {type: number}
+              required_kg: {type: number}
+              recommended_kg: {type: number, description: "Потреба з рекомендованим резервом"}
+              rate_kg_per_day: {type: number}
+              covers_days: {type: number, description: "На скільки діб вистачить (може бути дуже великим, якщо потреби немає)"}
+              runs_out_day: {type: [number, "null"], description: "Доба, на якій запас закінчиться; null — вистачає на всю місію"}
+              balance_kg: {type: number, description: "Завезено мінус потрібно (від'ємне — нестача)"}
+              excess_kg: {type: number, description: "Понад потребу й рекомендований резерв"}
+              deficit_kg: {type: number, description: "Бракує до потреби"}
+              custom: {type: boolean, description: "Обсяг задано в supply_kg"}
+        summary:
+          type: object
+          required: [mission_ok, first_shortage_day, first_shortage_resource, excess_kg, deficit_kg, critical]
+          properties:
+            mission_ok: {type: boolean, description: "Запасів вистачає на всю місію"}
+            first_shortage_day: {type: [number, "null"]}
+            first_shortage_resource: {type: [string, "null"]}
+            excess_kg: {type: number}
+            deficit_kg: {type: number}
+            critical: {type: boolean, description: "Нестача життєзабезпечення — місія не виконується"}
+        economics:
+          type: object
+          description: "Гроші на запаси, $ (діапазон мін–макс; ціни тимчасові): завезене, надлишок і вартість закриття нестачі"
+          required: [usd_per_kg, loaded_usd, excess_kg, excess_usd, deficit_kg, deficit_usd, by_resource, provisional]
+          properties:
+            usd_per_kg: {$ref: "#/components/schemas/Range2"}
+            loaded_usd: {$ref: "#/components/schemas/Range2"}
+            excess_kg: {type: number}
+            excess_usd: {$ref: "#/components/schemas/Range2"}
+            deficit_kg: {type: number}
+            deficit_usd: {$ref: "#/components/schemas/Range2"}
+            by_resource:
+              type: object
+              additionalProperties:
+                type: object
+                properties:
+                  excess_usd: {$ref: "#/components/schemas/Range2"}
+                  deficit_usd: {$ref: "#/components/schemas/Range2"}
+            provisional: {type: boolean}
         warnings:
           type: array
           items:
@@ -1901,6 +2166,7 @@ components:
             required: [kind, message]
             properties:
               kind: {type: string, enum: [shortage, low_reserve]}
+              resource: {type: string, description: "Запас, якого стосується (лише для supply_kg)"}
               message: {type: string}
         log:
           type: array
@@ -1926,6 +2192,83 @@ components:
           usd: {$ref: "#/components/schemas/Range2"}
           power_w: {type: number}
 
+    EquipmentCatalog:
+      type: object
+      required: [version, description, delivery_usd_per_kg, delivery_source, stages, items, parameters]
+      properties:
+        version: {type: integer}
+        description: {type: string}
+        delivery_usd_per_kg: {$ref: "#/components/schemas/Range2"}
+        delivery_source: {type: object, additionalProperties: true}
+        stages:
+          type: array
+          description: "Етапи вибору спорядження (за плануванням місій NASA): назва з науковим терміном і що входить"
+          items:
+            type: object
+            required: [id, name, includes]
+            properties:
+              id: {type: string}
+              name: {type: string}
+              name_en: {type: string}
+              includes: {type: string}
+              includes_en: {type: string}
+        items:
+          type: array
+          items:
+            type: object
+            required: [id, name, kind, mass_kg, power_w, supply_power_w, source]
+            properties:
+              id: {type: string}
+              name: {type: string}
+              name_en: {type: string}
+              stage: {type: string}
+              kind: {type: string}
+              mass_kg: {$ref: "#/components/schemas/Range2"}
+              power_w: {oneOf: [{$ref: "#/components/schemas/Range2"}, {type: "null"}]}
+              supply_power_w: {type: [number, "null"]}
+              note: {type: string}
+              source: {type: object, additionalProperties: true}
+        parameters:
+          type: array
+          items:
+            type: object
+            required: [id, category, unit, status, range, sources]
+            properties:
+              id: {type: string}
+              category: {type: string}
+              unit: {type: string}
+              status: {type: string}
+              range: {$ref: "#/components/schemas/Range2"}
+              sources:
+                type: array
+                items: {type: object, additionalProperties: true}
+
+    EquipmentSummary:
+      type: object
+      description: Підсумок позицій обладнання з каталогу NASA (П-14); гроші — лише доставка на Місяць за оцінкою NASA OIG
+      required: [items, mass_kg, mass_range_kg, power_w, supply_power_w, delivery_usd, delivery_usd_per_kg]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required: [id, name, count, mass_kg, power_w, supply_power_w, delivery_usd, source]
+            properties:
+              id: {type: string}
+              name: {type: string}
+              count: {type: integer}
+              mass_kg: {$ref: "#/components/schemas/Range2"}
+              power_w: {type: [number, "null"]}
+              supply_power_w: {type: [number, "null"]}
+              delivery_usd: {$ref: "#/components/schemas/Range2"}
+              source: {type: object, additionalProperties: true}
+        mass_kg: {type: number, description: Середнє діапазону — точкова оцінка для бюджету}
+        mass_range_kg: {$ref: "#/components/schemas/Range2"}
+        power_w: {type: number, description: Споживання (пік), Вт}
+        supply_power_w: {type: number, description: Потужність, яку дають позиції, Вт}
+        delivery_usd: {$ref: "#/components/schemas/Range2"}
+        delivery_usd_per_kg: {$ref: "#/components/schemas/Range2"}
+
     MissionPayload:
       type: object
       required: [sizes, crew, days, masses_kg, power_w, heat_w, panel_kg, battery_kg, payload_kg, total_kg, total_range_kg]
@@ -1946,6 +2289,17 @@ components:
         payload_kg: {type: number, description: Лише три категорії}
         total_kg: {type: number, description: Усе, що сідає на Місяць}
         total_range_kg: {$ref: "#/components/schemas/Range2"}
+        breakdown:
+          type: object
+          description: "З чого складається маса кожної категорії (що куди входить): [{key, kg}]"
+          additionalProperties:
+            type: array
+            items:
+              type: object
+              required: [key, kg]
+              properties:
+                key: {type: string}
+                kg: {type: number}
 
     MissionCost:
       type: object
@@ -2003,6 +2357,11 @@ components:
           oneOf:
             - {$ref: "#/components/schemas/CrewSupplies"}
             - {type: "null"}
+        equipment:
+          oneOf:
+            - {$ref: "#/components/schemas/EquipmentSummary"}
+            - {type: "null"}
+        mission_feasible: {type: [boolean, "null"], description: "false — запасів життєзабезпечення не вистачає на всю місію; null — склад екіпажу не задано"}
         categories: {$ref: "#/components/schemas/MissionCategories"}
         sourced_parameters:
           type: array

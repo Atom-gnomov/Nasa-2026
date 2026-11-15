@@ -37,6 +37,27 @@ def load_payload_tables() -> dict:
         return json.load(f)
 
 
+def load_equipment_catalog() -> dict:
+    """Каталог обладнання з документів NASA (app/data/equipment_catalog.json, П-14)."""
+    path = str(current_app.config["DATA_DIR"] / "equipment_catalog.json")
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def equipment_catalog_with_parameters() -> dict:
+    """Каталог обладнання + джерельні параметри D4 (діапазони з цитатами) для виносок «що куди входить»."""
+    catalog = load_equipment_catalog()
+    params = []
+    for p in load_payload_tables()["parameters"]:
+        if p["status"] == "no_source" or p["range"] is None or p["category"] == "price" or not p["facts"]:
+            continue
+        params.append({"id": p["id"], "category": p["category"], "unit": p["unit"], "status": p["status"],
+                       "range": p["range"],
+                       "sources": [{"title": f["source"]["title"], "ref": f["source"]["ref"], "url": f["source"]["url"],
+                                    "quote": f["quote"]} for f in p["facts"][:2]]})
+    return {**catalog, "parameters": params}
+
+
 def load_rockets() -> list[dict]:
     """Сучасні ракети з першоджерел (app/data/rockets.json, задача D7)."""
     return list(_load(str(current_app.config["DATA_DIR"] / "rockets.json")))

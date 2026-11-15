@@ -274,3 +274,24 @@ export function defaultSimSpeed(tofS) {
   const want = Math.max(0, Number(tofS) || 0) / 20;
   return SPEED_CHOICES.find((v) => v >= want) ?? SPEED_CHOICES[SPEED_CHOICES.length - 1];
 }
+
+// ---------- Часова симуляція й симуляція польоту ----------
+// Поки йде політ, час сцени веде ракета, тож часову симуляцію (▶) ставимо на паузу, а після польоту (посадка чи «Стоп»)
+// вмикаємо знову. Стан: { playing — час іде; resume — час треба ввімкнути після польоту; flight — політ іде }.
+export const timeInitial = () => ({ playing: false, resume: false, flight: false });
+
+/** Початок польоту: якщо час ішов (або його вже просили ввімкнути) — запам'ятовуємо й зупиняємо. */
+export function timeOnFlightStart(st) {
+  return { playing: false, resume: st.resume || st.playing, flight: true };
+}
+
+/** Кнопка ▶/⏸ часу: під час польоту лише запам'ятовує бажання (час ввімкнеться після польоту), інакше перемикає час. */
+export function timeOnPlayPress(st) {
+  if (st.flight) return { ...st, resume: !st.resume };
+  return { ...st, playing: !st.playing, resume: false };
+}
+
+/** Кінець польоту (посадка або «Стоп»): вмикаємо час, якщо він мав іти. */
+export function timeOnFlightEnd(st) {
+  return { playing: st.playing || st.resume, resume: false, flight: false };
+}

@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "equipment_catalog.schema.json",
+  "title": "Каталог обладнання з документів NASA (app/data/equipment_catalog.json)",
+  "description": "П-14: позиції обладнання для категорії «Обладнання» — маса й потужність з документів NASA, дослівна цитата й посилання. Власної ціни позиції джерела не дають: ціну доставки на Місяць рахуємо за оцінкою NASA OIG (delivery_usd_per_kg).",
+  "type": "object",
+  "required": ["version", "description", "delivery_usd_per_kg", "delivery_source", "stages", "items"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {"const": 1},
+    "description": {"type": "string"},
+    "delivery_usd_per_kg": {
+      "type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number", "exclusiveMinimum": 0},
+      "description": "Ціна доставки 1 кг на поверхню Місяця, $: [мін, макс]"
+    },
+    "delivery_source": {"$ref": "#/$defs/source"},
+    "stages": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Етапи вибору спорядження (як їх розкладають у плануванні місій NASA): назва з науковим терміном і що входить",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "includes"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+          "name": {"type": "string"}, "name_en": {"type": "string"},
+          "includes": {"type": "string"}, "includes_en": {"type": "string"}
+        }
+      }
+    },
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "kind", "mass_kg", "power_w", "supply_power_w", "source"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+          "name": {"type": "string"},
+          "name_en": {"type": "string"},
+          "stage": {"type": "string", "description": "id етапу з stages"},
+          "kind": {"enum": ["instrument", "rover", "drill", "power", "comms", "other"]},
+          "mass_kg": {"$ref": "#/$defs/range", "description": "[мін, макс] кг"},
+          "power_w": {"oneOf": [{"$ref": "#/$defs/range"}, {"type": "null"}], "description": "Споживання [мін, макс] Вт; null — у джерелі немає"},
+          "supply_power_w": {"type": ["number", "null"], "description": "Потужність, яку позиція дає, Вт; null — не джерело живлення"},
+          "note": {"type": "string"},
+          "source": {"$ref": "#/$defs/source"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "range": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number", "minimum": 0}},
+    "source": {
+      "type": "object",
+      "required": ["title", "ref", "url", "kind", "quote"],
+      "additionalProperties": true,
+      "properties": {
+        "title": {"type": "string"},
+        "ref": {"type": "string"},
+        "url": {"type": "string", "pattern": "^https://"},
+        "date": {"type": "string"},
+        "kind": {"enum": ["primary", "secondary"]},
+        "quote": {"type": "string", "minLength": 5}
+      }
+    }
+  }
+}

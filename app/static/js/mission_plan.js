@@ -182,7 +182,7 @@ function init() {
   const chips = bar.querySelector(".mp-chips");
   const nav = bar.querySelector(".mp-nav");
   const sumBox = bar.querySelector(".mp-summary-rows");
-  const pop = bar.querySelector(".mp-goal");
+  const pop = document.querySelector(".mp-goal");
   let plan = loadPlan();
   const current = () => stepFromLocation(location.pathname, location.search, location.hash);
   const ICON = { done: "✓", review: "!", todo: "" };

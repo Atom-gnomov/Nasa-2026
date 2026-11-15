@@ -163,16 +163,18 @@
           <p class="mp-plans-note muted small" role="status"></p>
         </div>
       </details>
-      <div class="mp-goal" hidden>
-        <label>Назва місії <small class="muted">(адміністративний параметр, на розрахунки не впливає)</small>
-          <input type="text" class="mp-name" maxlength="80" placeholder="Напр., «Шеклтон-1»">
-        </label>
-        <label>Мета місії <select class="mp-goal-select"></select></label>
-        <div class="mp-goal-info"></div>
-        <button type="button" class="mp-goal-close">Готово</button>
-      </div>
     </nav>
   </header>
+
+  {# Крок 1: назва й мета — великий банер на всю ширину #}
+    <div class="mp-goal" hidden>
+      <label>Назва місії <small class="muted">(адміністративний параметр, на розрахунки не впливає)</small>
+        <input type="text" class="mp-name" maxlength="80" placeholder="Напр., «Шеклтон-1»">
+      </label>
+      <label>Мета місії <select class="mp-goal-select"></select></label>
+      <div class="mp-goal-info"></div>
+      <button type="button" class="mp-goal-close">Готово</button>
+    </div>
 
   {# Банер автопідготовки даних NASA (static/js/data_status.js, /api/data/status) #}
   <div id="data-banner" class="data-banner" role="status" hidden>

@@ -51,6 +51,13 @@ def load_equipment_catalog() -> dict:
         return json.load(f)
 
 
+def load_crew_roles() -> dict:
+    """Ролі екіпажу, модулі підготовки й типові склади техніки (app/data/crew_roles.json, M27)."""
+    path = str(current_app.config["DATA_DIR"] / "crew_roles.json")
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
 def equipment_catalog_with_parameters() -> dict:
     """Каталог обладнання + джерельні параметри D4 (діапазони з цитатами) для виносок «що куди входить»."""
     catalog = load_equipment_catalog()

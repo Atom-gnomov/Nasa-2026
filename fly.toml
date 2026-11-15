@@ -1,0 +1,38 @@
+# Fly.io: fly launch --no-deploy --copy-config   →   fly volumes create lse_data --size 5   →   fly deploy
+# Ціни Fly змінюються (з 1 жовтня 2026 — нова тарифна сітка): перевірте fly.io/docs/about/pricing перед запуском.
+app = "lunar-mission-builder"
+primary_region = "waw"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8000"
+  WEB_CONCURRENCY = "2"
+  LSE_CACHE_DIR = "/data"
+  LSE_AUTO_PREPARE_MODE = "pack"
+  LSE_AUTO_PREPARE_DATASETS = "temperature,system"
+
+# Том із даними NASA: переживає перезапуски й оновлення образу
+[[mounts]]
+  source = "lse_data"
+  destination = "/data"
+  initial_size = "5gb"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    grace_period = "40s"
+    interval = "30s"
+    method = "GET"
+    path = "/api/meta"
+    timeout = "5s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"

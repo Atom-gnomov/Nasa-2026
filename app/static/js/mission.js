@@ -35,7 +35,6 @@ export const DEFAULT_FORM = {
   supplyKg: { oxygen: null, water: null, food: null }, // П-14: довільні обсяги запасів, кг; null — «авто» (за запасом у добах)
 };
 
-export const ROLE_LABELS = { commander: "Командир", pilot: "Пілот", scientist: "Науковець", engineer: "Інженер", physician: "Лікар" };
 export const SEX_LABELS = { male: "чоловік", female: "жінка" };
 export const ACTIVITY_LABELS = { sedentary: "малорухомий", low: "помірний", active: "активний", very_active: "дуже активний" };
 // Еталонні значення — як на бекенді (app/core/crew.py, ⚠️ не нормативні)
@@ -51,7 +50,6 @@ export function defaultMember(sex = "male") {
 export function normalizeMember(raw) {
   const sex = raw?.sex === "female" ? "female" : "male";
   const out = { sex, activity: Object.hasOwn(ACTIVITY_LABELS, raw?.activity) ? raw.activity : "active" };
-  if (Object.hasOwn(ROLE_LABELS, raw?.role)) out.role = raw.role; // M27: роль в екіпажі
   for (const key of Object.keys(MEMBER_LIMITS)) {
     const [lo, hi] = MEMBER_LIMITS[key];
     const v = Number(raw?.[key]);
@@ -431,8 +429,6 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
     $("m-trajectory").value = form.trajectory;
     $("m-system").value = form.systemId;
     $("m-site").value = form.siteId;
-    // M27: склад техніки — лише для безпілотної
-    $("m-robot-box").hidden = form.crewed || !roleData?.robotic_presets?.length;
     // M24: редактор екіпажу
     $("m-bio-box").hidden = !form.crewed;
     $("m-bio").checked = form.useBio;
@@ -474,20 +470,9 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
         lab.append(sel);
         return lab;
       };
-      const roleLab = document.createElement("label");
-      roleLab.append(t("Роль"), " ");
-      const roleSel = document.createElement("select");
-      roleSel.append(new Option(t("— без ролі —"), "", false, !m.role));
-      for (const [v, text] of Object.entries(ROLE_LABELS)) roleSel.append(new Option(t(text), v, false, m.role === v));
-      roleSel.addEventListener("change", () => {
-        const next = { ...m }; delete next.role;
-        form.members[i] = normalizeMember(roleSel.value ? { ...next, role: roleSel.value } : next);
-        renderMembers(); schedule();
-      });
-      roleLab.append(roleSel);
       const remove = Object.assign(document.createElement("button"), { type: "button", textContent: "×", title: t("Прибрати людину") });
       remove.addEventListener("click", () => { form.members.splice(i, 1); form.crew = form.members.length || null; renderForm(); schedule(); });
-      row.append(roleLab, selectOf("sex", "Стать", SEX_LABELS), field("age", "Вік", { min: 19, max: 80, step: 1 }),
+      row.append(selectOf("sex", "Стать", SEX_LABELS), field("age", "Вік", { min: 19, max: 80, step: 1 }),
         field("mass_kg", "Маса, кг", { min: 35, max: 160, step: 1 }), field("height_m", "Зріст, м", { min: 1.4, max: 2.15, step: 0.01 }),
         selectOf("activity", "Активність", ACTIVITY_LABELS), remove);
       return row;
@@ -556,23 +541,6 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
     const goal = t(PLAN_GOALS.find((g) => g.id === goalId)?.label ?? goalId);
     hint.textContent = t("Для мети «{goal}» зазвичай потрібні: {items}. Це підказка, не вимога.", { goal, items: items.map((it) => lang(it.name, it.name_en)).join(", ") });
     add.disabled = items.every((it) => form.equipmentItems[it.id] > 0);
-  }
-
-  // M27: склад за ролями (чого бракує) і план підготовки з годинами
-  function renderCrewPlan(r) {
-    const plan = r.crew_plan, box = $("m-crew-plan");
-    box.hidden = !plan;
-    if (!plan) return;
-    const lines = [];
-    if (plan.missing.length) lines.push(["warn", t("Для складу з {n} осіб бракує ролей: {roles}.", { n: plan.crew, roles: plan.missing.map((x) => t(ROLE_LABELS[x])).join(", ") })]);
-    for (const rec of plan.recommended) lines.push(["info", `${t("Радимо додати")}: ${t(ROLE_LABELS[rec.role])} — ${lang(rec.reason, rec.reason_en)}.`]);
-    if (plan.unassigned) lines.push(["info", t("Без ролі: {n} (у підготовку не входять).", { n: plan.unassigned })]);
-    if (!lines.length) lines.push(["ok", t("Склад за ролями відповідає правилам.")]);
-    $("m-crew-plan-notes").replaceChildren(...lines.map(([kind, text]) => Object.assign(document.createElement("li"), { className: `supply-${kind}`, textContent: text })));
-    const tr = plan.training;
-    $("m-training-total").textContent = t("Підготовка: {h} год на екіпаж (≈ {y} людино-років).", { h: Math.round(tr.total_hours), y: (tr.total_hours / 1800).toFixed(1) });
-    $("m-training").replaceChildren(...tr.modules.map((m) => Object.assign(document.createElement("li"),
-      { textContent: `${lang(m.name, m.name_en)} — ${m.hours} ${t("год")} × ${m.people}` })));
   }
 
   function renderSupplies(r) {
@@ -646,7 +614,6 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
     $("m-profile-note").textContent = profileNote(r);
     const limits = r.profile ? Object.values(r.profile.limits) : [];
     $("m-limits-box").hidden = limits.length === 0;
-    renderCrewPlan(r);
     renderSupplies(r);
     $("m-limits").replaceChildren(...limits.map((l) => Object.assign(document.createElement("li"), { textContent: limitText(l) })));
   }
@@ -671,7 +638,6 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
     }
   }
   let lastResponse = null;
-  let roleData = null; // M27: /api/crew-roles — типові склади техніки
   onLangChange(() => { if (catalog) renderCatalog(); if (lastResponse) renderResult(lastResponse); });
   const schedule = () => { save(); clearTimeout(timer); timer = setTimeout(calculate, DEBOUNCE_MS); };
 
@@ -711,22 +677,6 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
     });
     $(`m-catkg-${key}-auto`).addEventListener("click", () => { form.categoryKg[key] = null; $(`m-catkg-${key}`).value = ""; renderForm(); schedule(); });
   }
-  fetch("/api/crew-roles").then((res) => (res.ok ? res.json() : null)).then((data) => {
-    if (!data) return;
-    roleData = data;
-    $("m-robot-presets").replaceChildren(...data.robotic_presets.map((p) => {
-      const btn = Object.assign(document.createElement("button"), { type: "button", textContent: lang(p.name, p.name_en) });
-      btn.addEventListener("click", () => {
-        form.equipmentItems = Object.fromEntries(p.items.map((it) => [it.id, it.count]));
-        const names = p.items.map((it) => `${it.id} ×${it.count}`).join(", ");
-        $("m-robot-note").textContent = `${lang(p.name, p.name_en)}: ${names}`;
-        if (catalog) renderCatalog();
-        renderForm(); schedule();
-      });
-      return btn;
-    }));
-    renderForm();
-  });
   fetch("/api/equipment-catalog").then((res) => (res.ok ? res.json() : null)).then((data) => {
     if (!data) return;
     catalog = data;

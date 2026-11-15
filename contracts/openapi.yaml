@@ -171,22 +171,6 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/EquipmentCatalog"}
 
-  /crew-roles:
-    get:
-      tags: [planning]
-      x-status: implemented
-      summary: Ролі екіпажу, правила складу, план підготовки й типові склади техніки (M27)
-      description: |
-        Каталог `app/data/crew_roles.json`: ролі (командир, пілот, науковець, інженер, лікар) з типовою активністю й
-        модулями підготовки, правила складу за кількістю людей, години підготовки (human-rating) і типові склади
-        техніки для безпілотної місії (позиції з `/equipment-catalog`). ⚠️ Години й правила тимчасові.
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema: {$ref: "#/components/schemas/CrewRoles"}
-
   /mission-goals:
     get:
       tags: [planning]
@@ -2076,76 +2060,7 @@ components:
         age: {type: number, minimum: 19, maximum: 80, description: "Років; еталон 35"}
         mass_kg: {type: number, minimum: 35, maximum: 160}
         height_m: {type: number, minimum: 1.4, maximum: 2.15}
-        activity: {type: string, enum: [sedentary, low, active, very_active], description: "Без значення — типова активність ролі (`role`), інакше active"}
-        role: {type: string, enum: [commander, pilot, scientist, engineer, physician], description: "Роль в екіпажі (M27, `GET /crew-roles`); впливає на типову активність і дає `crew_plan`"}
-
-    CrewPlan:
-      type: object
-      description: Склад екіпажу за ролями, перевірка правил складу й план підготовки (M27; правила й години — тимчасові)
-      required: [crew, roles, required, missing, ok, recommended, unassigned, training]
-      properties:
-        crew: {type: integer}
-        roles: {type: object, additionalProperties: {type: integer}}
-        required: {type: array, items: {type: string}}
-        missing: {type: array, items: {type: string}, description: "Ролі, яких бракує за правилами складу"}
-        ok: {type: boolean}
-        recommended:
-          type: array
-          items:
-            type: object
-            required: [role, reason]
-            properties:
-              role: {type: string}
-              reason: {type: string}
-        unassigned: {type: integer, description: "Людей без ролі"}
-        training:
-          type: object
-          required: [people, total_hours, modules]
-          properties:
-            people:
-              type: array
-              items:
-                type: object
-                required: [role, hours, modules]
-                properties:
-                  role: {type: string}
-                  hours: {type: number}
-                  modules: {type: array, items: {type: string}}
-            total_hours: {type: number}
-            modules:
-              type: array
-              items:
-                type: object
-                required: [id, name, hours, people]
-                properties:
-                  id: {type: string}
-                  name: {type: string}
-                  name_en: {type: [string, "null"]}
-                  hours: {type: number}
-                  people: {type: integer}
-
-    CrewRoles:
-      type: object
-      description: Ролі екіпажу, правила складу, модулі підготовки й типові склади техніки (M27)
-      required: [version, provisional, roles, training_modules, composition_rules, recommend, robotic_presets]
-      properties:
-        version: {type: integer}
-        description: {type: string}
-        provisional: {type: boolean}
-        roles: {type: array, items: {type: object, required: [id, name, duties, default_activity, eva_share, training]}}
-        training_modules: {type: array, items: {type: object, required: [id, name, hours]}}
-        composition_rules: {type: array, items: {type: object, required: [min_crew, require]}}
-        recommend: {type: array, items: {type: object, required: [min_crew, role, reason]}}
-        robotic_presets:
-          type: array
-          description: "Типові склади техніки для безпілотної місії: позиції з /equipment-catalog"
-          items:
-            type: object
-            required: [id, name, items]
-            properties:
-              id: {type: string}
-              name: {type: string}
-              items: {type: array, items: {type: object, required: [id, count]}}
+        activity: {type: string, enum: [sedentary, low, active, very_active], default: active}
 
     CrewSupplies:
       type: object
@@ -2164,7 +2079,6 @@ components:
               height_m: {type: number}
               age: {type: number}
               activity: {type: string}
-              role: {type: [string, "null"]}
               needs_per_day:
                 type: object
                 description: energy_kcal, oxygen_kg, co2_kg, water_kg, food_dry_kg, food_kg (з упаковкою)
@@ -2421,10 +2335,6 @@ components:
         crew_supplies:
           oneOf:
             - {$ref: "#/components/schemas/CrewSupplies"}
-            - {type: "null"}
-        crew_plan:
-          oneOf:
-            - {$ref: "#/components/schemas/CrewPlan"}
             - {type: "null"}
         equipment:
           oneOf:

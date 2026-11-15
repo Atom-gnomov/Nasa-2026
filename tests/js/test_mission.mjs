@@ -179,13 +179,6 @@ test("нормалізація члена екіпажу: еталон стат�
   assert.equal(f.members.length, 6); assert.equal(f.supplyDays, 12); assert.equal(f.reservePct, 200);
 });
 
-test("роль члена екіпажу (M27): відома зберігається, невідома відкидається, іде в запит", () => {
-  assert.equal(m.normalizeMember({ sex: "male", role: "pilot" }).role, "pilot");
-  assert.ok(!("role" in m.normalizeMember({ sex: "male", role: "janitor" })));
-  const body = m.buildMissionRequest(form({ crewed: true, useBio: true, members: [{ sex: "male", role: "scientist" }] }));
-  assert.equal(body.crew_members[0].role, "scientist");
-});
-
 test("запаси й журнал: рядки без undefined, відсотки й стани, попередження", () => {
   const rows = m.suppliesRows(cs);
   assert.equal(rows.length, 3);

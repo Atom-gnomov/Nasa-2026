@@ -121,12 +121,6 @@ def equipment_catalog():
     return jsonify(catalogs.equipment_catalog_with_parameters())
 
 
-@bp.get("/crew-roles")
-def crew_roles():
-    """Ролі екіпажу, правила складу, модулі підготовки й типові склади техніки для безпілотної місії (M27)."""
-    return jsonify(catalogs.load_crew_roles())
-
-
 @bp.get("/mission-goals")
 def mission_goals():
     """Цілі місії з типовими виборами для наступних кроків (M25, П-14): тип, тривалість, пріоритети, поради до місця."""

@@ -155,6 +155,22 @@ paths:
                 type: array
                 items: {$ref: "#/components/schemas/LaunchSite"}
 
+  /equipment-catalog:
+    get:
+      tags: [planning]
+      x-status: implemented
+      summary: Обладнання з документів NASA (маса, потужність, цитата) і джерельні параметри для виносок
+      description: |
+        Каталог `app/data/equipment_catalog.json` (П-14): позиції для категорії «Обладнання» з масою, споживанням,
+        цитатою й посиланням; ціна доставки на Місяць (`delivery_usd_per_kg`, NASA OIG); `parameters` — джерельні
+        діапазони D4 (життєзабезпечення, зручності, енергетика) для виносок «що куди входить».
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/EquipmentCatalog"}
+
   /launch-systems:
     get:
       tags: [planning]
@@ -1800,6 +1816,30 @@ components:
             запаси O₂, води й їжі за формулами з docs/RESOURCES.md §10; ці запаси входять у масу навантаження.
           items: {$ref: "#/components/schemas/CrewMember"}
         supply_days: {type: number, minimum: 0, maximum: 365, description: "На скільки діб везуть запаси; за замовчуванням — тривалість з рекомендованим резервом"}
+        equipment_items:
+          type: array
+          maxItems: 12
+          description: |
+            Позиції обладнання з каталогу NASA (`GET /equipment-catalog`): {id, count}. Маса й споживання категорії
+            «Обладнання» — сума за позиціями (середнє діапазону маси), а не оцінка за рівнем; позиція, що дає потужність
+            (реактор), зменшує розмір панелей і акумуляторів. Відповідь має блок `equipment` з масою й доставкою.
+          items:
+            type: object
+            required: [id]
+            additionalProperties: false
+            properties:
+              id: {type: string}
+              count: {type: integer, minimum: 0, maximum: 50, default: 1}
+        category_kg:
+          type: object
+          additionalProperties: false
+          description: |
+            Довільна маса категорії, кг (замінює оцінку за рівнем): equipment, life_support, comfort. Для обладнання
+            з `equipment_items` — додаткова маса понад позиції. life_support і comfort потребують екіпажу.
+          properties:
+            equipment: {type: number, minimum: 0, maximum: 100000}
+            life_support: {type: number, minimum: 0, maximum: 100000}
+            comfort: {type: number, minimum: 0, maximum: 100000}
         supply_kg:
           type: object
           additionalProperties: false
@@ -1977,6 +2017,69 @@ components:
           usd: {$ref: "#/components/schemas/Range2"}
           power_w: {type: number}
 
+    EquipmentCatalog:
+      type: object
+      required: [version, description, delivery_usd_per_kg, delivery_source, items, parameters]
+      properties:
+        version: {type: integer}
+        description: {type: string}
+        delivery_usd_per_kg: {$ref: "#/components/schemas/Range2"}
+        delivery_source: {type: object, additionalProperties: true}
+        items:
+          type: array
+          items:
+            type: object
+            required: [id, name, kind, mass_kg, power_w, supply_power_w, source]
+            properties:
+              id: {type: string}
+              name: {type: string}
+              kind: {type: string}
+              mass_kg: {$ref: "#/components/schemas/Range2"}
+              power_w: {oneOf: [{$ref: "#/components/schemas/Range2"}, {type: "null"}]}
+              supply_power_w: {type: [number, "null"]}
+              note: {type: string}
+              source: {type: object, additionalProperties: true}
+        parameters:
+          type: array
+          items:
+            type: object
+            required: [id, category, unit, status, range, sources]
+            properties:
+              id: {type: string}
+              category: {type: string}
+              unit: {type: string}
+              status: {type: string}
+              range: {$ref: "#/components/schemas/Range2"}
+              sources:
+                type: array
+                items: {type: object, additionalProperties: true}
+
+    EquipmentSummary:
+      type: object
+      description: Підсумок позицій обладнання з каталогу NASA (П-14); гроші — лише доставка на Місяць за оцінкою NASA OIG
+      required: [items, mass_kg, mass_range_kg, power_w, supply_power_w, delivery_usd, delivery_usd_per_kg]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required: [id, name, count, mass_kg, power_w, supply_power_w, delivery_usd, source]
+            properties:
+              id: {type: string}
+              name: {type: string}
+              count: {type: integer}
+              mass_kg: {$ref: "#/components/schemas/Range2"}
+              power_w: {type: [number, "null"]}
+              supply_power_w: {type: [number, "null"]}
+              delivery_usd: {$ref: "#/components/schemas/Range2"}
+              source: {type: object, additionalProperties: true}
+        mass_kg: {type: number, description: Середнє діапазону — точкова оцінка для бюджету}
+        mass_range_kg: {$ref: "#/components/schemas/Range2"}
+        power_w: {type: number, description: Споживання (пік), Вт}
+        supply_power_w: {type: number, description: Потужність, яку дають позиції, Вт}
+        delivery_usd: {$ref: "#/components/schemas/Range2"}
+        delivery_usd_per_kg: {$ref: "#/components/schemas/Range2"}
+
     MissionPayload:
       type: object
       required: [sizes, crew, days, masses_kg, power_w, heat_w, panel_kg, battery_kg, payload_kg, total_kg, total_range_kg]
@@ -1997,6 +2100,17 @@ components:
         payload_kg: {type: number, description: Лише три категорії}
         total_kg: {type: number, description: Усе, що сідає на Місяць}
         total_range_kg: {$ref: "#/components/schemas/Range2"}
+        breakdown:
+          type: object
+          description: "З чого складається маса кожної категорії (що куди входить): [{key, kg}]"
+          additionalProperties:
+            type: array
+            items:
+              type: object
+              required: [key, kg]
+              properties:
+                key: {type: string}
+                kg: {type: number}
 
     MissionCost:
       type: object
@@ -2053,6 +2167,10 @@ components:
         crew_supplies:
           oneOf:
             - {$ref: "#/components/schemas/CrewSupplies"}
+            - {type: "null"}
+        equipment:
+          oneOf:
+            - {$ref: "#/components/schemas/EquipmentSummary"}
             - {type: "null"}
         mission_feasible: {type: [boolean, "null"], description: "false — запасів життєзабезпечення не вистачає на всю місію; null — склад екіпажу не задано"}
         categories: {$ref: "#/components/schemas/MissionCategories"}

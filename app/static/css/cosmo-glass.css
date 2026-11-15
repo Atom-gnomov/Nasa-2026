@@ -366,6 +366,19 @@ body:not(.page-moon):not(.page-system) #view .results-table thead th {
   background: #1b1e29 !important; color: var(--cg-muted) !important; border-bottom: 1px solid var(--cg-line-soft) !important;
 }
 
+/* ---------- Категорії навантаження: своя маса й виноски ---------- */
+.size-custom { display: grid; grid-template-columns: 1fr minmax(0, 110px) auto; gap: var(--gap-s); align-items: center; }
+.size-custom input { width: 100%; }
+.callout { border: 1px solid var(--cg-line-soft); background: var(--cg-fill-faint); padding: var(--gap-s); }
+.callout > summary { cursor: pointer; }
+.callout h4 { margin: var(--gap-s) 0 4px; font-size: var(--fs-s); font-weight: 600; color: var(--cg-ink); }
+.callout ul { margin: 0; padding-left: 16px; display: grid; gap: 2px; }
+.eq-list { display: grid; gap: var(--gap-s); }
+.eq-row { display: grid; grid-template-columns: 1fr 64px; gap: 2px var(--gap-s); align-items: center; }
+.eq-row > strong { grid-column: 1; font-size: var(--fs-s); }
+.eq-row > input { grid-column: 2; grid-row: 1; width: 100%; }
+.eq-row > span, .eq-row > a { grid-column: 1 / -1; }
+
 /* ---------- Прямі кути, без світіння ----------
    Ефект скла лишається (прозорий білуватий фон, розмиття, тонка світла рамка); прибрано: заокруглення кутів,
    світіння (тіні, ореоли, тіні тексту), кольорові точки біля заголовків віджетів і блоків результатів. */

@@ -114,6 +114,12 @@ def list_launch_systems():
     return jsonify([launch_system.from_catalog(row, cat).to_dict() for cat, row in catalogs.load_vehicles()])
 
 
+@bp.get("/equipment-catalog")
+def equipment_catalog():
+    """Обладнання з документів NASA (маса, потужність, цитата) і джерельні параметри D4 для виносок у «Місії»."""
+    return jsonify(catalogs.equipment_catalog_with_parameters())
+
+
 @bp.get("/launch-sites")
 def list_launch_sites():
     return jsonify(catalogs.load_launch_sites())

@@ -2,7 +2,7 @@
 // Усі числа рахує бекенд (модель M12–M14); тут лише форма, запит і підписи. Коефіцієнти моделі тимчасові —
 // про це завжди сказано у виводі. Чисті функції (запит, формати, підписи) — без DOM, тестуються в Node.
 
-import { onLangChange, t } from "./i18n.js";
+import { getLang, onLangChange, t } from "./i18n.js";
 import { burnFromMission, saveBurn } from "./selection.js";
 
 const STORAGE_KEY = "lse-mission";
@@ -27,6 +27,8 @@ export const DEFAULT_FORM = {
   members: [], // [{sex, age, mass_kg, height_m, activity}]
   supplyDays: null, // на скільки діб везуть запаси; null — рекомендовано
   reservePct: 15, // рекомендований запас, % ⚠️ тимчасово
+  categoryKg: { equipment: null, life_support: null, comfort: null }, // П-14: своя маса категорії, кг; null — за рівнем
+  equipmentItems: {}, // П-14: позиції каталогу NASA: id → кількість
   supplyKg: { oxygen: null, water: null, food: null }, // П-14: довільні обсяги запасів, кг; null — «авто» (за запасом у добах)
 };
 
@@ -71,6 +73,16 @@ export function normalizeForm(raw) {
   f.members = Array.isArray(raw.members) ? raw.members.slice(0, MAX_CREW).map(normalizeMember) : [];
   f.supplyDays = raw.supplyDays == null || raw.supplyDays === "" ? null : clamp(num(raw.supplyDays, 0), 0, 365);
   f.reservePct = clamp(num(raw.reservePct, 15), 0, 200);
+  for (const key of Object.keys(f.categoryKg)) {
+    const v = raw.categoryKg?.[key];
+    f.categoryKg[key] = v == null || v === "" ? null : clamp(num(v, 0), 0, 100000);
+  }
+  if (raw.equipmentItems && typeof raw.equipmentItems === "object") {
+    for (const [id, n] of Object.entries(raw.equipmentItems).slice(0, 12)) {
+      const count = clamp(Math.round(num(n, 0)), 0, 50);
+      if (/^[a-z0-9_]+$/.test(id) && count > 0) f.equipmentItems[id] = count;
+    }
+  }
   for (const key of Object.keys(f.supplyKg)) {
     const v = raw.supplyKg?.[key];
     f.supplyKg[key] = v == null || v === "" ? null : clamp(num(v, 0), 0, 100000);
@@ -95,6 +107,11 @@ export function buildMissionRequest(form) {
     const kg = Object.fromEntries(Object.entries(form.supplyKg).filter(([, v]) => v !== null));
     if (Object.keys(kg).length) body.supply_kg = kg; // П-14: довільні обсяги окремих запасів
   }
+  const custom = Object.fromEntries(Object.entries(form.categoryKg)
+    .filter(([k, v]) => v !== null && (k === "equipment" || form.crewed)));
+  if (Object.keys(custom).length) body.category_kg = custom; // П-14: своя маса категорії, кг
+  const items = Object.entries(form.equipmentItems).filter(([, n]) => n > 0).map(([id, count]) => ({ id, count }));
+  if (items.length) body.equipment_items = items; // П-14: обладнання з каталогу NASA
   if (form.systemId) body.launch_system_id = form.systemId;
   if (form.siteId) body.launch_site_id = form.siteId;
   return body;
@@ -315,6 +332,58 @@ export function logRows(cs, maxRows = 40) {
   }));
 }
 
+// ---------- Виноски: що куди входить і за якими джерелами (П-14) ----------
+export const BREAKDOWN_LABELS = {
+  level_estimate: "Оцінка за рівнем", custom: "Ваше значення", catalog_items: "Позиції з каталогу NASA", extra: "Додаткова маса",
+  consumables: "Витратні: кисень, вода, їжа", fixed: "Обладнання життєзабезпечення", shield: "Захист від радіації",
+  habitat_shell: "Оболонка житлового об'єму", daily_goods: "Гігієна, одяг, дозвілля",
+};
+export const PARAM_LABELS = {
+  oxygen_kg_per_person_day: "Кисень, кг на людину на добу", water_kg_per_person_day: "Вода, кг на людину на добу",
+  food_kg_per_person_day: "Їжа з упаковкою, кг на людину на добу", habitat_kg_per_m3: "Маса оболонки, кг на м³",
+  habitable_volume_m3_per_person: "Житловий об'єм, м³ на людину", equipment_mass_kg: "Маса наукового обладнання, кг (приклади NASA)",
+};
+export const CATEGORY_PARAMS = {
+  equipment: ["equipment_mass_kg"],
+  life_support: ["oxygen_kg_per_person_day", "water_kg_per_person_day", "food_kg_per_person_day"],
+  comfort: ["habitable_volume_m3_per_person", "habitat_kg_per_m3"],
+};
+
+// «З чого складається»: рядки [назва, маса] за payload.breakdown категорії.
+export function breakdownRows(breakdown, category) {
+  return (breakdown?.[category] ?? []).filter((r) => r.kg > 0.05).map((r) => [t(BREAKDOWN_LABELS[r.key] ?? r.key), fmtKg(r.kg)]);
+}
+
+// Що кажуть документи NASA: рядки {label, range, unit, title, url, quote} за джерельними параметрами категорії.
+export function sourceRows(catalog, category) {
+  const ids = CATEGORY_PARAMS[category] ?? [];
+  return (catalog?.parameters ?? []).filter((p) => ids.includes(p.id)).map((p) => {
+    const s = p.sources[0] ?? {};
+    const [lo, hi] = p.range;
+    return { label: t(PARAM_LABELS[p.id] ?? p.id), range: lo === hi ? NUM1.format(lo) : `${NUM1.format(lo)}–${NUM1.format(hi)}`,
+             title: s.title ?? "", url: s.url ?? "", quote: s.quote ?? "" };
+  });
+}
+
+// Позиція каталогу: маса, споживання, потужність, яку вона дає, і доставка на Місяць за ціною NASA OIG.
+export function itemInfo(item, deliveryRange) {
+  const [lo, hi] = item.mass_kg;
+  const mass = lo === hi ? fmtKg(lo) : `${NUM1.format(lo)}–${NUM1.format(hi)} ${t("кг")}`;
+  const usd = fmtUsdAny([lo * deliveryRange[0], hi * deliveryRange[1]]);
+  const parts = [`${t("маса")} ${mass}`, `${t("доставка")} ≈ ${usd}`];
+  if (item.power_w) parts.push(`${t("споживання")} ${item.power_w[0] === item.power_w[1] ? item.power_w[0] : `${item.power_w[0]}–${item.power_w[1]}`} ${t("Вт")}`);
+  if (item.supply_power_w) parts.push(`${t("дає")} ${NF.format(item.supply_power_w / 1000)} ${t("кВт")}`);
+  return parts.join(" · ");
+}
+
+// Підсумок вибраних позицій: «2 позиції: 6 950 кг (…), доставка ≈ $…».
+export function equipmentSummary(eq) {
+  if (!eq) return "";
+  const [lo, hi] = eq.mass_range_kg;
+  const mass = lo === hi ? fmtKg(lo) : `${NF.format(Math.round(lo))}–${NF.format(Math.round(hi))} ${t("кг")}`;
+  return t("Разом за позиціями: {mass}, доставка на Місяць ≈ {usd}.", { mass, usd: fmtUsdAny(eq.delivery_usd) });
+}
+
 export const warningTexts = (cs) => (cs?.warnings ?? []).map((w) => w.message);
 
 // ---------- DOM ----------
@@ -353,6 +422,12 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
     $("m-supply-days").value = form.supplyDays ?? "";
     $("m-reserve").value = form.reservePct;
     for (const key of Object.keys(form.supplyKg)) $(`m-kg-${key}-auto`).disabled = form.supplyKg[key] === null;
+    for (const key of Object.keys(form.categoryKg)) {
+      const input = $(`m-catkg-${key}`);
+      if (document.activeElement !== input) input.value = form.categoryKg[key] ?? "";
+      input.disabled = key !== "equipment" && !form.crewed;
+      $(`m-catkg-${key}-auto`).disabled = form.categoryKg[key] === null;
+    }
     renderMembers();
   }
 
@@ -391,11 +466,61 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
     $("m-add-member").disabled = form.members.length >= MAX_CREW;
   }
 
+  // Виноски під повзунками: склад маси у цій місії й джерела NASA; для обладнання — каталог із кількістю
+  let catalog = null;
+  const li = (...nodes) => { const el = document.createElement("li"); el.append(...nodes); return el; };
+  function renderCallouts(r) {
+    for (const key of Object.keys(form.categoryKg)) {
+      const cat = r.categories?.[key];
+      const input = $(`m-catkg-${key}`);
+      if (cat && form.categoryKg[key] === null && document.activeElement !== input) input.placeholder = String(Math.round(cat.mass_kg));
+      const body = $(`m-callout-${key}-body`);
+      const parts = body.querySelector(".callout-parts");
+      parts.replaceChildren(...breakdownRows(r.payload.breakdown, key).map(([name, kg]) => li(`${name}: ${kg}`)));
+      const src = body.querySelector(".callout-sources");
+      src.replaceChildren(...sourceRows(catalog, key).map((s) => {
+        const a = Object.assign(document.createElement("a"), { href: s.url, target: "_blank", rel: "noopener", textContent: t("джерело"), title: s.quote });
+        return li(`${s.label}: ${s.range} — `, a);
+      }));
+    }
+    $("m-eq-total").textContent = equipmentSummary(r.equipment);
+  }
+
+  function renderCatalog() {
+    const box = $("m-eq-list");
+    const price = catalog.delivery_usd_per_kg;
+    box.replaceChildren(...catalog.items.map((item) => {
+      const row = document.createElement("div");
+      row.className = "eq-row";
+      const name = Object.assign(document.createElement("strong"), { textContent: getLang() === "en" ? (item.name_en ?? item.name) : item.name });
+      const count = Object.assign(document.createElement("input"), { type: "number", min: 0, max: 50, step: 1, inputMode: "numeric",
+        value: form.equipmentItems[item.id] ?? 0, id: `m-eq-${item.id}` });
+      count.setAttribute("aria-label", t("Кількість"));
+      count.addEventListener("input", () => {
+        const n = clamp(Math.round(num(count.value, 0)), 0, 50);
+        if (n > 0) form.equipmentItems[item.id] = n; else delete form.equipmentItems[item.id];
+        schedule();
+      });
+      const info = Object.assign(document.createElement("span"), { className: "muted small", textContent: itemInfo(item, price) });
+      const a = Object.assign(document.createElement("a"), { href: item.source.url, target: "_blank", rel: "noopener",
+        textContent: t("джерело"), title: item.source.quote });
+      row.append(name, count, info, a);
+      return row;
+    }));
+    $("m-eq-source").replaceChildren(
+      document.createTextNode(`${t("Доставка 1 кг на Місяць")}: ${fmtUsdAny(price)} — `),
+      Object.assign(document.createElement("a"), { href: catalog.delivery_source.url, target: "_blank", rel: "noopener",
+        textContent: t("джерело"), title: catalog.delivery_source.quote }));
+  }
+
   function renderSupplies(r) {
     const cs = r.crew_supplies;
     $("m-supplies").hidden = !cs;
     for (const key of Object.keys(form.sizes)) {
-      $(`m-num-${key}`).textContent = categoryNumbers(r.categories?.[key], LEVELS[form.sizes[key]].label);
+      // позначка перед числами: рівень повзунка, а коли задано свою масу чи позиції каталогу — що саме їх визначає
+      const label = key === "equipment" && Object.keys(form.equipmentItems).length ? t("за каталогом NASA")
+        : form.categoryKg[key] !== null ? t("своя маса") : LEVELS[form.sizes[key]].label;
+      $(`m-num-${key}`).textContent = categoryNumbers(r.categories?.[key], label);
     }
     if (!cs) return;
     const summary = summaryLines(r);
@@ -450,6 +575,7 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
     $("m-fill-bar").parentElement.classList.toggle("over", fill.over);
     $("m-fill").textContent = fill.text;
     $("m-result").hidden = false;
+    renderCallouts(r);
     $("m-parts").replaceChildren(...partsList(r.payload.masses_kg).map((t) => Object.assign(document.createElement("li"), { textContent: t })));
     // F11: що задав профіль, а не користувач
     const fromProfile = r.profile?.from_profile ?? [];
@@ -482,7 +608,7 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
     }
   }
   let lastResponse = null;
-  onLangChange(() => { if (lastResponse) renderResult(lastResponse); });
+  onLangChange(() => { if (catalog) renderCatalog(); if (lastResponse) renderResult(lastResponse); });
   const schedule = () => { save(); clearTimeout(timer); timer = setTimeout(calculate, DEBOUNCE_MS); };
 
   $("m-crewed").addEventListener("input", (e) => { form.crewed = e.target.value === "1"; if (!form.crewed) form.crew = null; renderForm(); schedule(); });
@@ -506,6 +632,19 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
     form.crew = form.members.length; renderForm(); schedule();
   });
   $("m-supply-days").addEventListener("input", (e) => { form.supplyDays = e.target.value === "" ? null : clamp(num(e.target.value, 0), 0, 365); schedule(); });
+  for (const key of Object.keys(form.categoryKg)) { // П-14: своя маса категорії, кг; «Авто» — за рівнем повзунка
+    $(`m-catkg-${key}`).addEventListener("input", (e) => {
+      form.categoryKg[key] = e.target.value === "" ? null : clamp(num(e.target.value, 0), 0, 100000);
+      $(`m-catkg-${key}-auto`).disabled = form.categoryKg[key] === null; schedule();
+    });
+    $(`m-catkg-${key}-auto`).addEventListener("click", () => { form.categoryKg[key] = null; $(`m-catkg-${key}`).value = ""; renderForm(); schedule(); });
+  }
+  fetch("/api/equipment-catalog").then((res) => (res.ok ? res.json() : null)).then((data) => {
+    if (!data) return;
+    catalog = data;
+    renderCatalog();
+    if (lastResponse) renderCallouts(lastResponse);
+  }).catch(() => { /* без каталогу працюють повзунки й своя маса */ });
   $("m-reserve").addEventListener("input", (e) => { form.reservePct = clamp(num(e.target.value, 15), 0, 200); schedule(); });
   for (const key of Object.keys(form.supplyKg)) { // П-14: довільні обсяги запасів, кг; «Авто» повертає розрахунок за добами
     $(`m-kg-${key}`).addEventListener("input", (e) => { form.supplyKg[key] = clamp(num(e.target.value, 0), 0, 100000); $(`m-kg-${key}-auto`).disabled = false; schedule(); });

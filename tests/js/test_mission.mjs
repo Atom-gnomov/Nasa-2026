@@ -224,3 +224,31 @@ test("довільні обсяги запасів: запит supply_kg лиш�
   assert.equal(m.supplySlider(null, "oxygen", null), null);
   assert.equal(m.fmtUsdAny([500, 900]), "$500–900");
 });
+
+test("своя маса категорії й позиції каталогу: запит, нормалізація, виноски", () => {
+  const body = m.buildMissionRequest(form({ crewed: true, crew: 1, categoryKg: { equipment: 500, life_support: null, comfort: 80 },
+                                            equipmentItems: { viper_rover: 2, trident_drill: 0 } }));
+  assert.deepEqual(body.category_kg, { equipment: 500, comfort: 80 });
+  assert.deepEqual(body.equipment_items, [{ id: "viper_rover", count: 2 }]);
+  const uncrewed = m.buildMissionRequest(form({ crewed: false, categoryKg: { equipment: 5, comfort: 80 } }));
+  assert.deepEqual(uncrewed.category_kg, { equipment: 5 }, "без екіпажу — лише обладнання");
+  const plain = m.buildMissionRequest(form({ crewed: true, crew: 1 }));
+  assert.ok(!("category_kg" in plain) && !("equipment_items" in plain));
+  const f = m.normalizeForm({ categoryKg: { equipment: "12", comfort: -4, life_support: 1e9, x: 1 },
+                              equipmentItems: { viper_rover: "3", "Bad Id": 2, zero: 0, many: 999 } });
+  assert.deepEqual(f.categoryKg, { equipment: 12, life_support: 100000, comfort: 0 });
+  assert.deepEqual(f.equipmentItems, { viper_rover: 3, many: 50 });
+  const breakdown = { life_support: [{ key: "consumables", kg: 100 }, { key: "shield", kg: 0 }, { key: "fixed", kg: 300 }] };
+  const rows = m.breakdownRows(breakdown, "life_support");
+  assert.equal(rows.length, 2); assert.match(rows[0][0], /Витратні/); assert.equal(rows[0][1], "100 кг");
+  assert.deepEqual(m.breakdownRows(null, "comfort"), []);
+  const cat = { parameters: [{ id: "oxygen_kg_per_person_day", range: [0.61, 1.08], sources: [{ title: "BVAD", url: "https://x/", quote: "q" }] },
+                             { id: "habitat_kg_per_m3", range: [9.16, 137.3], sources: [{ title: "BVAD", url: "https://y/", quote: "w" }] }] };
+  const src = m.sourceRows(cat, "life_support");
+  assert.equal(src.length, 1); assert.equal(src[0].range, "0,6–1,1"); assert.equal(src[0].url, "https://x/");
+  const item = { mass_kg: [10, 15], power_w: [30, 195], supply_power_w: 40000 };
+  const info = m.itemInfo(item, [1e6, 1.2e6]);
+  assert.match(info, /маса 10–15 кг/); assert.match(info, /доставка ≈ \$10–18 млн/); assert.match(info, /30–195 Вт/); assert.match(info, /дає 40 кВт/);
+  assert.match(m.equipmentSummary({ mass_range_kg: [6950, 6950], delivery_usd: [6.95e9, 8.34e9] }), /6\s950 кг.*\$7,0–8,3 млрд/);
+  assert.equal(m.equipmentSummary(null), "");
+});

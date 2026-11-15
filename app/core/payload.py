@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 import math
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass, field, replace
 
 CATEGORIES = ("equipment", "life_support", "comfort")
 LEVELS = {"min": 0.0, "basic": 1.0 / 3.0, "extended": 2.0 / 3.0, "max": 1.0}
@@ -63,6 +63,8 @@ class PayloadBudget:
     payload_kg: float  # лише три категорії
     total_kg: float  # усе, що сідає на Місяць
     total_range_kg: tuple[float, float]
+    # З чого складається маса кожної категорії: [{key, kg}] — для виносок у «Місії» (що куди входить)
+    breakdown: dict[str, list[dict]] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -91,15 +93,41 @@ def _sizes(sizes: Mapping[str, str | float] | None) -> dict[str, float]:
     return {c: size_from_level(sizes.get(c, "basic")) for c in CATEGORIES}
 
 
+MAX_CATEGORY_KG = 100_000.0
+
+
+def _check_category_kg(category_kg: Mapping | None) -> dict[str, float]:
+    """Довільна маса категорії, кг (замінює оцінку за рівнем): ключі з CATEGORIES, значення 0…MAX_CATEGORY_KG."""
+    if category_kg is None:
+        return {}
+    if not isinstance(category_kg, Mapping):
+        raise ValueError("category_kg має бути об'єктом")
+    unknown = set(category_kg) - set(CATEGORIES)
+    if unknown:
+        raise ValueError(f"category_kg: невідомі категорії {', '.join(sorted(unknown))} (є {', '.join(CATEGORIES)})")
+    out = {}
+    for key, value in category_kg.items():
+        if value is None:
+            continue
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0.0 <= value <= MAX_CATEGORY_KG:
+            raise ValueError(f"category_kg.{key} має бути числом у межах 0…{MAX_CATEGORY_KG:g}")
+        out[key] = float(value)
+    return out
+
+
 def payload_budget(sizes: Mapping[str, str | float] | None = None, crew: int = 0, days: float = 0.0,
                    longest_night_h: float = 0.0, params: PayloadParams = DEFAULT_PARAMS,
-                   consumables_kg: float | None = None) -> PayloadBudget:
+                   consumables_kg: float | None = None, category_kg: Mapping | None = None,
+                   equipment: Mapping | None = None, power_supply_w: float = 0.0) -> PayloadBudget:
     """Маса, потужність і тепло корисного навантаження.
 
     sizes — розмір категорій (за замовчуванням «basic»); crew — людей (0 — безпілотна: життєзабезпечення й
     зручності = 0); days — тривалість перебування, діб; longest_night_h — найдовша ніч (годин), під яку
     підбираються акумулятори (0 — без акумуляторів); consumables_kg — маса витратних (O₂, вода, їжа) з моделі екіпажу
     (M24): замінює оцінку `consumables_kg_per_person_day · люди · доби`.
+    category_kg — довільна маса категорії, кг (замінює оцінку за рівнем; для обладнання з `equipment` — додаткова маса
+    понад позиції). equipment — позиції каталогу: {"mass_kg", "power_w"} замінюють оцінку обладнання за рівнем.
+    power_supply_w — потужність, яку дає джерело (напр. реактор): панелі й акумулятори рахуються лише для решти.
     """
     s = _sizes(sizes)
     if isinstance(crew, bool) or not isinstance(crew, int) or not 0 <= crew <= MAX_CREW:
@@ -109,26 +137,56 @@ def payload_budget(sizes: Mapping[str, str | float] | None = None, crew: int = 0
     if longest_night_h < 0:
         raise ValueError("longest_night_h не може бути від'ємним")
 
-    equipment = _lerp(params.equipment_mass_kg, s["equipment"])
+    custom = _check_category_kg(category_kg)
+    if power_supply_w < 0:
+        raise ValueError("power_supply_w не може бути від'ємним")
+    breakdown: dict[str, list[dict]] = {}
+    if equipment is not None:  # позиції каталогу (+ додаткова маса)
+        extra = custom.get("equipment", 0.0)
+        equipment_kg = float(equipment["mass_kg"]) + extra
+        power = float(equipment["power_w"])
+        breakdown["equipment"] = [{"key": "catalog_items", "kg": float(equipment["mass_kg"])}]
+        if extra:
+            breakdown["equipment"].append({"key": "extra", "kg": extra})
+    elif "equipment" in custom:
+        equipment_kg = custom["equipment"]
+        power = _lerp(params.equipment_power_w, s["equipment"])
+        breakdown["equipment"] = [{"key": "custom", "kg": equipment_kg}]
+    else:
+        equipment_kg = _lerp(params.equipment_mass_kg, s["equipment"])
+        power = _lerp(params.equipment_power_w, s["equipment"])
+        breakdown["equipment"] = [{"key": "level_estimate", "kg": equipment_kg}]
     life_support = comfort = 0.0
-    power = _lerp(params.equipment_power_w, s["equipment"])
     power_by = {"equipment": power, "life_support": 0.0, "comfort": 0.0}
     if crew > 0:
         ls, cf = s["life_support"], s["comfort"]
         consumables = (crew * days * _lerp(params.consumables_kg_per_person_day, ls)
                        if consumables_kg is None else consumables_kg)
-        life_support = (consumables
-                        + crew * _lerp(params.ls_fixed_kg_per_person, ls)
-                        + _lerp(params.ls_shield_kg, ls))
-        comfort = (crew * _lerp(params.comfort_volume_m3_per_person, cf) * params.habitat_kg_per_m3
-                   + crew * days * _lerp(params.comfort_kg_per_person_day, cf))
+        fixed = crew * _lerp(params.ls_fixed_kg_per_person, ls)
+        shield = _lerp(params.ls_shield_kg, ls)
+        life_support = consumables + fixed + shield
+        shell = crew * _lerp(params.comfort_volume_m3_per_person, cf) * params.habitat_kg_per_m3
+        goods = crew * days * _lerp(params.comfort_kg_per_person_day, cf)
+        comfort = shell + goods
+        breakdown["life_support"] = [{"key": "consumables", "kg": consumables}, {"key": "fixed", "kg": fixed},
+                                     {"key": "shield", "kg": shield}]
+        breakdown["comfort"] = [{"key": "habitat_shell", "kg": shell}, {"key": "daily_goods", "kg": goods}]
+        if "life_support" in custom:
+            life_support = custom["life_support"]
+            breakdown["life_support"] = [{"key": "custom", "kg": life_support}]
+        if "comfort" in custom:
+            comfort = custom["comfort"]
+            breakdown["comfort"] = [{"key": "custom", "kg": comfort}]
         power_by["life_support"] = crew * _lerp(params.ls_power_w_per_person, ls)
         power_by["comfort"] = crew * _lerp(params.comfort_power_w_per_person, cf)
         power += power_by["life_support"] + power_by["comfort"]
+    elif "life_support" in custom or "comfort" in custom:
+        raise ValueError("category_kg для життєзабезпечення й зручностей потребує екіпажу (безпілотна місія їх не має)")
 
-    panel = power / params.panel_w_per_kg
-    battery = power * longest_night_h / (params.battery_wh_per_kg * params.battery_depth_of_discharge)
-    payload = equipment + life_support + comfort
+    net_power = max(0.0, power - power_supply_w)  # решту дають панелі й акумулятори; реактор — без ночі
+    panel = net_power / params.panel_w_per_kg
+    battery = net_power * longest_night_h / (params.battery_wh_per_kg * params.battery_depth_of_discharge)
+    payload = equipment_kg + life_support + comfort
     subtotal = payload + panel + battery
     structure = params.structure_fraction * subtotal
     margin = params.margin_fraction * (subtotal + structure)
@@ -136,10 +194,12 @@ def payload_budget(sizes: Mapping[str, str | float] | None = None, crew: int = 0
     lo, hi = params.uncertainty
     return PayloadBudget(
         sizes=s, crew=crew, days=float(days),
-        masses_kg={"equipment": equipment, "life_support": life_support, "comfort": comfort,
+        masses_kg={"equipment": equipment_kg, "life_support": life_support, "comfort": comfort,
                    "power_system": panel + battery, "structure": structure, "margin": margin},
         power_w=power, power_by_category_w=power_by, heat_w=power, panel_kg=panel, battery_kg=battery,
         payload_kg=payload, total_kg=total, total_range_kg=(total * lo, total * hi),
+        breakdown={**breakdown, "power_system": [{"key": "panels", "kg": panel}, {"key": "batteries", "kg": battery}],
+                   "structure": [{"key": "structure", "kg": structure}], "margin": [{"key": "margin", "kg": margin}]},
     )
 
 

@@ -31,16 +31,63 @@
         <output id="m-size-equipment-out">Базовий</output>
       </label>
       <p class="size-numbers muted small" id="m-num-equipment"></p>
+      <div class="size-custom">
+        <label for="m-catkg-equipment">Своя маса, кг</label>
+        <input type="number" id="m-catkg-equipment" min="0" max="100000" step="1" inputmode="decimal" placeholder="за рівнем">
+        <button type="button" id="m-catkg-equipment-auto" disabled>Авто</button>
+      </div>
+      <details class="callout" id="m-callout-equipment">
+        <summary>З чого складається і за якими джерелами</summary>
+        <div id="m-callout-equipment-body">
+          <h4>Склад маси у вашій місії</h4>
+          <ul class="callout-parts"></ul>
+          <h4>Обладнання з каталогу NASA</h4>
+          <p class="muted small">Оберіть, скільки штук кожної позиції взяти: маса категорії стане сумою за позиціями (замість оцінки за рівнем). Маса й споживання — з документів NASA; гроші — лише доставка на Місяць.</p>
+          <div id="m-eq-list" class="eq-list"></div>
+          <p class="muted small" id="m-eq-source"></p>
+          <p class="small" id="m-eq-total"></p>
+          <h4>Що кажуть документи NASA</h4>
+          <ul class="callout-sources"></ul>
+        </div>
+      </details>
       <label class="size-row" id="m-row-life_support">Життєзабезпечення
         <input type="range" id="m-size-life_support" min="0" max="3" step="1" value="1">
         <output id="m-size-life_support-out">Базовий</output>
       </label>
       <p class="size-numbers muted small" id="m-num-life_support"></p>
+      <div class="size-custom">
+        <label for="m-catkg-life_support">Своя маса, кг</label>
+        <input type="number" id="m-catkg-life_support" min="0" max="100000" step="1" inputmode="decimal" placeholder="за рівнем">
+        <button type="button" id="m-catkg-life_support-auto" disabled>Авто</button>
+      </div>
+      <details class="callout" id="m-callout-life_support">
+        <summary>З чого складається і за якими джерелами</summary>
+        <div id="m-callout-life_support-body">
+          <h4>Склад маси у вашій місії</h4>
+          <ul class="callout-parts"></ul>
+          <h4>Що кажуть документи NASA</h4>
+          <ul class="callout-sources"></ul>
+        </div>
+      </details>
       <label class="size-row" id="m-row-comfort">Умови й зручності
         <input type="range" id="m-size-comfort" min="0" max="3" step="1" value="1">
         <output id="m-size-comfort-out">Базовий</output>
       </label>
       <p class="size-numbers muted small" id="m-num-comfort"></p>
+      <div class="size-custom">
+        <label for="m-catkg-comfort">Своя маса, кг</label>
+        <input type="number" id="m-catkg-comfort" min="0" max="100000" step="1" inputmode="decimal" placeholder="за рівнем">
+        <button type="button" id="m-catkg-comfort-auto" disabled>Авто</button>
+      </div>
+      <details class="callout" id="m-callout-comfort">
+        <summary>З чого складається і за якими джерелами</summary>
+        <div id="m-callout-comfort-body">
+          <h4>Склад маси у вашій місії</h4>
+          <ul class="callout-parts"></ul>
+          <h4>Що кажуть документи NASA</h4>
+          <ul class="callout-sources"></ul>
+        </div>
+      </details>
       <p class="muted small">Позначка повзунка — рівень (Мінімум → Максимум); під кожним повзунком — його маса, вартість (діапазоном) і потужність у числах.</p>
       <p class="muted small" id="m-size-note">Для безпілотної місії життєзабезпечення й зручності не потрібні.</p>
     </fieldset>

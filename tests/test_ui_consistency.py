@@ -265,3 +265,13 @@ def test_supply_sliders_and_summary_are_in_the_mission_panel():
 def test_scrolling_table_header_is_solid_dark_glass():
     """Шапка таблиць, що прокручуються, суцільна (раніше синя, а під нею просвічували рядки)."""
     assert re.search(r"\.results-table thead th \{\s*background: #[0-9a-f]{6} !important", CSS)
+
+
+def test_category_sliders_have_own_mass_inputs_and_source_callouts():
+    """Під повзунками категорій — своя маса в кг, виноска зі складом і джерелами NASA, каталог обладнання."""
+    html = TEMPLATES["mission.html"]
+    for key in ("equipment", "life_support", "comfort"):
+        for ident in (f"m-catkg-{key}", f"m-catkg-{key}-auto", f"m-callout-{key}", f"m-callout-{key}-body"):
+            assert f'id="{ident}"' in html, ident
+    assert 'id="m-eq-list"' in html and 'id="m-eq-total"' in html and 'id="m-eq-source"' in html
+    assert ".callout {" in CSS and ".eq-row {" in CSS and ".size-custom {" in CSS

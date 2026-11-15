@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "description": "Каталог обладнання для категорії «Обладнання» (П-14): маса й потужність кожної позиції з документів NASA, дослівна цитата й посилання. Маса — діапазон [мін, макс] кг; потужність — [мін, макс] Вт (null — у джерелі немає); supply_power_w — потужність, яку позиція ДАЄ (null — не джерело живлення). Ціну доставки на Місяць (delivery_usd_per_kg) рахуємо за оцінкою NASA OIG, власної ціни кожної позиції джерела не дають.",
+  "delivery_usd_per_kg": [
+    1000000,
+    1200000
+  ],
+  "delivery_source": {
+    "title": "NASA OIG IG-24-013 — NASA's Commercial Lunar Payload Services Initiative",
+    "ref": "с. 24 (PDF с. 30)",
+    "url": "https://oig.nasa.gov/wp-content/uploads/2024/06/final-report-ig-24-013-nasas-commercial-lunar-payload-services-initiative.pdf",
+    "date": "2024-06-06",
+    "kind": "primary",
+    "quote": "approximately $1.2 million per kg, or 20 percent more"
+  },
+  "items": [
+    {
+      "id": "clps_instrument",
+      "name": "Науковий прилад CLPS (початковий)",
+      "kind": "instrument",
+      "mass_kg": [
+        10,
+        15
+      ],
+      "power_w": null,
+      "supply_power_w": null,
+      "note": "Перші вантажі NASA в CLPS: ретрорефлектор, сейсмометр.",
+      "source": {
+        "title": "NASA OIG IG-24-013 — NASA's Commercial Lunar Payload Services Initiative",
+        "ref": "с. 19 (PDF с. 25)",
+        "url": "https://oig.nasa.gov/wp-content/uploads/2024/06/final-report-ig-24-013-nasas-commercial-lunar-payload-services-initiative.pdf",
+        "date": "2024-06-06",
+        "kind": "primary",
+        "quote": "estimated to weigh between 10 and 15 kg"
+      },
+      "name_en": "CLPS science instrument (initial)"
+    },
+    {
+      "id": "viper_rover",
+      "name": "Ровер VIPER (з масою доставки)",
+      "kind": "rover",
+      "mass_kg": [
+        475,
+        475
+      ],
+      "power_w": null,
+      "supply_power_w": null,
+      "note": "Маса, з якою VIPER доставляється на поверхню; пізніше додано можливість +15 кг.",
+      "source": {
+        "title": "NASA OIG IG-22-010 — NASA's Volatiles Investigating Polar Exploration Rover (VIPER) Mission",
+        "ref": "PDF с. 22",
+        "url": "https://oig.nasa.gov/wp-content/uploads/2024/02/IG-22-010.pdf",
+        "date": "2022",
+        "kind": "primary",
+        "quote": "deliver VIPER at a weight of 475 kilograms (1,047 pounds) to the lunar surface"
+      },
+      "name_en": "VIPER rover (delivery mass)"
+    },
+    {
+      "id": "trident_drill",
+      "name": "Бур TRIDENT (PRIME-1)",
+      "kind": "drill",
+      "mass_kg": [
+        21.3,
+        21.3
+      ],
+      "power_w": [
+        30,
+        195
+      ],
+      "supply_power_w": null,
+      "note": "Потужність: 30 Вт у простої, 100 Вт при бурінні шнеком, 195 Вт при ударному бурінні; для розрахунку беремо пік.",
+      "source": {
+        "title": "NASA NSSDCA — The Regolith and Ice Drill for Exploring New Terrain (TRIDENT), Intuitive Machines 2 (PRIME 1)",
+        "ref": "сторінка експерименту PRIME-1-01",
+        "url": "https://nssdc.gsfc.nasa.gov/nmc/experiment/display.action?id=PRIME-1++-01",
+        "date": "2026-11-15",
+        "kind": "primary",
+        "quote": "The full drill payload has a mass of 21.3 kg. It uses 30 W power idle, 100 W when augering, and 195 W in percussive drilling mode."
+      },
+      "name_en": "TRIDENT drill (PRIME-1)"
+    },
+    {
+      "id": "fsp_reactor",
+      "name": "Реактор Fission Surface Power (40 кВт(е))",
+      "kind": "power",
+      "mass_kg": [
+        6000,
+        6000
+      ],
+      "power_w": null,
+      "supply_power_w": 40000,
+      "note": "Цільова (гранична) маса проєкту FSP; дає 40 кВт(е) — панелі й акумулятори потрібні лише для решти споживання.",
+      "source": {
+        "title": "NASA's Fission Surface Power (FSP) Project (презентація NASA Glenn, L. Kaldon)",
+        "ref": "слайд «FSP Goals/Objectives»",
+        "url": "https://www.nasa.gov/wp-content/uploads/2024/11/lkaldon-fsp-final-tagged.pdf",
+        "date": "2024-11",
+        "kind": "primary",
+        "quote": "40kWe Output; High Assay Low Enriched Uranium; 6,000kg Mass Target"
+      },
+      "name_en": "Fission Surface Power reactor (40 kWe)"
+    }
+  ]
+}

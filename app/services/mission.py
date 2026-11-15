@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from app.core import cost, crew as crew_model, launch_system, mission_profile, payload, risk
+from app.core import burns, cost, crew as crew_model, launch_system, mission_profile, payload, risk
 from app.core.launch import TRAJECTORIES
 from app.services import catalogs
 
@@ -151,6 +151,8 @@ def compute(body: Mapping) -> dict:
                                     consumables_kg=consumables)
     choice = launch_system.to_rocket(system, trajectory=trajectory) if system else None
     rocket_kwargs = {"rocket": choice.rocket} if choice else {}
+    transfer_params = cost.DEFAULT_TRANSFER
+    capacity_leo = (choice.rocket if choice else cost.DEFAULT_ROCKET).capacity_leo_kg
     estimate = cost.mission_cost(budget.masses_kg, trajectory=trajectory, latitude_deg=lat, **rocket_kwargs)
     risk_kwargs = {"params": choice.risk_params()} if choice else {}  # база відмови — цієї ракети (M21)
     assessment = risk.assess(estimate.utilization, estimate.mass_moon_kg, budget.sizes, crew=crew,
@@ -166,6 +168,8 @@ def compute(body: Mapping) -> dict:
                            "fit": launch_system.fit(estimate.mass_leo_kg, system, choice.rocket.capacity_leo_kg)}
                           if choice else None),
         "crew_supplies": supplies,
+        "flight_phases": {"tli": burns.tli_burn(estimate.mass_leo_kg, capacity_leo, transfer_params.dv_tli_m_s,
+                                                 transfer_params.isp_tli_s, crewed=crew > 0)},
         "categories": _categories(budget, estimate),
         "payload": budget.to_dict(),
         "cost": estimate.to_dict(),

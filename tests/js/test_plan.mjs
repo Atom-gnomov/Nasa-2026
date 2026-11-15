@@ -85,3 +85,10 @@ test("запит: екіпаж із біометрією з вкладки «М�
   const uncrewed = plan.buildPlanRequest({ ...plan.DEFAULT_FORM, members }, state);
   assert.ok(!("crew_members" in uncrewed));
 });
+
+test("запит: пілотована — завжди пряма траєкторія, навіть якщо обрано іншу", () => {
+  const body = plan.buildPlanRequest({ ...plan.DEFAULT_FORM, profile: "crewed", trajectory: "low_energy" }, state);
+  assert.deepEqual(body.trajectories, ["direct"]);
+  const robot = plan.buildPlanRequest({ ...plan.DEFAULT_FORM, trajectory: "low_energy" }, state);
+  assert.deepEqual(robot.trajectories, ["low_energy"]);
+});

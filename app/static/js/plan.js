@@ -45,7 +45,8 @@ export function buildPlanRequest(form, state) {
                  min_earth_fraction: form.minEarth, min_sun_fraction: form.minSun };
   for (const [key, value] of Object.entries(reqs)) if (num(value) !== null) body[key] = Number(value);
   if (form.vehicle && form.vehicle !== "any") body.vehicle = form.vehicle;
-  if (form.trajectory && form.trajectory !== "any") body.trajectories = [form.trajectory];
+  if (form.profile === "crewed") body.trajectories = ["direct"];
+  else if (form.trajectory && form.trajectory !== "any") body.trajectories = [form.trajectory];
   if (form.profile === "crewed" && Array.isArray(form.members) && form.members.length) {
     body.crew_members = form.members;
     delete body.crew;
@@ -126,7 +127,11 @@ function init() {
   });
 
   const syncProfile = () => {
-    for (const el of document.querySelectorAll(".plan-crewed")) el.hidden = $("plan-profile").value !== "crewed";
+    const crewed = $("plan-profile").value === "crewed";
+    for (const el of document.querySelectorAll(".plan-crewed")) el.hidden = !crewed;
+    // пілотована місія — лише пряма траєкторія (планувальник так і розглядає)
+    if (crewed) $("plan-trajectory").value = "direct";
+    $("plan-trajectory").disabled = crewed;
   };
 
   const render = (response) => {

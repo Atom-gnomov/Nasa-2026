@@ -308,3 +308,23 @@ def test_invalid_crew_members_are_rejected(client, extra):
     body = {"days": 10, "crew_members": CREW, **extra}
     res = client.post("/api/mission", json=body)
     assert res.status_code == 400, res.get_json()
+
+
+# ---------- G16: розгінні ділянки залежать від маси ----------
+def test_flight_phases_depend_on_payload_mass(client):
+    light = client.post("/api/mission", json={"sizes": {"equipment": "min"}}).get_json()
+    heavy = client.post("/api/mission", json={"sizes": {"equipment": "max"}}).get_json()
+    assert_valid(api_validator("MissionResponse"), heavy)
+    a, b = light["flight_phases"]["tli"], heavy["flight_phases"]["tli"]
+    assert b["mass_start_kg"] > a["mass_start_kg"]
+    assert b["accel_start_g"] < a["accel_start_g"] and b["duration_s"] > a["duration_s"]
+    assert a["dv_m_s"] == b["dv_m_s"]  # швидкість на пасивній ділянці від маси не залежить
+
+
+def test_flight_phases_warn_when_the_rocket_is_overloaded(client):
+    sizes = {"equipment": "max", "life_support": "max", "comfort": "max"}
+    data = client.post("/api/mission", json={"mission_profile": "crewed", "crew": 6, "days": 300,
+                                             "sizes": sizes}).get_json()
+    tli = data["flight_phases"]["tli"]
+    assert tli["overloaded"] and tli["warnings"] and tli["launches"] >= 2
+    assert tli["max_g"] == 3.0  # пілотована — менше перевантаження

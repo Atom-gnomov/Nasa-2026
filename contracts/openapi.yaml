@@ -623,6 +623,10 @@ paths:
         - $ref: "#/components/parameters/lon"
         - $ref: "#/components/parameters/start"
         - $ref: "#/components/parameters/end"
+        - name: landed_days
+          in: query
+          description: "Скільки діб після прибуття оцінювати світло й зв'язок (за замовчуванням 7; зазвичай — тривалість перебування з «Місії»)"
+          schema: {type: number, minimum: 1, maximum: 60, default: 7}
         - name: trajectory
           in: query
           schema: {$ref: "#/components/schemas/Trajectory"}

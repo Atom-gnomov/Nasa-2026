@@ -3,7 +3,11 @@
 // переносить її в календар. Чисті функції експортуються для тестів у Node (tests/js/test_launch_window.mjs).
 import { getState, setState, subscribe } from "./state.js";
 import { loadLead } from "./selection.js";
-import { effectiveSite, effectiveTrajectory, loadLaunch, plainSite, saveLaunch } from "./pipeline.js";
+import { effectiveSite, effectiveTrajectory, loadLaunch, loadSearchForm, plainSite, saveLaunch, stayDays, windowPriorities } from "./pipeline.js";
+import { loadMissionForm } from "./selection.js";
+import { t } from "./i18n.js";
+
+const PRIORITIES_KEY = "lse-lw-priorities"; // порядок, який користувач вибрав у «Вікні запуску» вручну
 
 export const FACTORS = ["light", "fuel", "comms", "windows"];
 export const FACTOR_LABELS = {
@@ -25,7 +29,7 @@ export function addDays(isoDate, n) {
 }
 
 // Запит до /api/launch-window з вибору користувача й спільного стану; null — бракує точки чи майданчика.
-export function launchWindowUrl({ siteId, lat, lon, datetime, days = 30, trajectory = "direct", priorities = FACTORS }) {
+export function launchWindowUrl({ siteId, lat, lon, datetime, days = 30, trajectory = "direct", priorities = FACTORS, landedDays = null }) {
   if (!siteId || lat == null || lon == null || !datetime) return null;
   const n = Math.min(Math.max(Math.round(Number(days)) || 1, 1), MAX_DAYS);
   const start = String(datetime).slice(0, 10);
@@ -33,6 +37,7 @@ export function launchWindowUrl({ siteId, lat, lon, datetime, days = 30, traject
     launch_site: siteId, lat: String(lat), lon: String(lon),
     start, end: addDays(start, n - 1), trajectory, priorities: priorities.join(","),
   });
+  if (landedDays != null && Number.isFinite(Number(landedDays))) params.set("landed_days", String(Math.min(60, Math.max(1, Math.round(Number(landedDays))))));
   return `/api/launch-window?${params}`;
 }
 
@@ -107,7 +112,11 @@ function init() {
   const table = $("lw-table");
   const pointEl = $("lw-point");
   const prioEl = $("lw-priorities");
-  let priorities = FACTORS.slice();
+  // Автозаповнення (F20): пріоритети — з «Підбору» (або ваш власний порядок), перебування після посадки — з «Місії»
+  const savedPrio = (() => { try { const v = JSON.parse(localStorage.getItem(PRIORITIES_KEY)); return Array.isArray(v) && v.length === 4 && FACTORS.every((f) => v.includes(f)) ? v : null; } catch { return null; } })();
+  let priorities = savedPrio ?? windowPriorities(loadSearchForm());
+  const mission = loadMissionForm();
+  const landedDays = stayDays(mission);
   let controller = null;
   let sites = [];
 
@@ -121,7 +130,7 @@ function init() {
         b.textContent = text;
         b.title = `${FACTOR_LABELS[f]} — ${label}`;
         b.disabled = (dir < 0 && i === 0) || (dir > 0 && i === priorities.length - 1);
-        b.addEventListener("click", () => { priorities = movePriority(priorities, i, dir); renderPriorities(); });
+        b.addEventListener("click", () => { priorities = movePriority(priorities, i, dir); try { localStorage.setItem(PRIORITIES_KEY, JSON.stringify(priorities)); } catch { /* не критично */ } renderPriorities(); });
         li.append(" ", b);
       }
       return li;
@@ -173,7 +182,7 @@ function init() {
     const s = getState();
     const url = launchWindowUrl({
       siteId: siteSel.value, lat: s.lat, lon: s.lon, datetime: s.datetime,
-      days: $("lw-days").value, trajectory: $("lw-trajectory").value, priorities,
+      days: $("lw-days").value, trajectory: $("lw-trajectory").value, priorities, landedDays,
     });
     if (!url) {
       status.textContent = "Виберіть точку посадки на вкладці «Місяць» і майданчик старту.";
@@ -191,6 +200,10 @@ function init() {
         ? "Горизонт точки — гладка сфера (рельєфу LOLA для неї немає)."
         : "";
       render(body);
+      // Віддаємо результат далі: найкраща дата старту й прибуття підхоплюють «План місії», «Мій план» і «Система»
+      const best = body.days.find((d) => d.date === body.best?.date);
+      saveLaunch({ departure: body.best?.date ?? "", arrival: best?.arrival ?? "" });
+      showAutofill();
     } catch (err) {
       if (err.name !== "AbortError") status.textContent = `Помилка: ${err.message}`;
     } finally {
@@ -198,6 +211,17 @@ function init() {
     }
   };
 
+  const showAutofill = () => {
+    const launch = loadLaunch();
+    const parts = [];
+    if (getState().lat != null) parts.push(t("точка посадки"));
+    if (siteSel.value) parts.push(t("майданчик"));
+    parts.push(`${t("перебування після посадки")}: ${landedDays} ${t("діб")}`);
+    parts.push(savedPrio ? t("ваш порядок пріоритетів") : t("пріоритети з «Підбору»"));
+    $("lw-autofill").textContent = `${t("Підставлено з інших вкладок")}: ${parts.join(", ")}.`
+      + (launch.departure ? ` ${t("Найкраща дата старту")} ${launch.departure} ${t("передана в «План місії»")}.` : "");
+  };
+  showAutofill();
   siteSel.addEventListener("change", () => saveLaunch({ site: siteSel.value }));
   $("lw-trajectory").addEventListener("change", (e) => saveLaunch({ trajectory: e.target.value }));
   form.addEventListener("submit", (e) => { e.preventDefault(); run(); });
@@ -212,6 +236,7 @@ function init() {
     const site = plainSite(effectiveSite(launch, lead));
     if (site && list.some((s) => s.id === site)) siteSel.value = site;
     $("lw-trajectory").value = effectiveTrajectory(launch, lead);
+    showAutofill();
   }).catch(() => { status.textContent = "Не вдалося завантажити каталог майданчиків."; });
 }
 

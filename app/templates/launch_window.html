@@ -2,8 +2,9 @@
 {% block title %}Вікно запуску — Lunar Mission Builder{% endblock %}
 {% block content %}
 <section class="lw-layout">
-  <form id="lw-form" class="lw-controls" autocomplete="off">
+  <form id="lw-form" class="lw-controls" autocomplete="off" data-step="3">
     <h2>Вікно запуску</h2>
+    <p class="muted lw-note" id="lw-autofill"></p>
     <p class="muted lw-point">Точка посадки: <span id="lw-point">не вибрано — виберіть її на вкладці «Місяць»</span></p>
     <label>Майданчик старту <select id="lw-site" required></select></label>
     <label>Траєкторія

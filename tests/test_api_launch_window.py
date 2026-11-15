@@ -112,3 +112,14 @@ def test_errors(client, query, status):
     res = client.get("/api/launch-window?" + query)
     assert res.status_code == status
     assert_valid(api_validator("Error"), res.get_json())
+
+
+def test_landed_days_parameter_changes_the_evaluated_period(client):
+    base = ("/api/launch-window?launch_site=kourou&lat=-89.5&lon=0&start=2027-03-01&end=2027-03-02"
+            "&trajectory=direct")
+    short = client.get(base + "&landed_days=2").get_json()
+    long = client.get(base + "&landed_days=20").get_json()
+    assert short["landed_days"] == 2.0 and long["landed_days"] == 20.0
+    assert client.get(base).get_json()["landed_days"] == 7.0
+    assert client.get(base + "&landed_days=0").status_code == 400
+    assert client.get(base + "&landed_days=99").status_code == 400

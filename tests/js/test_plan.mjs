@@ -105,3 +105,12 @@ test("запит: пілотована — завжди пряма траєкт�
   const robot = plan.buildPlanRequest({ ...plan.DEFAULT_FORM, trajectory: "low_energy" }, state);
   assert.deepEqual(robot.trajectories, ["low_energy"]);
 });
+
+test("запит: дата старту з «Вікна запуску» — одна дата, без перебору; без неї перебір лишається", () => {
+  const withDate = plan.buildPlanRequest({ ...plan.DEFAULT_FORM, departure: "2027-03-02" }, state);
+  assert.equal(withDate.departure, "2027-03-02T00:00:00Z");
+  assert.equal(withDate.departure_days, 1);
+  const without = plan.buildPlanRequest({ ...plan.DEFAULT_FORM, departure: "" }, state);
+  assert.ok(!("departure" in without));
+  assert.equal(without.departure_days, 7);
+});

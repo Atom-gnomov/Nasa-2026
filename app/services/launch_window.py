@@ -25,7 +25,8 @@ from app.services import catalogs, horizon, visibility
 
 FACTORS = ("light", "fuel", "comms", "windows")
 MAX_DAYS = 60
-LANDED_DAYS = 7.0  # скільки діб після прибуття оцінюємо світло й зв'язок
+LANDED_DAYS = 7.0  # діб після прибуття для світла й зв'язку за замовчуванням (F20: з перебування в «Місії»)
+MAX_LANDED_DAYS = 60.0
 SAMPLE_STEP_H = 2.0
 DIRECT_TOF_DAYS = np.arange(3.0, 5.0 + 1e-9, 0.5)
 
@@ -62,16 +63,18 @@ def _dates(start: datetime, end: datetime) -> list[date]:
     return [d0 + timedelta(days=i) for i in range(n)]
 
 
-def _landed_fractions(eph, mask, lat: float, lon: float, arrival: datetime) -> tuple[float, float, bool]:
+def _landed_fractions(eph, mask, lat: float, lon: float, arrival: datetime,
+                      landed_days: float = LANDED_DAYS) -> tuple[float, float, bool]:
     """Частки часу видимості Сонця й Землі за LANDED_DAYS після прибуття і чи освітлено в момент прибуття."""
-    hours = np.arange(0.0, LANDED_DAYS * 24 + 1e-9, SAMPLE_STEP_H)
+    hours = np.arange(0.0, landed_days * 24 + 1e-9, SAMPLE_STEP_H)
     t = eph.time_grid(arrival, hours)
     _, _, sun_f, earth_f = visibility.sun_earth_visibility(eph, t, mask, lat, lon)
     sun_f, earth_f = np.atleast_1d(sun_f), np.atleast_1d(earth_f)
     return float(np.mean(sun_f > 0)), float(np.mean(earth_f > 0)), bool(sun_f[0] > 0)
 
 
-def day_metrics(eph, mask, site_lat: float, lat: float, lon: float, day: date, trajectory: str) -> dict:
+def day_metrics(eph, mask, site_lat: float, lat: float, lon: float, day: date, trajectory: str,
+                landed_days: float = LANDED_DAYS) -> dict:
     """Показники однієї дати старту (без оцінок)."""
     departure = datetime(day.year, day.month, day.day, tzinfo=timezone.utc)
     curve = transfer.dv_curve(eph, departure, DIRECT_TOF_DAYS)
@@ -85,7 +88,7 @@ def day_metrics(eph, mask, site_lat: float, lat: float, lon: float, day: date, t
         duration = (lo + hi) / 2
         arrival = departure + timedelta(days=duration)
         dv_total = best.dv_total_m_s - sum(transfer.LOW_ENERGY_DV_SAVING_M_S) / 2
-    sun_frac, earth_frac, sunlit = _landed_fractions(eph, mask, lat, lon, arrival)
+    sun_frac, earth_frac, sunlit = _landed_fractions(eph, mask, lat, lon, arrival, landed_days)
     return {
         "date": day.isoformat(),
         "arrival": _iso(arrival),
@@ -114,16 +117,19 @@ def score_days(days: list[dict], priorities: Sequence[str]) -> list[dict]:
 
 
 def launch_window(launch_site_id: str, lat: float, lon: float, start: datetime, end: datetime,
-                  trajectory: str = "direct", priorities: Sequence[str] = FACTORS) -> dict:
+                  trajectory: str = "direct", priorities: Sequence[str] = FACTORS,
+                  landed_days: float = LANDED_DAYS) -> dict:
     if trajectory not in TRAJECTORIES:
         raise LaunchWindowError(f"trajectory: допустимо {', '.join(TRAJECTORIES)}")
     site = next((s for s in catalogs.load_launch_sites() if s["id"] == launch_site_id), None)
     if site is None:
         raise LaunchSiteNotFound(f"Місце старту {launch_site_id} не знайдено")
+    if isinstance(landed_days, bool) or not 1.0 <= landed_days <= MAX_LANDED_DAYS:
+        raise LaunchWindowError(f"landed_days має бути в межах 1…{MAX_LANDED_DAYS:g}")
     dates = _dates(start, end)
     eph = get_ephemeris()
     mask = horizon.load_mask(lat, lon)
-    days = score_days([day_metrics(eph, mask, float(site["lat"]), lat, lon, d, trajectory) for d in dates],
+    days = score_days([day_metrics(eph, mask, float(site["lat"]), lat, lon, d, trajectory, landed_days) for d in dates],
                       priorities)
     best = max(days, key=lambda d: (d["score_pct"], -dates.index(date.fromisoformat(d["date"]))))
     return {
@@ -133,7 +139,7 @@ def launch_window(launch_site_id: str, lat: float, lon: float, start: datetime, 
         "priorities": list(priorities),
         "method": "patched_conic" if trajectory == "direct" else "estimate",
         "horizon_source": horizon.mask_source(lat, lon),
-        "landed_days": LANDED_DAYS,
+        "landed_days": float(landed_days),
         "days": days,
         "best": {"date": best["date"], "score_pct": best["score_pct"]},
     }

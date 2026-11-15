@@ -41,6 +41,10 @@ export function buildPlanRequest(form, state, searchForm = null) {
   };
   if (form.profile === "crewed" && num(form.crew) !== null) body.crew = Number(form.crew);
   if (plainSite(form.launchSite)) body.launch_site_id = form.launchSite;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(form.departure ?? "")) { // дату старту вибрано у «Вікні запуску» — не перебираємо інші
+    body.departure = `${form.departure}T00:00:00Z`;
+    body.departure_days = 1;
+  }
   if (form.vehicle && form.vehicle !== "any") body.vehicle = form.vehicle;
   if (form.profile === "crewed") body.trajectories = ["direct"];
   else if (form.trajectory && form.trajectory !== "any") body.trajectories = [form.trajectory];
@@ -113,7 +117,7 @@ function init() {
 
   const read = () => ({
     profile: $("plan-profile").value, crew: $("plan-crew").value, days: $("plan-days").value,
-    launchSite: $("plan-site").value,
+    launchSite: $("plan-site").value, departure: loadLaunch().departure,
     vehicle: $("plan-vehicle").value, trajectory: $("plan-trajectory").value, plans: 5,
     departureDays: $("plan-departure-days").value,
     includeDesign: $("plan-design").checked, multiLaunch: $("plan-multi").checked,
@@ -201,6 +205,14 @@ function init() {
   $("plan-trajectory").addEventListener("change", (e) => { if (!e.target.disabled) saveLaunch({ trajectory: e.target.value }); });
   $("plan-vehicle").addEventListener("change", (e) => saveLaunch({ vehicle: e.target.value }));
   $("plan-site").addEventListener("change", (e) => saveLaunch({ site: e.target.value }));
+  const renderDeparture = () => {
+    const d = loadLaunch().departure;
+    $("plan-departure-note").hidden = !d;
+    $("plan-departure-text").textContent = d ? `${t("Дата старту з «Вікна запуску»")}: ${d}` : "";
+  };
+  $("plan-departure-reset").addEventListener("click", () => { saveLaunch({ departure: "" }); renderDeparture(); });
+  renderDeparture();
+  window.addEventListener("pageshow", renderDeparture);
 
   // Вимоги до місця посадки — з «Підбору» (читаємо щоразу, коли повертаємось на вкладку)
   const renderRequirements = () => {

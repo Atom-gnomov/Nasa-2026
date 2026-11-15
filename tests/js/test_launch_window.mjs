@@ -51,3 +51,10 @@ test("таблиця й підсумок без undefined/NaN", () => {
   assert.ok(!/undefined|NaN/.test(text));
   assert.equal(lw.calendarDatetime("2027-07-22"), "2027-07-22T00:00Z");
 });
+
+test("запит: перебування після посадки передається як landed_days (1…60), без нього — не додається", () => {
+  const base = { siteId: "kourou", lat: -89.5, lon: 0, datetime: "2027-03-01T12:00Z" };
+  assert.equal(new URLSearchParams(lw.launchWindowUrl({ ...base, landedDays: 14 }).split("?")[1]).get("landed_days"), "14");
+  assert.equal(new URLSearchParams(lw.launchWindowUrl({ ...base, landedDays: 999 }).split("?")[1]).get("landed_days"), "60");
+  assert.equal(new URLSearchParams(lw.launchWindowUrl(base).split("?")[1]).has("landed_days"), false);
+});

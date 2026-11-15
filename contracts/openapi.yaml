@@ -2120,6 +2120,7 @@ components:
                 properties:
                   id: {type: string}
                   name: {type: string}
+                  name_en: {type: [string, "null"]}
                   hours: {type: number}
                   people: {type: integer}
 

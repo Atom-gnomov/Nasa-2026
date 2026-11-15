@@ -52,5 +52,6 @@ def training_plan(roles: Sequence[str], data: Mapping) -> dict:
         people.append({"role": r, "hours": hours, "modules": [m["id"] for m in mods]})
     shared = Counter(m for p in people for m in p["modules"])
     return {"people": people, "total_hours": total, "modules": [
-        {"id": m["id"], "name": m["name"], "hours": m["hours"], "people": shared[m["id"]]}
+        {"id": m["id"], "name": m["name"], "name_en": m.get("name_en"), "hours": m["hours"],
+         "people": shared[m["id"]]}
         for m in data["training_modules"] if shared[m["id"]]]}

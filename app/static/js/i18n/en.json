@@ -734,7 +734,21 @@
     "Не вмістилось: {n}.": "Did not fit: {n}.",
     "Файл не схожий на збережені плани (не JSON).": "The file does not look like saved plans (not JSON).",
     "Файл не схожий на збережені плани місій.": "The file does not look like saved mission plans.",
-    "У файлі немає жодного дійсного плану.": "The file has no valid plan."
+    "У файлі немає жодного дійсного плану.": "The file has no valid plan.",
+    "Командир": "Commander",
+    "Пілот": "Pilot",
+    "Науковець": "Scientist",
+    "Інженер": "Engineer",
+    "Лікар": "Physician",
+    "Роль": "Role",
+    "— без ролі —": "— no role —",
+    "Склад і підготовка": "Crew and training",
+    "Склад техніки": "Equipment set",
+    "Радимо додати": "Consider adding",
+    "Склад за ролями відповідає правилам.": "The crew roles meet the composition rules.",
+    "Правила складу й години підготовки (human-rating) — тимчасові оцінки, не нормативні.": "Composition rules and training hours (human-rating) are provisional estimates, not normative.",
+    "Безпілотна місія: оберіть типовий склад — позиції потраплять у категорію «Обладнання» (крок 7), де їх можна змінити.": "Uncrewed mission: pick a typical set — the items go to the “Equipment” category (step 7), where you can change them.",
+    "год": "h"
   },
   "phrases": {
   "Рекомендовано {rec} діб (резерв {rp} %), заплановано {plan} діб (резерв {pp}).": "Recommended {rec} days (reserve {rp} %), planned {plan} days (reserve {pp}).",
@@ -861,6 +875,9 @@
     "Небо": "Sky",
     "Курсор": "Cursor",
     "Сітка": "Grid",
-    "висота": "height"
+    "висота": "height",
+    "Для складу з {n} осіб бракує ролей: {roles}.": "The {n}-person crew lacks roles: {roles}.",
+    "Без ролі: {n} осіб (у підготовку не входять).": "No role: {n} people (not included in training).",
+    "Підготовка: {h} год на екіпаж (≈ {y} людино-років).": "Training: {h} h for the crew (≈ {y} person-years)."
   }
 }

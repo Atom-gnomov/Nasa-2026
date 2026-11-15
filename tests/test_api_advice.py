@@ -81,6 +81,14 @@ def test_non_json_and_fenced_output_are_handled(client, configured):
     assert_valid(api_validator("AdviceResponse"), data)
 
 
+def test_broken_json_is_not_shown_as_advice(client, configured):
+    _, reply = configured
+    reply["text"] = '{"summary": "Бал 71.5, зв\'язок 343 год", "tips": [{"text": "Збіль'
+    res = post(client)
+    assert res.status_code == 503 and "зіпсований JSON" in res.get_json()["detail"]
+    assert_valid(api_validator("Error"), res.get_json())
+
+
 def test_reasoning_block_is_stripped_before_parsing(client, configured):
     _, reply = configured
     reply["text"] = "<think>Міркую {не JSON}: бал 99999</think>\n" + GOOD

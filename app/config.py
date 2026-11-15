@@ -50,6 +50,8 @@ class Config:
     LLM_MODEL = os.environ.get("LSE_LLM_MODEL") or None
     LLM_API_KEY = os.environ.get("LSE_LLM_API_KEY") or None
     LLM_TIMEOUT_S = float(os.environ.get("LSE_LLM_TIMEOUT_S", "30"))
+    # Рівень міркувань моделі (поле reasoning_effort); порожнє значення — поле не надсилається
+    LLM_REASONING_EFFORT = os.environ.get("LSE_LLM_REASONING_EFFORT", "none").strip() or None
 
 
 class TestConfig(Config):

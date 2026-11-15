@@ -302,6 +302,29 @@ select option:checked { background-color: #2a3346 !important; }
 }
 :is(#view, .ui-widget, .ui-dock) button:not([class]):not(:disabled):hover { background: var(--cg-fill-strong); color: #fff; }
 
+/* ---------- Типографіка: одна шкала на всіх сторінках ----------
+   Підписи полів — 12 px (як сам текст у полях), підказки — 12 px, заголовки блоків — 15 px, підзаголовки й назви груп — 13 px,
+   назви панелей — 13 px. Колір — лише з токенів (--cg-ink, --cg-muted): раніше кожна сторінка мала власний розмір і відтінок. */
+:root { --fs-s: 12px; --fs-m: 13px; --fs-l: 15px; }
+label { font-size: var(--fs-s) !important; font-weight: 400 !important; color: var(--cg-muted) !important; }
+small, .small, .muted, .hint, p.note { font-size: var(--fs-s) !important; font-weight: 400 !important; color: var(--cg-muted) !important; }
+h2 { font-size: var(--fs-l) !important; font-weight: 700 !important; color: var(--cg-ink) !important; }
+h3, legend { font-size: var(--fs-m) !important; font-weight: 700 !important; color: var(--cg-ink) !important; }
+legend { font-weight: 600 !important; }
+.ui-widget .widget-title, .ui-dock .dock-title { font-size: var(--fs-m) !important; font-weight: 600 !important; color: var(--cg-ink) !important; }
+details:not([data-section]):not(.help-menu) > summary { font-size: var(--fs-m) !important; font-weight: 600 !important; color: var(--cg-ink) !important; }
+/* основний текст у списках, примітках і таблицях — теж зі шкали (було 15 px, 12,5 px і три відтінки) */
+:is(.ui-widget, .workspace-results, #view) li, .compare-note { font-size: var(--fs-m) !important; color: var(--cg-ink) !important; }
+dt { font-size: var(--fs-s) !important; font-weight: 400 !important; color: var(--cg-muted) !important; }
+td { font-size: var(--fs-s) !important; }
+th { font-weight: 600 !important; }
+
+/* вимкнені кнопки — один вигляд усюди (раніше: системний червонуватий з товстою рамкою, прозорий без рамки) */
+button:disabled:not(.primary) {
+  background: var(--cg-fill-faint) !important; border: 1px solid var(--cg-line-soft) !important; color: var(--cg-muted) !important;
+  opacity: .5; cursor: not-allowed;
+}
+
 /* ---------- Прямі кути, без світіння ----------
    Ефект скла лишається (прозорий білуватий фон, розмиття, тонка світла рамка); прибрано: заокруглення кутів,
    світіння (тіні, ореоли, тіні тексту), кольорові точки біля заголовків віджетів і блоків результатів. */

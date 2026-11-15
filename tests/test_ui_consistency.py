@@ -210,3 +210,12 @@ def test_rocket_is_drawn_at_true_scale_with_a_follow_camera():
     assert 'data-focus="rocket"' in TEMPLATES["system.html"]
     tool = (ROOT / "tools" / "import_rocket_model.py").read_text(encoding="utf-8")
     assert '"length_m": 98.3' in tool and "sls_reference_guide_2022_web.pdf" in tool
+
+
+def test_one_typography_scale_and_one_disabled_look_on_every_page():
+    """Підписи, підказки, заголовки, списки й вимкнені кнопки — з однієї шкали, а не окремі розміри на сторінках."""
+    assert _token("fs-s") == "12px" and _token("fs-m") == "13px" and _token("fs-l") == "15px"
+    assert re.search(r"\nlabel\s*\{[^}]*font-size:\s*var\(--fs-s\)\s*!important[^}]*color:\s*var\(--cg-muted\)", CSS)
+    assert re.search(r"\nh2\s*\{[^}]*font-size:\s*var\(--fs-l\)\s*!important", CSS)
+    assert re.search(r"\nbutton:disabled:not\(\.primary\)\s*\{[^}]*var\(--cg-fill-faint\)", CSS)
+    assert "li, .compare-note { font-size: var(--fs-m) !important" in CSS

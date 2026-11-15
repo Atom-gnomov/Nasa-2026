@@ -10,11 +10,13 @@ from collections.abc import Mapping
 from functools import lru_cache
 
 from app.core import burns, cost, crew as crew_model, launch_system, mission_profile, payload, risk
+from app.core import equipment as equipment_model
 from app.core.launch import TRAJECTORIES
 from app.services import catalogs
 
 ALLOWED = {"crew", "days", "sizes", "trajectory", "launch_site_id", "launch_lat", "launch_system_id",
-           "longest_night_h", "mission_profile", "parameters_basis", "crew_members", "supply_days", "reserve_fraction"}
+           "longest_night_h", "mission_profile", "parameters_basis", "crew_members", "supply_days", "reserve_fraction",
+           "supply_kg", "equipment_items", "category_kg"}
 
 
 class MissionError(ValueError):
@@ -69,9 +71,12 @@ def _budget_cached(sizes_key, crew, days, night, params, consumables) -> payload
                                   longest_night_h=night, params=params, consumables_kg=consumables)
 
 
-def _budget(sizes, crew, days, night, params, consumables) -> payload.PayloadBudget:
-    """Маса навантаження: однакові входи (склад, екіпаж, доби, ніч) рахуються один раз — планувальник питає масу для
-    кожного кандидата, а потім ще раз для лідера (брати з раннього розрахунку). Результат лише для читання."""
+def _budget(sizes, crew, days, night, params, consumables, **extra) -> payload.PayloadBudget:
+    """Маса навантаження: однакові входи (склад, екіпаж, доби, ніч) рахуються один раз — планувальник питає про
+    кожного кандидата, а потім ще раз для лідера. Своя маса категорій, позиції каталогу (`extra`) — рахуємо напряму."""
+    if any(v for v in extra.values()):
+        return payload.payload_budget(sizes, crew=crew, days=days, longest_night_h=night, params=params,
+                                      consumables_kg=consumables, **extra)
     try:
         key = None if sizes is None else tuple(sorted(sizes.items()))
         hash(key)
@@ -162,16 +167,29 @@ def compute(body: Mapping) -> dict:
         supply_days = body.get("supply_days")
         try:
             supplies = crew_model.supplies_report(members, days, None if supply_days is None else supply_days,
-                                                  crew_params)
+                                                  crew_params, supply_kg=body.get("supply_kg"))
         except ValueError as exc:
             raise MissionError(str(exc)) from exc
         consumables = supplies["loaded_total_kg"]
-    budget = _budget(sizes, crew, days, night, params, consumables)
+    catalog = catalogs.load_equipment_catalog()
+    try:
+        picked = equipment_model.parse_items(body.get("equipment_items"), catalog)
+    except ValueError as exc:
+        raise MissionError(str(exc)) from exc
+    eq = equipment_model.summarize(picked, catalog["delivery_usd_per_kg"]) if picked else None
+    budget = _budget(
+        sizes, crew, days, night, params, consumables,
+        category_kg=body.get("category_kg"),
+        equipment={"mass_kg": eq["mass_kg"], "power_w": eq["power_w"]} if eq else None,
+        power_supply_w=eq["supply_power_w"] if eq else 0.0)
     choice = launch_system.to_rocket(system, trajectory=trajectory) if system else None
     rocket_kwargs = {"rocket": choice.rocket} if choice else {}
     transfer_params = cost.DEFAULT_TRANSFER
     capacity_leo = (choice.rocket if choice else cost.DEFAULT_ROCKET).capacity_leo_kg
     estimate = cost.mission_cost(budget.masses_kg, trajectory=trajectory, latitude_deg=lat, **rocket_kwargs)
+    if supplies is not None:  # гроші на запаси: надлишок понад потребу й вартість закриття нестачі
+        supplies["economics"] = crew_model.economics(
+            supplies, cost.delivery_usd_per_kg(estimate, choice.rocket if choice else cost.DEFAULT_ROCKET))
     risk_kwargs = {"params": choice.risk_params()} if choice else {}  # база відмови — цієї ракети (M21)
     assessment = risk.assess(estimate.utilization, estimate.mass_moon_kg, budget.sizes, crew=crew,
                              trajectory=trajectory, **risk_kwargs)
@@ -186,6 +204,8 @@ def compute(body: Mapping) -> dict:
                            "fit": launch_system.fit(estimate.mass_leo_kg, system, choice.rocket.capacity_leo_kg)}
                           if choice else None),
         "crew_supplies": supplies,
+        "equipment": eq,
+        "mission_feasible": None if supplies is None else supplies["summary"]["mission_ok"],
         "flight_phases": {"tli": burns.tli_burn(estimate.mass_leo_kg, capacity_leo, transfer_params.dv_tli_m_s,
                                                  transfer_params.isp_tli_s, crewed=crew > 0)},
         "categories": _categories(budget, estimate),

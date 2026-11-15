@@ -1,0 +1,160 @@
+{
+  "version": 1,
+  "description": "Каталог обладнання для категорії «Обладнання» (П-14): маса й потужність кожної позиції з документів NASA, дослівна цитата й посилання. Маса — діапазон [мін, макс] кг; потужність — [мін, макс] Вт (null — у джерелі немає); supply_power_w — потужність, яку позиція ДАЄ (null — не джерело живлення). Ціну доставки на Місяць (delivery_usd_per_kg) рахуємо за оцінкою NASA OIG, власної ціни кожної позиції джерела не дають.",
+  "delivery_usd_per_kg": [
+    1000000,
+    1200000
+  ],
+  "delivery_source": {
+    "title": "NASA OIG IG-24-013 — NASA's Commercial Lunar Payload Services Initiative",
+    "ref": "с. 24 (PDF с. 30)",
+    "url": "https://oig.nasa.gov/wp-content/uploads/2024/06/final-report-ig-24-013-nasas-commercial-lunar-payload-services-initiative.pdf",
+    "date": "2024-06-06",
+    "kind": "primary",
+    "quote": "approximately $1.2 million per kg, or 20 percent more"
+  },
+  "items": [
+    {
+      "id": "clps_instrument",
+      "name": "Науковий прилад комерційної посадки (CLPS)",
+      "kind": "instrument",
+      "mass_kg": [
+        10,
+        15
+      ],
+      "power_w": null,
+      "supply_power_w": null,
+      "note": "Перші вантажі NASA в CLPS: ретрорефлектор, сейсмометр.",
+      "source": {
+        "title": "NASA OIG IG-24-013 — NASA's Commercial Lunar Payload Services Initiative",
+        "ref": "с. 19 (PDF с. 25)",
+        "url": "https://oig.nasa.gov/wp-content/uploads/2024/06/final-report-ig-24-013-nasas-commercial-lunar-payload-services-initiative.pdf",
+        "date": "2024-06-06",
+        "kind": "primary",
+        "quote": "estimated to weigh between 10 and 15 kg"
+      },
+      "name_en": "Science instrument on a commercial lander (CLPS)",
+      "stage": "science"
+    },
+    {
+      "id": "viper_rover",
+      "name": "Планетохід-розвідник ресурсів VIPER",
+      "kind": "rover",
+      "mass_kg": [
+        475,
+        475
+      ],
+      "power_w": null,
+      "supply_power_w": null,
+      "note": "Маса, з якою VIPER доставляється на поверхню; пізніше додано можливість +15 кг.",
+      "source": {
+        "title": "NASA OIG IG-22-010 — NASA's Volatiles Investigating Polar Exploration Rover (VIPER) Mission",
+        "ref": "PDF с. 22",
+        "url": "https://oig.nasa.gov/wp-content/uploads/2024/02/IG-22-010.pdf",
+        "date": "2022",
+        "kind": "primary",
+        "quote": "deliver VIPER at a weight of 475 kilograms (1,047 pounds) to the lunar surface"
+      },
+      "name_en": "VIPER resource-prospecting rover",
+      "stage": "mobility"
+    },
+    {
+      "id": "trident_drill",
+      "name": "Бур-пробовідбірник реголіту й льоду TRIDENT",
+      "kind": "drill",
+      "mass_kg": [
+        21.3,
+        21.3
+      ],
+      "power_w": [
+        30,
+        195
+      ],
+      "supply_power_w": null,
+      "note": "Потужність: 30 Вт у простої, 100 Вт при бурінні шнеком, 195 Вт при ударному бурінні; для розрахунку беремо пік.",
+      "source": {
+        "title": "NASA NSSDCA — The Regolith and Ice Drill for Exploring New Terrain (TRIDENT), Intuitive Machines 2 (PRIME 1)",
+        "ref": "сторінка експерименту PRIME-1-01",
+        "url": "https://nssdc.gsfc.nasa.gov/nmc/experiment/display.action?id=PRIME-1++-01",
+        "date": "2026-11-15",
+        "kind": "primary",
+        "quote": "The full drill payload has a mass of 21.3 kg. It uses 30 W power idle, 100 W when augering, and 195 W in percussive drilling mode."
+      },
+      "name_en": "TRIDENT regolith and ice drill",
+      "stage": "isru"
+    },
+    {
+      "id": "fsp_reactor",
+      "name": "Реактор поверхневої енергетики Fission Surface Power, 40 кВт(е)",
+      "kind": "power",
+      "mass_kg": [
+        6000,
+        6000
+      ],
+      "power_w": null,
+      "supply_power_w": 40000,
+      "note": "Цільова (гранична) маса проєкту FSP; дає 40 кВт(е) — панелі й акумулятори потрібні лише для решти споживання.",
+      "source": {
+        "title": "NASA's Fission Surface Power (FSP) Project (презентація NASA Glenn, L. Kaldon)",
+        "ref": "слайд «FSP Goals/Objectives»",
+        "url": "https://www.nasa.gov/wp-content/uploads/2024/11/lkaldon-fsp-final-tagged.pdf",
+        "date": "2024-11",
+        "kind": "primary",
+        "quote": "40kWe Output; High Assay Low Enriched Uranium; 6,000kg Mass Target"
+      },
+      "name_en": "Fission Surface Power reactor, 40 kWe",
+      "stage": "power"
+    }
+  ],
+  "stages": [
+    {
+      "id": "power",
+      "name": "Етап 1. Енергетика поверхні (Surface Power)",
+      "name_en": "Stage 1. Surface Power",
+      "includes": "Джерело енергії: ядерний реактор (Fission Surface Power) або сонячні батареї з накопичувачами енергії; розподіл і перетворення електроенергії (power management and distribution).",
+      "includes_en": "Power source: fission reactor (Fission Surface Power) or solar arrays with energy storage; power management and distribution."
+    },
+    {
+      "id": "mobility",
+      "name": "Етап 2. Мобільність (Mobility)",
+      "name_en": "Stage 2. Mobility",
+      "includes": "Планетоходи: безгерметичний (Lunar Terrain Vehicle) і герметичний (pressurized rover), планетохід-розвідник; шасі, привід, навігація.",
+      "includes_en": "Rovers: unpressurized (Lunar Terrain Vehicle), pressurized, and prospecting rovers; chassis, drive, navigation."
+    },
+    {
+      "id": "isru",
+      "name": "Етап 3. Розвідка й використання ресурсів на місці (Resource Prospecting and ISRU)",
+      "name_en": "Stage 3. Resource Prospecting and ISRU",
+      "includes": "Буріння й відбір проб, аналіз летких речовин (volatiles); виробництво кисню й води з реголіту (in-situ resource utilization).",
+      "includes_en": "Drilling and sampling, volatiles analysis; production of oxygen and water from regolith (in-situ resource utilization)."
+    },
+    {
+      "id": "science",
+      "name": "Етап 4. Наукове навантаження (Science Payloads)",
+      "name_en": "Stage 4. Science Payloads",
+      "includes": "Прилади, що доставляються посадковими апаратами: сейсмометри, ретрорефлектори, камери, спектрометри.",
+      "includes_en": "Instruments delivered by landers: seismometers, retroreflectors, cameras, spectrometers."
+    },
+    {
+      "id": "comms",
+      "name": "Етап 5. Зв'язок і навігація (Communications and Navigation)",
+      "name_en": "Stage 5. Communications and Navigation",
+      "includes": "Радіоканал Земля–Місяць (direct-to-Earth), ретранслятор, навігаційні маяки (LunaNet). Позицій із масою в каталозі поки немає — додайте масу в «Додаткова маса».",
+      "includes_en": "Earth–Moon radio link (direct-to-Earth), relay, navigation beacons (LunaNet). No items with mass in the catalog yet: add the mass in “Extra mass”."
+    },
+    {
+      "id": "eva",
+      "name": "Етап 6. Позакорабельна діяльність (Extravehicular Activity, EVA)",
+      "name_en": "Stage 6. Extravehicular Activity (EVA)",
+      "includes": "Скафандр (spacesuit) із ранцевою системою життєзабезпечення (PLSS), шлюз (airlock), ручні інструменти. Позицій із масою в каталозі поки немає — додайте масу в «Додаткова маса».",
+      "includes_en": "Spacesuit with a portable life support system (PLSS), airlock, hand tools. No items with mass in the catalog yet: add the mass in “Extra mass”."
+    },
+    {
+      "id": "logistics",
+      "name": "Етап 7. Логістика (Logistics and Cargo)",
+      "name_en": "Stage 7. Logistics and Cargo",
+      "includes": "Запасні частини, контейнери, вантажні платформи. Позицій із масою в каталозі поки немає — додайте масу в «Додаткова маса».",
+      "includes_en": "Spare parts, containers, cargo platforms. No items with mass in the catalog yet: add the mass in “Extra mass”."
+    }
+  ]
+}

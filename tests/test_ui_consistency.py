@@ -251,3 +251,30 @@ def test_select_inner_button_has_no_own_frame_or_background():
     assert "box-shadow: none !important" in rule
     for prop in props:
         assert prop in rule, prop
+
+
+def test_supply_sliders_and_summary_are_in_the_mission_panel():
+    """Повзунки запасів у кг, підсумок «надлишок / нестача» і колір станів — на сторінці «Місія» (П-14)."""
+    html = TEMPLATES["mission.html"]
+    for key in ("oxygen", "water", "food"):
+        assert f'id="m-kg-{key}"' in html and f'id="m-kg-{key}-auto"' in html and f'id="m-kg-{key}-mark"' in html
+    assert 'id="m-supply-summary"' in html and "Баланс" in html
+    assert re.search(r"#view \.supply-summary li\.supply-crit \{ color: #[0-9a-f]{6} !important", CSS)
+
+
+def test_scrolling_table_header_is_solid_dark_glass():
+    """Шапка таблиць, що прокручуються, суцільна (раніше синя, а під нею просвічували рядки)."""
+    assert re.search(r"\.results-table thead th \{\s*background: #[0-9a-f]{6} !important", CSS)
+
+
+def test_category_sliders_have_own_mass_inputs_and_source_callouts():
+    """Під повзунками категорій — своя маса в кг, виноска зі складом і джерелами NASA, каталог обладнання."""
+    html = TEMPLATES["mission.html"]
+    for key in ("equipment", "life_support", "comfort"):
+        for ident in (f"m-catkg-{key}", f"m-catkg-{key}-auto", f"m-callout-{key}", f"m-callout-{key}-body"):
+            assert f'id="{ident}"' in html, ident
+    assert 'id="m-eq-list"' in html and 'id="m-eq-total"' in html
+    assert "callout-sources" not in html, "джерела у виносках не розписуємо"
+    for key in ("equipment", "life_support", "comfort"):  # однаковий вигляд: підпис, повзунок, «Авто», значення нижче
+        assert re.search(rf'<div class="supply-kg-row cat-row" id="m-row-{key}">', html), key
+    assert ".callout {" in CSS and ".eq-row {" in CSS and ".size-custom {" in CSS

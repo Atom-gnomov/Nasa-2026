@@ -199,3 +199,52 @@ test("журнал довгої місії проріджується, але п
   const rows = m.logRows(long, 40);
   assert.ok(rows.length <= 41 && rows[0].cells[0] === "0" && rows.at(-1).cells[0] === "365");
 });
+
+test("довільні обсяги запасів: запит supply_kg лише для заданих; нормалізація; повзунок і підсумок", () => {
+  const body = m.buildMissionRequest(form({ crewed: true, crew: 1, useBio: true, members: [m.defaultMember("male")],
+                                            supplyKg: { oxygen: 5, water: null, food: 40 } }));
+  assert.deepEqual(body.supply_kg, { oxygen: 5, food: 40 });
+  const none = m.buildMissionRequest(form({ crewed: true, crew: 1, useBio: true, members: [m.defaultMember("male")] }));
+  assert.ok(!("supply_kg" in none));
+  const f = m.normalizeForm({ supplyKg: { oxygen: "7", water: -3, food: 1e9, extra: 1 } });
+  assert.deepEqual(f.supplyKg, { oxygen: 7, water: 0, food: 100000 });
+  const res = { crew_supplies: { days: 10, loaded_total_kg: 100, per_day: {}, loaded_kg: {}, required_kg: {},
+    resources: { oxygen: { loaded_kg: 4, recommended_kg: 10, runs_out_day: 4, excess_kg: 0, covers_days: 4, balance_kg: -6, required_kg: 10 },
+                 water: { loaded_kg: 60, recommended_kg: 20, runs_out_day: null, excess_kg: 40, covers_days: 30, balance_kg: 40, required_kg: 18 } },
+    summary: { mission_ok: false, first_shortage_day: 4, first_shortage_resource: "oxygen", excess_kg: 40, deficit_kg: 6, critical: true },
+    economics: { loaded_usd: [1e5, 3e5], excess_usd: [4e4, 1.2e5], deficit_usd: [6e3, 1.8e4] } } };
+  const lines = m.summaryLines(res);
+  assert.equal(lines[0].kind, "crit");
+  assert.match(lines[0].text, /кисень закінчується на добі 4 з 10/);
+  assert.ok(lines.some((l) => l.kind === "crit" && /Нестача/.test(l.text) && /\$6,0–18 тис\./.test(l.text)));
+  assert.ok(lines.some((l) => l.kind === "warn" && /Надлишок/.test(l.text) && /\$40–120 тис\./.test(l.text)));
+  const s = m.supplySlider(res.crew_supplies, "oxygen", null);
+  assert.equal(s.status, "shortage"); assert.equal(s.auto, true); assert.equal(s.rec, 10); assert.ok(s.max >= 20);
+  assert.equal(m.supplySlider(res.crew_supplies, "water", 60).status, "excess");
+  assert.equal(m.supplySlider(null, "oxygen", null), null);
+  assert.equal(m.fmtUsdAny([500, 900]), "$500–900");
+});
+
+test("своя маса категорії й позиції каталогу: запит, нормалізація, виноски", () => {
+  const body = m.buildMissionRequest(form({ crewed: true, crew: 1, categoryKg: { equipment: 500, life_support: null, comfort: 80 },
+                                            equipmentItems: { viper_rover: 2, trident_drill: 0 } }));
+  assert.deepEqual(body.category_kg, { equipment: 500, comfort: 80 });
+  assert.deepEqual(body.equipment_items, [{ id: "viper_rover", count: 2 }]);
+  const uncrewed = m.buildMissionRequest(form({ crewed: false, categoryKg: { equipment: 5, comfort: 80 } }));
+  assert.deepEqual(uncrewed.category_kg, { equipment: 5 }, "без екіпажу — лише обладнання");
+  const plain = m.buildMissionRequest(form({ crewed: true, crew: 1 }));
+  assert.ok(!("category_kg" in plain) && !("equipment_items" in plain));
+  const f = m.normalizeForm({ categoryKg: { equipment: "12", comfort: -4, life_support: 1e9, x: 1 },
+                              equipmentItems: { viper_rover: "3", "Bad Id": 2, zero: 0, many: 999 } });
+  assert.deepEqual(f.categoryKg, { equipment: 12, life_support: 100000, comfort: 0 });
+  assert.deepEqual(f.equipmentItems, { viper_rover: 3, many: 50 });
+  const breakdown = { life_support: [{ key: "consumables", kg: 100 }, { key: "shield", kg: 0 }, { key: "fixed", kg: 300 }] };
+  const rows = m.breakdownRows(breakdown, "life_support");
+  assert.equal(rows.length, 2); assert.match(rows[0][0], /Витратні матеріали \(consumables\)/); assert.equal(rows[0][1], "100 кг");
+  assert.deepEqual(m.breakdownRows(null, "comfort"), []);
+  const item = { mass_kg: [10, 15], power_w: [30, 195], supply_power_w: 40000 };
+  const info = m.itemInfo(item, [1e6, 1.2e6]);
+  assert.match(info, /маса 10–15 кг/); assert.match(info, /доставка ≈ \$10–18 млн/); assert.match(info, /30–195 Вт/); assert.match(info, /дає 40 кВт/);
+  assert.match(m.equipmentSummary({ mass_range_kg: [6950, 6950], delivery_usd: [6.95e9, 8.34e9] }), /6\s950 кг.*\$7,0–8,3 млрд/);
+  assert.equal(m.equipmentSummary(null), "");
+});

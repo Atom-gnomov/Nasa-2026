@@ -26,22 +26,87 @@
 
     <fieldset class="mission-field" data-step="7">
       <legend>Розмір категорій навантаження</legend>
-      <label class="size-row">Обладнання
+      <div class="supply-kg-row cat-row" id="m-row-equipment">
+        <label for="m-size-equipment">Обладнання</label>
         <input type="range" id="m-size-equipment" min="0" max="3" step="1" value="1">
-        <output id="m-size-equipment-out">Базовий</output>
-      </label>
-      <p class="size-numbers muted small" id="m-num-equipment"></p>
-      <label class="size-row" id="m-row-life_support">Життєзабезпечення
+        <output id="m-num-equipment" class="size-numbers"></output>
+        <button type="button" id="m-catkg-equipment-auto" disabled>Авто</button>
+        <output id="m-size-equipment-out" hidden>Базовий</output>
+      </div>
+      <div class="size-custom">
+        <label for="m-catkg-equipment">Своя маса, кг</label>
+        <input type="number" id="m-catkg-equipment" min="0" max="100000" step="1" inputmode="decimal" placeholder="за рівнем">
+      </div>
+      <details class="callout" id="m-callout-equipment">
+        <summary>Що входить у категорію</summary>
+        <div id="m-callout-equipment-body">
+          <h4>Склад категорії</h4>
+          <ul class="callout-includes">
+            <li>Енергетика поверхні (Surface Power): реактор Fission Surface Power або сонячні батареї з накопичувачами енергії.</li>
+            <li>Мобільність (Mobility): безгерметичний і герметичний планетоходи, планетохід-розвідник.</li>
+            <li>Розвідка й використання ресурсів на місці (Resource Prospecting and ISRU): бур, відбір проб, аналіз летких речовин.</li>
+            <li>Наукове навантаження (Science Payloads): прилади, що доставляються посадковими апаратами.</li>
+            <li>Зв'язок і навігація (Communications and Navigation), позакорабельна діяльність (EVA) і логістика.</li>
+          </ul>
+          <h4>Маса складових у вашій місії</h4>
+          <ul class="callout-parts"></ul>
+          <h4>Спорядження за етапами планування</h4>
+          <p class="muted small">Оберіть, скільки штук кожної позиції взяти: маса категорії стане сумою за позиціями замість оцінки за рівнем.</p>
+          <div id="m-eq-list" class="eq-list"></div>
+          <p class="small" id="m-eq-total"></p>
+        </div>
+      </details>
+      <div class="supply-kg-row cat-row" id="m-row-life_support">
+        <label for="m-size-life_support">Життєзабезпечення</label>
         <input type="range" id="m-size-life_support" min="0" max="3" step="1" value="1">
-        <output id="m-size-life_support-out">Базовий</output>
-      </label>
-      <p class="size-numbers muted small" id="m-num-life_support"></p>
-      <label class="size-row" id="m-row-comfort">Умови й зручності
+        <output id="m-num-life_support" class="size-numbers"></output>
+        <button type="button" id="m-catkg-life_support-auto" disabled>Авто</button>
+        <output id="m-size-life_support-out" hidden>Базовий</output>
+      </div>
+      <div class="size-custom">
+        <label for="m-catkg-life_support">Своя маса, кг</label>
+        <input type="number" id="m-catkg-life_support" min="0" max="100000" step="1" inputmode="decimal" placeholder="за рівнем">
+      </div>
+      <details class="callout" id="m-callout-life_support">
+        <summary>Що входить у категорію</summary>
+        <div id="m-callout-life_support-body">
+          <h4>Склад категорії</h4>
+          <ul class="callout-includes">
+            <li>Система життєзабезпечення й контролю середовища (ECLSS): склад атмосфери, видалення CO₂, генерація кисню, температура й вологість.</li>
+            <li>Водопостачання й регенерація води (Water Recovery and Management).</li>
+            <li>Харчування (Food System): раціон, упаковка, зберігання.</li>
+            <li>Поводження з відходами (Waste Management).</li>
+            <li>Радіаційний захист (Radiation Protection): екранування й укриття від сонячних подій.</li>
+          </ul>
+          <h4>Маса складових у вашій місії</h4>
+          <ul class="callout-parts"></ul>
+        </div>
+      </details>
+      <div class="supply-kg-row cat-row" id="m-row-comfort">
+        <label for="m-size-comfort">Умови й зручності</label>
         <input type="range" id="m-size-comfort" min="0" max="3" step="1" value="1">
-        <output id="m-size-comfort-out">Базовий</output>
-      </label>
-      <p class="size-numbers muted small" id="m-num-comfort"></p>
-      <p class="muted small">Позначка повзунка — рівень (Мінімум → Максимум); під кожним повзунком — його маса, вартість (діапазоном) і потужність у числах.</p>
+        <output id="m-num-comfort" class="size-numbers"></output>
+        <button type="button" id="m-catkg-comfort-auto" disabled>Авто</button>
+        <output id="m-size-comfort-out" hidden>Базовий</output>
+      </div>
+      <div class="size-custom">
+        <label for="m-catkg-comfort">Своя маса, кг</label>
+        <input type="number" id="m-catkg-comfort" min="0" max="100000" step="1" inputmode="decimal" placeholder="за рівнем">
+      </div>
+      <details class="callout" id="m-callout-comfort">
+        <summary>Що входить у категорію</summary>
+        <div id="m-callout-comfort-body">
+          <h4>Склад категорії</h4>
+          <ul class="callout-includes">
+            <li>Герметичний житловий об'єм (pressurized habitat): оболонка й конструкція.</li>
+            <li>Умови проживання екіпажу (crew accommodations): спальні місця, гігієна, одяг, камбуз.</li>
+            <li>Дозвілля й психологічна підтримка (behavioral health and performance).</li>
+          </ul>
+          <h4>Маса складових у вашій місії</h4>
+          <ul class="callout-parts"></ul>
+        </div>
+      </details>
+      <p class="muted small">Повзунок задає рівень (Мінімум → Максимум), під ним — маса, вартість діапазоном і потужність; «Своя маса» замінює рівень довільним числом.</p>
       <p class="muted small" id="m-size-note">Для безпілотної місії життєзабезпечення й зручності не потрібні.</p>
     </fieldset>
 
@@ -54,6 +119,13 @@
         <button type="button" id="m-add-member">Додати людину</button>
         <label>Запаси везти на, діб <input type="number" id="m-supply-days" min="0" max="365" step="1" inputmode="numeric" placeholder="рекомендовано"></label>
         <label>Рекомендований запас, % <input type="number" id="m-reserve" min="0" max="200" step="1" inputmode="numeric" value="15"></label>
+        <div class="supply-kg" id="m-supply-kg">
+          <h3>Запаси, кг</h3>
+          <p class="muted small">Рухайте повзунок, щоб задати свій обсяг; позначка на шкалі — рекомендований. «Авто» — за запасом у добах.</p>
+          <div class="supply-kg-row"><label for="m-kg-oxygen">Кисень</label><input type="range" id="m-kg-oxygen" min="0" max="100" step="1" value="0" list="m-kg-oxygen-mark"><datalist id="m-kg-oxygen-mark"></datalist><output id="m-kg-oxygen-out"></output><button type="button" id="m-kg-oxygen-auto" disabled>Авто</button></div>
+          <div class="supply-kg-row"><label for="m-kg-water">Вода</label><input type="range" id="m-kg-water" min="0" max="100" step="1" value="0" list="m-kg-water-mark"><datalist id="m-kg-water-mark"></datalist><output id="m-kg-water-out"></output><button type="button" id="m-kg-water-auto" disabled>Авто</button></div>
+          <div class="supply-kg-row"><label for="m-kg-food">Їжа (з упаковкою)</label><input type="range" id="m-kg-food" min="0" max="100" step="1" value="0" list="m-kg-food-mark"><datalist id="m-kg-food-mark"></datalist><output id="m-kg-food-out"></output><button type="button" id="m-kg-food-auto" disabled>Авто</button></div>
+        </div>
         <p class="muted small">Потреби рахуються за рівняннями енергії NASA (стать, вік, маса, зріст, активність); кисень, вода й їжа — пропорційно до енергії. Резерв 15 % і еталонні значення — тимчасові.</p>
       </div>
     </fieldset>
@@ -94,11 +166,12 @@
     </dl>
     <section id="m-supplies" class="mission-supplies" hidden>
       <h3>Запаси екіпажу</h3>
+      <ul class="supply-summary" id="m-supply-summary"></ul>
       <p class="globe-warn" id="m-supply-warn" hidden></p>
       <p class="muted small" id="m-supply-reserve"></p>
       <div class="table-scroll">
         <table class="results-table" id="m-supply-table">
-          <thead><tr><th>Запас</th><th>На добу (екіпаж)</th><th>Завезено</th><th>Потрібно на місію</th></tr></thead>
+          <thead><tr><th>Запас</th><th>На добу (екіпаж)</th><th>Завезено</th><th>Потрібно на місію</th><th>Рекомендовано</th><th>Вистачить на, діб</th><th>Баланс</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>

@@ -281,6 +281,23 @@ export function defaultSimSpeed(tofS) {
   return SPEED_CHOICES.find((v) => v >= want) ?? SPEED_CHOICES[SPEED_CHOICES.length - 1];
 }
 
+// Час сцени під час розгону й плавний набір швидкості (G12+): розгін закінчується в момент відльоту (TLI), тож сцена
+// «доживає» до нього, а не стоїть на місці; після розгону швидкість часу наростає плавно, а не стрибком.
+export const BURN_LEAD_S = 3600; // скільки секунд часу сцени проходить за розгін (Земля повертається приблизно на 15°)
+export const TIME_RAMP_S = 4; // за скільки секунд реального часу швидкість часу доростає до вибраної
+
+/** Момент часу сцени під час розгону на частці p ∈ [0, 1]: до відльоту t0 лишається (1 − p)·BURN_LEAD_S. */
+export const burnSceneMs = (t0Ms, p) => t0Ms - BURN_LEAD_S * 1000 * (1 - Math.min(1, Math.max(0, p)));
+
+/** Швидкість часу сцени (с польоту на 1 с реального) на початку переліту — та, з якою йшов розгін. */
+export const burnTimeRate = () => BURN_LEAD_S / BURN_REAL_S;
+
+/** Швидкість часу через realS секунд переліту: плавно (smoothstep) від `from` до `target` за rampS секунд. */
+export function rampedSpeed(from, target, realS, rampS = TIME_RAMP_S) {
+  const k = Math.min(1, Math.max(0, realS / rampS));
+  return from + (target - from) * k * k * (3 - 2 * k);
+}
+
 // ---------- Часова симуляція й симуляція польоту ----------
 // Поки йде політ, час сцени веде ракета, тож часову симуляцію (▶) ставимо на паузу, а після польоту (посадка чи «Стоп»)
 // вмикаємо знову. Стан: { playing — час іде; resume — час треба ввімкнути після польоту; flight — політ іде }.

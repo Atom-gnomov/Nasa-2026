@@ -184,3 +184,19 @@ def test_plan_gives_the_exact_launch_time_of_day(client):
         assert p["route"]["departure_utc"][:10] == data["departure_utc"][:10]
         assert p["route"]["departure_utc"] != data["departure_utc"]  # не опівночі, а справжній момент
     assert not any("далеке від дати посадки" in n for n in data["notes"])
+
+
+def test_no_launch_option_explains_why_for_a_rocket_without_site(client):
+    """Ракета без майданчика в каталозі (проєктна ціль): варіанта запуску немає — і пояснення називає причину."""
+    data = plan(client, vehicle="new-glenn-9x4").get_json()
+    assert_valid(api_validator("PlanResponse"), data)
+    lead = data["plans"][0]
+    assert lead["launch"] is None
+    assert "new-glenn-9x4" in lead["launch_explanation"] and "майданчика немає" in lead["launch_explanation"]
+    assert lead["launch_explanation"] in data["explanation"]
+
+
+def test_no_launch_option_when_rocket_and_site_do_not_match(client):
+    data = plan(client, vehicle="new-glenn", launch_site_id="sriharikota").get_json()
+    lead = data["plans"][0]
+    assert lead["launch"] is None and "не стартує з вибраного майданчика" in lead["launch_explanation"]

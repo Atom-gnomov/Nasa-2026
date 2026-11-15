@@ -16,7 +16,7 @@ import { loadBurn, loadLead } from "./selection.js";
 import { effectiveSite, effectiveTrajectory, loadLaunch, saveLaunch } from "./pipeline.js";
 import {
   AUTO_OPTIONS, DESCENT_REAL_S, choiceFact, descentRows, descentState, flightFact, flightUrl, interpSystem, needsReload,
-  BURN_REAL_S, burnRows, defaultSimSpeed, fitDistance, burnSummaryRows, remapNearMoon, sampleStepMs, sampleTimes, splitExtras, stateAt, telemetryRows, validBurn,
+  BURN_REAL_S, burnRows, burnSceneMs, burnTimeRate, rampedSpeed, defaultSimSpeed, fitDistance, burnSummaryRows, remapNearMoon, sampleStepMs, sampleTimes, splitExtras, stateAt, telemetryRows, validBurn,
   timeInitial, timeOnFlightStart, timeOnFlightEnd, timeOnPlayPress,
 } from "./flight.js";
 import { t } from "./i18n.js";
@@ -385,7 +385,7 @@ async function main() {
   scene.add(flightLine, flightHead, moonAtArrival, rocketMesh, landerMesh, groundTrack, simRocket, velArrow);
   for (const o of [flightLine, flightHead, moonAtArrival, rocketMesh, landerMesh, groundTrack, simRocket, velArrow]) o.visible = false;
   // elapsed — секунди польоту від відльоту; phase: [burn (розгін TLI, G16)] → cruise (переліт) → descent (спуск) → landed (посадка)
-  const sim = { on: false, elapsed: 0, traj: null, phase: "cruise", burn: 0, desc: 0, u0: null, samples: null, t0: 0, landedT: 0, loading: false };
+  const sim = { on: false, elapsed: 0, traj: null, phase: "cruise", burn: 0, desc: 0, u0: null, samples: null, t0: 0, landedT: 0, loading: false, cruiseReal: 0 };
   const UP = new THREE.Vector3(0, 1, 0);
   let flight = null; // splitExtras(...) останньої відповіді
   let flightBox = null; // { center, radius } траси (разом із Землею) у сцені — щоб «Огляд» вміщував і довгий економний маршрут
@@ -463,7 +463,7 @@ async function main() {
   // Симуляція йде або вже почалась (розгін, переліт чи спуск); «burn» до натискання кнопки — ще ні
   const simActive = () => sim.on || sim.burn > 0 || sim.elapsed > 0 || sim.phase === "descent" || sim.phase === "landed";
   function resetSim(traj) {
-    sim.traj = traj; sim.elapsed = 0; sim.burn = 0; sim.desc = 0; sim.u0 = null; sim.samples = null; sim.landedT = 0;
+    sim.traj = traj; sim.elapsed = 0; sim.burn = 0; sim.desc = 0; sim.u0 = null; sim.samples = null; sim.landedT = 0; sim.cruiseReal = 0;
     sim.phase = currentBurn() ? "burn" : "cruise"; // розгін показуємо, лише якщо відомо масу завантаження
     stopSim();
   }
@@ -527,7 +527,12 @@ async function main() {
       sim.burn = Math.min(1, sim.burn + dtS / BURN_REAL_S);
       if (sim.burn >= 1) sim.phase = "cruise";
     }
-    if (sim.on && sim.phase === "cruise") sim.elapsed = Math.min(total, sim.elapsed + dtS * Number($("system-sim-speed").value));
+    if (sim.on && sim.phase === "cruise") {
+      // швидкість часу наростає плавно від швидкості розгону до вибраної: без «зависання» на розгоні й різкого ривка потім
+      sim.cruiseReal += dtS;
+      const rate = rampedSpeed(burnTimeRate(), Number($("system-sim-speed").value), sim.cruiseReal);
+      sim.elapsed = Math.min(total, sim.elapsed + dtS * rate);
+    }
     if (sim.on && sim.phase === "descent") sim.desc = Math.min(1, sim.desc + dtS / DESCENT_REAL_S);
 
     // Переліт: положення на дузі (інерціальна геоцентрична) у масштабі сцени
@@ -801,7 +806,7 @@ async function main() {
     const simTraj = flight?.trajectory;
     if (simTraj && sim.traj === simTraj && simActive() && !playing) {
       // Симуляція польоту: час сцени йде разом з ракетою (після прибуття завмирає) — Місяць, Земля й Сонце рухаються.
-      simMs = sim.t0 + sim.elapsed * 1000;
+      simMs = sim.phase === "burn" ? burnSceneMs(sim.t0, sim.burn) : sim.t0 + sim.elapsed * 1000; // на розгоні час сцени теж іде
       if (sim.samples) {
         const interp = interpSystem(sim.samples, simMs);
         if (interp) { state = interp; stateMs = Date.parse(interp.datetime); }

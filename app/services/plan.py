@@ -126,6 +126,22 @@ def _launch_moment(option: dict, departure: datetime, route: str) -> list[str]:
     return [_iso(w.time_utc) for w in windows]
 
 
+def _no_option_reason(body: Mapping, ranked: Mapping) -> str:
+    """Чому для місця немає варіанта запуску: невдалий вибір ракети чи майданчика, а не лише «не вміщує масу»."""
+    vehicle, site = body.get("vehicle", "any"), body.get("launch_site_id")
+    excluded = {e["vehicle_id"]: e["reason"] for e in ranked.get("excluded", [])}
+    if vehicle != "any" and site:  # рейтинг тут пише «майданчика немає», а для користувача це неузгоджений вибір
+        return ("Вибрана ракета не стартує з вибраного майданчика. Змініть майданчик чи ракету "
+                "або оберіть «підібрати автоматично».")
+    if vehicle != "any" and vehicle in excluded:
+        return (f"Вибрану ракету ({vehicle}) не можна використати: {excluded[vehicle]}. "
+                "Оберіть іншу ракету або «підібрати автоматично».")
+    if site:
+        return ("З вибраного майданчика немає ракети, що вміщує масу. Оберіть інший майданчик "
+                "або «підібрати автоматично».")
+    return "Немає ракети, що вміщує масу; дозвольте кілька пусків або зменште масу."
+
+
 def _mission_body(body: Mapping, night_h: float | None) -> dict:
     keys = ("crew", "days", "sizes", "mission_profile", "crew_members", "supply_days", "reserve_fraction")
     out = {k: body[k] for k in keys if body.get(k) is not None}
@@ -167,7 +183,7 @@ def _explain(plans: list[dict], hard_ok: bool) -> str:
         text += f"; не перевірено (немає даних): {', '.join(req['unchecked'])}"
     launch = lead["launch"]
     if launch is None:
-        return text + ". Для нього немає варіанта запуску, що вміщує масу."
+        return text + f". Для нього немає варіанта запуску. {lead['launch_explanation'] or ''}".rstrip()
     text += f". Старт: {launch['site']['name']}, ракета {launch['vehicle']['name']}, траєкторія {launch['trajectory']}"
     if not launch["fits"]:
         text += " (маса не вміщується в одну ракету)"
@@ -246,7 +262,7 @@ def compute(body: Mapping, start: datetime, end: datetime) -> dict:
                              "warnings": chain["warnings"], "unchecked": chain["unchecked"]},
             "mass_moon_kg": mass,
             "launch": option,
-            "launch_explanation": ranked["leader_explanation"],
+            "launch_explanation": ranked["leader_explanation"] or (None if option else _no_option_reason(body, ranked)),
             "route": None,
             "mission": None,
             "score_pct": round(chain["score_pct"] * launch_score / 100.0, 2),

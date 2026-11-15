@@ -132,3 +132,29 @@ test("дата й час старту в таблиці: момент UTC, як�
   assert.equal(plan.launchMoment({ route: { departure_utc: "2026-12-05T00:00:00Z" }, launch_windows_utc: [] }), "2026-12-05");
   assert.equal(plan.launchMoment({ route: null }), "—");
 });
+
+test("дата старту без варіанта запуску береться з відповіді плану; з варіантом — з маршруту", () => {
+  assert.equal(plan.launchMoment({ route: null, launch: null }, "2026-12-05T00:00:00Z"), "2026-12-05");
+  assert.equal(plan.launchMoment({ route: null, launch: null }), "—");
+  assert.equal(plan.launchMoment({ route: { departure_utc: "2026-12-06T00:00:00Z" }, launch: {} }, "2026-12-05T00:00:00Z"), "2026-12-06");
+});
+
+test("сумісність: ракета без майданчика недоступна, вибір майданчика звужує ракети й навпаки", () => {
+  const systems = [
+    { id: "a", capacity_basis: "leo", launch_site_ids: ["kourou", "cape"] },
+    { id: "b", capacity_basis: "leo", launch_site_ids: ["cape"] },
+    { id: "ghost", capacity_basis: "leo", launch_site_ids: [] },
+    { id: "nocap", capacity_basis: null, launch_site_ids: ["kourou"] },
+  ];
+  const free = plan.launchCompat(systems, "any", "");
+  assert.equal(free.vehicleReason("a"), null);
+  assert.equal(free.vehicleReason("ghost"), "no-site");
+  assert.equal(free.siteOk("kourou"), true);
+  assert.equal(free.siteOk("tanegashima"), false); // з нього не стартує жодна ракета
+  const atKourou = plan.launchCompat(systems, "any", "kourou");
+  assert.equal(atKourou.vehicleReason("a"), null);
+  assert.equal(atKourou.vehicleReason("b"), "other-site");
+  const withB = plan.launchCompat(systems, "b", "");
+  assert.equal(withB.siteOk("cape"), true);
+  assert.equal(withB.siteOk("kourou"), false);
+});

@@ -250,3 +250,30 @@ def test_status_reports_mode_and_matches_contract(client, app):
     assert data["mode"] in ("pack", "light", "full")
     odd = bootstrap.Preparer({**_config(Path("/tmp")), "AUTO_PREPARE_MODE": "nonsense"}, datasets=[FAKE])
     assert odd.mode == "pack"  # невідомий режим — безпечний за замовчуванням
+
+
+def test_build_data_pack_zips_only_processed_files_and_updates_manifest(tmp_path):
+    """Виробник пакетів (I10): у zip — файли набору без `src/` і службових, sha256 збігається, маніфест оновлено."""
+    import hashlib
+
+    from tools import build_data_pack as bdp
+
+    cache = tmp_path / "cache"
+    sysdir = cache / "system"
+    (sysdir / "src").mkdir(parents=True)
+    for name in ("system.json", "sun.glb", "earth.jpg"):
+        (sysdir / name).write_bytes(b"x" * 10)
+    (sysdir / "src" / "raw.bin").write_bytes(b"raw")
+    (sysdir / "build.log").write_text("log")
+    built = bdp.build_zip("system", tmp_path / "out", cache)
+    with zipfile.ZipFile(built["path"]) as zf:
+        assert sorted(zf.namelist()) == ["earth.jpg", "sun.glb", "system.json"]
+    assert built["sha256"] == hashlib.sha256(built["path"].read_bytes()).hexdigest()
+    manifest = tmp_path / "data_packs.json"
+    manifest.write_text(json.dumps([{"id": "system-full", "dataset": "system", "variant": "full", "version": "data-v0",
+                                     "url": None, "size_bytes": None, "sha256": None, "published": False}]))
+    packs = bdp.update_manifest([built], "data-v1", "owner/name", manifest)
+    assert packs[0]["url"] == "https://github.com/owner/name/releases/download/data-v1/system-full.zip"
+    assert datapack.is_published(packs[0]) and packs[0]["size_bytes"] == built["size_bytes"]
+    with pytest.raises(SystemExit):  # набір не зібрано — чесна відмова, а не порожній архів
+        bdp.build_zip("globe", tmp_path / "out", cache)

@@ -5,10 +5,10 @@
   "variant": "full",
   "version": "data-v1",
   "description": "Температура поверхні (LRO Diviner): повний оброблений пакет",
-  "url": null,
-  "size_bytes": null,
-  "sha256": null,
-  "published": false
+  "url": "https://github.com/Atom-gnomov/Nasa-2026/releases/download/data-v1/temperature-full.zip",
+  "size_bytes": 78294087,
+  "sha256": "663ac52345d5d0dae160ec7890410c358dbfbc0b21bd72fe80fe30384d91905f",
+  "published": true
  },
  {
   "id": "temperature-light",
@@ -27,10 +27,10 @@
   "variant": "full",
   "version": "data-v1",
   "description": "3D-ресурси системи Сонце–Земля–Місяць: повний оброблений пакет",
-  "url": null,
-  "size_bytes": null,
-  "sha256": null,
-  "published": false
+  "url": "https://github.com/Atom-gnomov/Nasa-2026/releases/download/data-v1/system-full.zip",
+  "size_bytes": 5674520,
+  "sha256": "2a3e600cd6c4db9c8d419dc55d6f709178005e56bfd9c9547533d6f5c3ca74b2",
+  "published": true
  },
  {
   "id": "system-light",
@@ -49,10 +49,10 @@
   "variant": "full",
   "version": "data-v1",
   "description": "Текстури й рельєф глобуса Місяця: повний оброблений пакет",
-  "url": null,
-  "size_bytes": null,
-  "sha256": null,
-  "published": false
+  "url": "https://github.com/Atom-gnomov/Nasa-2026/releases/download/data-v1/globe-full.zip",
+  "size_bytes": 75363916,
+  "sha256": "4a23f1ee47210368b9667c369f65862765785002b6e8fcb317bd0628758c240c",
+  "published": true
  },
  {
   "id": "globe-light",

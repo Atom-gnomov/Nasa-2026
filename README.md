@@ -82,6 +82,16 @@ docker build -t lunar-mission-builder .
 docker run -p 8000:8000 -v lse-data:/data lunar-mission-builder
 ```
 
+Готовий образ у GitHub Container Registry (збирається workflow `Docker publish`, вручну або тегом `v*`):
+
+```bash
+docker run -p 8000:8000 -v lse-data:/data ghcr.io/atom-gnomov/nasa-2026:latest
+```
+
+Готові оброблені пакети даних лежать у Release `data-v1` (`temperature-full`, `system-full`, `globe-full`, ≈ 160 МБ разом) і описані в
+`app/data/data_packs.json`: першому запуску не треба тягнути ≈ 3,4 ГБ сирих даних — застосунок бере пакети сам
+(`LSE_AUTO_PREPARE_MODE=pack`) і перевіряє `sha256`. Пакети збирає й публікує `python tools/build_data_pack.py --publish`.
+
 Ресурси (замірено без даних NASA; з даними +1–2 ГБ оцінка): 2 воркери ≈ 130 МБ пам'яті. Для демо — 1 vCPU, 1–2 ГБ ОЗП, диск 2–3 ГБ
 (з готовим пакетом даних) або ≈ 10 ГБ (з сирими даними температури й глобуса). `WEB_CONCURRENCY` — кількість воркерів (типово 2),
 `PORT` — порт (типово 8000); перевірка живості — `GET /api/meta`.

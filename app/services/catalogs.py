@@ -30,6 +30,13 @@ def load_mission_thresholds() -> list[dict]:
     return list(_load(str(current_app.config["DATA_DIR"] / "mission_thresholds.json")))
 
 
+def load_mission_goals() -> list[dict]:
+    """Цілі місії (app/data/mission_goals.json, задача M25)."""
+    path = str(current_app.config["DATA_DIR"] / "mission_goals.json")
+    with open(path, encoding="utf-8") as f:
+        return list(json.load(f)["goals"])
+
+
 def load_payload_tables() -> dict:
     """Параметри корисного навантаження з першоджерел NASA (app/data/payload_tables.json, задача D4)."""
     path = str(current_app.config["DATA_DIR"] / "payload_tables.json")

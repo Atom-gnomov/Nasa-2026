@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "description": "Цілі місії (M25, П-14): що NASA вважає головним у кожній цілі, які вимоги до місця випливають і що підставляти за замовчуванням. Типові значення (пріоритети «Підбору», тип місії, тривалість перебування) — тимчасові ⚠️, не нормативні: NASA називає критерії відбору (нахил, зв'язок із Землею, освітленість, вікно запуску), але не числа для безпілотних місій (RESOURCES.md §11).",
+  "goals": [
+    {
+      "id": "ice",
+      "name": "Пошук води й льоду",
+      "name_en": "Water and ice search",
+      "summary": "Характер і походження летких речовин (переважно водяного льоду) на полюсі: глибина, розподіл, склад.",
+      "mission_profile": "uncrewed",
+      "stay_days": 100,
+      "priorities": ["comms", "energy"],
+      "site_notes": ["Поруч мають бути постійно затінені області (холодні пастки).", "Потрібні освітлення для сонячного апарата й видимість Землі для прямого зв'язку (над горизонтом низько).", "Бажана різноманітність рельєфу, де лід може бути на поверхні чи неглибоко."],
+      "instrument_ids": ["trident_drill", "viper_rover", "clps_instrument"],
+      "sources": [
+        {"title": "Artemis III Science Definition Team Report (мета 2: леткі на полюсах)", "url": "https://science.nasa.gov/wp-content/uploads/2023/07/artemis-iii-science-definition-report-12042020c.pdf"},
+        {"title": "NASA CLPS: VIPER (TO20A)", "url": "https://science.nasa.gov/lunar-science/clps-deliveries/to20a-astrobotic"}
+      ]
+    },
+    {
+      "id": "samples",
+      "name": "Збір зразків",
+      "name_en": "Sample collection",
+      "summary": "Різноманітні зразки з різних місць полюса; герметичні зразки летких; мобільність екіпажу — ключ до науки.",
+      "mission_profile": "crewed",
+      "stay_days": 7,
+      "priorities": ["energy", "comms", "radiation"],
+      "site_notes": ["Район має бути геологічно різноманітним (різновікові породи).", "Потрібна мобільність екіпажу (ровер) і безпечний рельєф.", "Кожен зразок летких бажано герметизувати."],
+      "instrument_ids": ["trident_drill", "clps_instrument"],
+      "sources": [
+        {"title": "Artemis III Science Definition Team Report (висновки 6.1.4-2, 6.1.4-4, 7.3-1)", "url": "https://science.nasa.gov/wp-content/uploads/2023/07/artemis-iii-science-definition-report-12042020c.pdf"}
+      ]
+    },
+    {
+      "id": "science",
+      "name": "Наукові дослідження",
+      "name_en": "Scientific research",
+      "summary": "Вимірювання на місці: відбір проб, моніторинг летких, геофізика, свердловинний моніторинг, геотехніка.",
+      "mission_profile": "uncrewed",
+      "stay_days": 30,
+      "priorities": ["energy", "comms"],
+      "site_notes": ["Навколо місця — різноманітна геологія.", "Потрібні стабільні енергія й зв'язок на весь період вимірювань.", "Наукові прилади бажано розмістити заздалегідь."],
+      "instrument_ids": ["clps_instrument", "trident_drill"],
+      "sources": [
+        {"title": "Artemis III Science Definition Team Report (висновок 6.3.7-1, рек. 7.2-1)", "url": "https://science.nasa.gov/wp-content/uploads/2023/07/artemis-iii-science-definition-report-12042020c.pdf"}
+      ]
+    },
+    {
+      "id": "technology",
+      "name": "Випробування технологій",
+      "name_en": "Technology demonstration",
+      "summary": "Посадка, енергетика, зв'язок, мобільність і використання ресурсів у реальних умовах.",
+      "mission_profile": "uncrewed",
+      "stay_days": 14,
+      "priorities": ["energy", "comms"],
+      "site_notes": ["Головні критерії відбору — нахил, зв'язок із Землею, освітленість і вікно запуску.", "Для проходів ISRU нахил ≈ 20° — орієнтир, не жорсткий поріг."],
+      "instrument_ids": ["clps_instrument"],
+      "sources": [
+        {"title": "NASA: регіони для Artemis III", "url": "https://www.nasa.gov/news-release/nasa-identifies-candidate-regions-for-landing-next-americans-on-Moon/"},
+        {"title": "ASCEND 2022, Kleinhenz (ISRU)", "url": "https://ntrs.nasa.gov/api/citations/20220012753/downloads/ASCEND-paper-KLEINHENZ-2022_final.pdf"}
+      ]
+    },
+    {
+      "id": "base",
+      "name": "Постійна база",
+      "name_en": "Permanent base",
+      "summary": "Поверхнева енергетика, мобільність і видобуток ресурсів для довгого перебування.",
+      "mission_profile": "crewed",
+      "stay_days": 30,
+      "priorities": ["energy", "comms", "radiation"],
+      "site_notes": ["13 районів у межах 6° від полюса; критерії — нахил, зв'язок, освітлення.", "Шеклтон — серед найкращих за оцінкою 1 247 точок (2024)."],
+      "instrument_ids": ["fsp_reactor", "viper_rover", "trident_drill"],
+      "sources": [
+        {"title": "NASA: регіони для Artemis III", "url": "https://www.nasa.gov/news-release/nasa-identifies-candidate-regions-for-landing-next-americans-on-Moon/"},
+        {"title": "Оцінка місць Artemis III (phys.org, 2024)", "url": "https://phys.org/news/2024-09-artemis-iii-sites-algorithm-techniques.pdf"}
+      ]
+    }
+  ]
+}

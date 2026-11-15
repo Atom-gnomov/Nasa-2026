@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, abort, current_app, jsonify, request
 from werkzeug.exceptions import HTTPException
 
-from app.core import launch_system
+from app.core import launch_system, mission_goal
 from app.services import catalogs, dsn, elevation, metrics, models3d, ranking, sites, system, temperature
 from app.services import advice as advice_service
 from app.services import search as search_service
@@ -120,6 +120,13 @@ def list_launch_systems():
 def equipment_catalog():
     """Обладнання з документів NASA (маса, потужність, цитата) і джерельні параметри D4 для виносок у «Місії»."""
     return jsonify(catalogs.equipment_catalog_with_parameters())
+
+
+@bp.get("/mission-goals")
+def mission_goals():
+    """Цілі місії з типовими виборами для наступних кроків (M25, П-14): тип, тривалість, пріоритети, поради до місця."""
+    goals = mission_goal.load_goals(catalogs.load_mission_goals())
+    return jsonify({"goals": [g.to_dict() for g in goals], "provisional": True})
 
 
 @bp.get("/launch-sites")

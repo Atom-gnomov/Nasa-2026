@@ -100,6 +100,23 @@ docker run -p 8000:8000 -v lse-data:/data ghcr.io/atom-gnomov/nasa-2026:latest
 і `render.yaml` (Render Blueprint; постійний диск є лише в платному плані). Секрети (`SECRET_KEY`) задавайте змінними середовища
 хостингу, не в файлах.
 
+#### Cloudflare
+
+Два способи, залежно від того, що саме потрібно:
+
+1. **Cloudflare Containers** (теки `cloudflare/`): той самий образ працює за Worker-ом на платформі Cloudflare. Потрібен план Workers Paid (від $5/міс).
+   ```bash
+   cd cloudflare && npm install
+   npx wrangler login
+   npx wrangler secret put SECRET_KEY
+   npx wrangler deploy
+   ```
+   Диск контейнера **тимчасовий**: після сну (за замовчуванням 30 хв простою) дані NASA готуються заново, тож варто опублікувати пакет даних
+   (`LSE_AUTO_PREPARE_MODE=pack`). `instance_type: standard-1` (½ vCPU, 4 ГіБ, 8 ГБ диска) — у `cloudflare/wrangler.jsonc`.
+2. **Cloudflare Tunnel** для будь-якої машини з Docker (VPS, свій сервер): без відкритих портів, HTTPS від Cloudflare. Створіть тунель в
+   панелі Zero Trust, додайте `TUNNEL_TOKEN=…` у `.env`, вкажіть публічне ім'я хоста → `http://web:8000` і запустіть
+   `docker compose --profile tunnel up -d`.
+
 ### Змінні середовища
 
 Задаються змінними середовища або файлом `.env` (він у `.gitignore`; зразок — `.env.example`). Секрети лише тут, не в коді.

@@ -1,0 +1,23 @@
+// Cloudflare Containers: той самий образ, що й для інших хостингів (../Dockerfile), працює за Worker-ом.
+// Запуск: cd cloudflare && npm install && npx wrangler login && npx wrangler deploy   (потрібен план Workers Paid, $5/міс)
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "lunar-mission-builder",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-01",
+  "containers": [
+    {
+      "class_name": "LunarMissionBuilder",
+      "image": "../Dockerfile",
+      "image_build_context": "..",
+      // standard-1: 1/2 vCPU, 4 ГіБ ОЗП, 8 ГБ диска (диск тимчасовий!). basic (1 ГіБ ОЗП, 4 ГБ диска) — лише для демо без даних NASA.
+      "instance_type": "standard-1",
+      "max_instances": 2
+    }
+  ],
+  "durable_objects": {
+    "bindings": [{ "class_name": "LunarMissionBuilder", "name": "LMB" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["LunarMissionBuilder"] }],
+  "observability": { "enabled": true }
+}

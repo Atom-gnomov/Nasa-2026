@@ -122,3 +122,23 @@ test("важчий вантаж — довший розгін у даних бе
   assert.ok(f.burnStateAt(heavy, 0.5).elapsedS > f.burnStateAt(light, 0.5).elapsedS);
   assert.ok(f.burnStateAt(heavy, 0).accelG < f.burnStateAt(light, 0).accelG);
 });
+
+test("час і політ: ▶ ставиться на паузу на час польоту й вмикається після нього", () => {
+  let st = f.timeInitial();
+  st = f.timeOnPlayPress(st); // ввімкнули час
+  assert.deepEqual(st, { playing: true, resume: false, flight: false });
+  st = f.timeOnFlightStart(st); // старт польоту: час на паузі, запам'ятали
+  assert.deepEqual(st, { playing: false, resume: true, flight: true });
+  st = f.timeOnFlightEnd(st); // посадка: час знову йде
+  assert.deepEqual(st, { playing: true, resume: false, flight: false });
+});
+
+test("час і політ: час був вимкнений — після польоту лишається вимкненим; ▶ під час польоту — відкладене ввімкнення", () => {
+  let st = f.timeOnFlightStart(f.timeInitial());
+  assert.equal(st.resume, false);
+  assert.deepEqual(f.timeOnFlightEnd(st), { playing: false, resume: false, flight: false });
+  st = f.timeOnPlayPress(st); // натиснули ▶ під час польоту
+  assert.deepEqual(st, { playing: false, resume: true, flight: true });
+  assert.equal(f.timeOnPlayPress(st).resume, false, "повторне натискання скасовує");
+  assert.equal(f.timeOnFlightEnd(st).playing, true);
+});

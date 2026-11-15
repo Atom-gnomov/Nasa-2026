@@ -257,3 +257,24 @@ export function burnSummaryRows(burn) {
   return [["Розгін TLI", `${fmtDuration(burn.duration_s)}, ${g1(burn.accel_start_g)} → ${g1(burn.accel_end_g)} g`],
     ["Заповненість ракети", `${Math.round(burn.utilization * 100)} %${burn.overloaded ? " ⚠" : ""}`]];
 }
+
+// ---------- Часова симуляція й симуляція польоту ----------
+// Поки йде політ, час сцени веде ракета, тож часову симуляцію (▶) ставимо на паузу, а після польоту (посадка чи «Стоп»)
+// вмикаємо знову. Стан: { playing — час іде; resume — час треба ввімкнути після польоту; flight — політ іде }.
+export const timeInitial = () => ({ playing: false, resume: false, flight: false });
+
+/** Початок польоту: якщо час ішов (або його вже просили ввімкнути) — запам'ятовуємо й зупиняємо. */
+export function timeOnFlightStart(st) {
+  return { playing: false, resume: st.resume || st.playing, flight: true };
+}
+
+/** Кнопка ▶/⏸ часу: під час польоту лише запам'ятовує бажання (час ввімкнеться після польоту), інакше перемикає час. */
+export function timeOnPlayPress(st) {
+  if (st.flight) return { ...st, resume: !st.resume };
+  return { ...st, playing: !st.playing, resume: false };
+}
+
+/** Кінець польоту (посадка або «Стоп»): вмикаємо час, якщо він мав іти. */
+export function timeOnFlightEnd(st) {
+  return { playing: st.playing || st.resume, resume: false, flight: false };
+}

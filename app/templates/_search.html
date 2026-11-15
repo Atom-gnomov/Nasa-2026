@@ -3,8 +3,20 @@
 <section id="search" class="search-layout" aria-label="Підбір точок">
   <div class="side-panel search-form" data-step="5">
     <div class="mp-goal-site-notes muted small" hidden></div>
-    <h2>Вимоги</h2>
-    <label>Період від дати календаря, діб
+    <h2>Місце й дата посадки</h2>
+    <p class="landing-date" id="s-landing-date"></p>
+    <div class="seg pick-mode" role="group" aria-label="Як обрати точку посадки">
+      <button type="button" data-pick="auto" aria-pressed="true" title="Система сама знайде найкращі точки за вашими вимогами">Автопідбір</button>
+      <button type="button" data-pick="manual" aria-pressed="false" title="Ви самі оберете точку на глобусі Місяця">Вибрати вручну</button>
+    </div>
+    <div class="pick-manual" id="s-manual" hidden>
+      <p class="muted small">Відкрийте глобус Місяця й клацніть потрібну точку. Дату посадки змінюйте в календарі вгорі: точка й дата — одне рішення.</p>
+      <p class="small" id="s-manual-point"></p>
+      <a class="button-link primary" id="s-manual-open" href="/moon?step=5">Відкрити глобус і обрати точку</a>
+    </div>
+    <div class="pick-auto" id="s-auto">
+    <h3>Вимоги до місця</h3>
+    <label>Вікно оцінки від дати посадки, діб <small class="muted">(скільки діб після посадки враховувати Сонце й зв'язок)</small>
       <input type="number" id="s-days" min="1" max="120" step="1" value="30">
     </label>
     <label>Область пошуку
@@ -56,6 +68,7 @@
       <input type="number" id="s-height" min="0" max="1000" step="1" value="0">
     </label>
     <button type="button" id="s-run" class="primary">Знайти</button>
+    </div>
   </div>
 
   <div class="search-results workspace-results">

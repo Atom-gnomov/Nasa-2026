@@ -103,36 +103,6 @@ def _sections(p: Mapping, check: Mapping) -> list[dict]:
             ],
         }
     )
-    window = check.get("window")
-    when = p["launch"]
-    out.append(
-        {
-            "step": 3,
-            "title": "Вікно запуску",
-            "rows": [
-                _row("Дата й час запуску", when.strftime("%Y-%m-%d %H:%M UTC") if when else "не задано"),
-                *(
-                    [
-                        _row(
-                            "Прильот і перебування (оцінка)",
-                            f"{_utc(window['start'])} — {_utc(window['end'])}",
-                        )
-                    ]
-                    if window
-                    else []
-                ),
-                *(
-                    [
-                        _row("Сонце над горизонтом, % часу перебування", _num(window["sun_fraction"] * 100, 1)),
-                        _row("Земля над горизонтом, % часу перебування", _num(window["earth_fraction"] * 100, 1)),
-                        _row("Найдовша ніч", f"{_num(window['longest_night_h'])} год"),
-                    ]
-                    if window
-                    else []
-                ),
-            ],
-        }
-    )
     out.append(
         {
             "step": 4,
@@ -145,20 +115,25 @@ def _sections(p: Mapping, check: Mapping) -> list[dict]:
         }
     )
     site = p["site"]
-    out.append(
-        {
-            "step": 5,
-            "title": "Район і точка посадки",
-            "rows": [
-                _row(
-                    "Точка",
-                    f"{p['site_name'] + ', ' if p['site_name'] else ''}{_num(site[0], 3)}°, {_num(site[1], 3)}°"
-                    if site
-                    else "не вибрано",
-                ),
-            ],
-        }
-    )
+    window = check.get("window")
+    when = p["launch"]
+    rows5 = [
+        _row(
+            "Точка",
+            f"{p['site_name'] + ', ' if p['site_name'] else ''}{_num(site[0], 3)}°, {_num(site[1], 3)}°"
+            if site
+            else "не вибрано",
+        ),
+        _row("Дата посадки", when.strftime("%Y-%m-%d %H:%M UTC") if when else "не задано"),
+    ]
+    if window:
+        rows5 += [
+            _row("Перебування на місці (оцінка)", f"{_utc(window['start'])} — {_utc(window['end'])}"),
+            _row("Сонце над горизонтом, % часу перебування", _num(window["sun_fraction"] * 100, 1)),
+            _row("Земля над горизонтом, % часу перебування", _num(window["earth_fraction"] * 100, 1)),
+            _row("Найдовша ніч", f"{_num(window['longest_night_h'])} год"),
+        ]
+    out.append({"step": 5, "title": "Район, дата й точка посадки", "rows": rows5})
     rows6 = [_row("Склад", f"екіпаж {crew} осіб" if crewed and crew else "безпілотна: без екіпажу")]
     cs = r.get("crew_supplies")
     if cs:
@@ -225,8 +200,8 @@ def to_markdown(rep: Mapping) -> str:
     """Звіт у Markdown: заголовок, застереження, розділи за кроками, схема рішень, джерела."""
     out = [f"# Місія: {rep['name'] or 'без назви'}", ""]
     out += [f"> ⚠️ {x}" for x in rep["caveats"]]
-    for sec in rep["sections"]:
-        out += ["", f"## {sec['step']}. {sec['title']}", ""]
+    for i, sec in enumerate(rep["sections"], 1):  # нумерація за порядком: крок «Дата посадки» злито з кроком 5
+        out += ["", f"## {i}. {sec['title']}", ""]
         out += [f"- **{row['label']}:** {row['value']}" for row in sec["rows"]]
     out += ["", "## Послідовність рішень", "", " → ".join(rep["chain"])]
     if rep["sources"]:

@@ -182,3 +182,10 @@ test("запит підбору: нахил і м'які частки Землі
   assert.equal(body.min_earth_fraction, 0.25);
   assert.equal(body.min_sun_fraction, 0.05);
 });
+
+test("дата й точка посадки для кроку: підписи з календаря й стану", async () => {
+  const { landingDateText, pickedPointText } = await import("../../app/static/js/search.js");
+  assert.equal(landingDateText({ datetime: "2027-03-01T12:00Z" }), "2027-03-01 12:00 UTC");
+  assert.equal(pickedPointText({ lat: -89.456, lon: 12.3 }), "-89.46°, 12.30°");
+  assert.equal(pickedPointText({ lat: null, lon: null }), "");
+});

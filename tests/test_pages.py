@@ -158,3 +158,15 @@ def test_mission_page_marks_each_control_with_its_wizard_step(client):
     for marker in ('data-step="2 4 6"', 'class="profile-slider" data-step="2"', 'id="m-days-row" data-step="4"',
                    'id="m-crew-row" data-step="6"', 'data-step="7"', 'data-step="8"'):
         assert marker in html, marker
+
+
+def test_mission_toggle_button_and_initial_state_are_on_every_page(client):
+    for path in ("/moon", "/system", "/search", "/mission", "/plan", "/consistency", "/report"):
+        html = client.get(path).get_data(as_text=True)
+        assert 'id="mp-toggle"' in html and "js/wizard_toggle.js" in html, path
+        assert "lse-wizard" in html and "dataset.wizard" in html, path  # початковий стан до малювання, без блимання
+        assert 'id="mp-steps"' in html and 'class="tabs"' in html, path  # нічого не видалено, лише ховається
+        tabs = html[html.index('class="tabs"'):html.index('</nav>', html.index('class="tabs"'))]
+        assert 'id="mp-toggle"' in tabs, path  # єдина кнопка планування — у смузі вкладок
+        for link in ('/search', '/mission', '/plan'):  # вкладки планування сховано під неї, але є
+            assert f'href="{link}"' in tabs and 'tab-plan' in tabs, (path, link)

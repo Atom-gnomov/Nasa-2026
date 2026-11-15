@@ -6,6 +6,7 @@ import { getLang, onLangChange, t } from "./i18n.js";
 import { burnFromMission, saveBurn } from "./selection.js";
 import { GOALS as PLAN_GOALS, loadPlan } from "./mission_plan.js";
 import { loadLaunch, plainSite, saveLaunch } from "./pipeline.js";
+import { getState, subscribe } from "./state.js";
 
 const STORAGE_KEY = "lse-mission";
 const DEBOUNCE_MS = 250;
@@ -31,7 +32,7 @@ export const DEFAULT_FORM = {
   reservePct: 15, // рекомендований запас, % ⚠️ тимчасово
   categoryKg: { equipment: null, life_support: null, comfort: null }, // П-14: своя маса категорії, кг; null — за рівнем
   equipmentItems: {}, // П-14: позиції каталогу NASA: id → кількість
-  nightH: null, // найдовша ніч, год: на неї розраховують акумулятори; null — не враховано (підказує крок 9)
+  nightH: null, // найдовша ніч, год: рахується сама за точкою, датою й тривалістю (/api/timeline); null — точки ще немає
   supplyKg: { oxygen: null, water: null, food: null }, // П-14: довільні обсяги запасів, кг; null — «авто» (за запасом у добах)
 };
 
@@ -41,6 +42,27 @@ export const ACTIVITY_LABELS = { sedentary: "малорухомий", low: "по
 const REFERENCE = { male: { age: 35, mass_kg: 82, height_m: 1.78 }, female: { age: 35, mass_kg: 62, height_m: 1.65 } };
 const MEMBER_LIMITS = { age: [19, 80], mass_kg: [35, 160], height_m: [1.4, 2.15] };
 export const MAX_CREW = 6;
+
+// Підганяє список людей під потрібну кількість: нових додаємо за чергою «чоловік, жінка», зайвих прибираємо з кінця.
+export function resizeCrew(members, count) {
+  const n = clamp(Math.round(num(count, members.length)), 1, MAX_CREW);
+  const out = members.slice(0, n);
+  while (out.length < n) out.push(defaultMember(out.length % 2 ? "female" : "male"));
+  return out;
+}
+
+// Найдовша ніч рахується за точкою, датою посадки й тривалістю: запит до /api/timeline або null, коли точки ще немає.
+// Безпілотна місія (тривалість не задають) — типове перебування в одну лунну добу з половиною дня, 14 діб.
+export const DEFAULT_STAY_DAYS = 14;
+export function nightQuery(state, form) {
+  if (!Number.isFinite(state?.lat) || !Number.isFinite(state?.lon)) return null;
+  const startMs = Date.parse(state.datetime);
+  if (!Number.isFinite(startMs)) return null;
+  const days = form.crewed && form.days > 0 ? form.days : DEFAULT_STAY_DAYS;
+  const end = new Date(startMs + days * 86_400_000).toISOString().slice(0, 16) + "Z";
+  const params = new URLSearchParams({ lat: state.lat, lon: state.lon, start: state.datetime, end, step_h: days > 60 ? 6 : 1 });
+  return `/api/timeline?${params}`;
+}
 
 export function defaultMember(sex = "male") {
   return { sex, ...REFERENCE[sex], activity: "active" };
@@ -408,7 +430,18 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
   let abort = null;
   let timer = null;
   const markData = (option) => { option.setAttribute("translate", "no"); return option; }; // назви з каталогів
-  const save = () => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(form)); } catch { /* приватний режим */ } };
+  const save = () => {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(form)); } catch { /* приватний режим */ }
+    window.dispatchEvent(new Event("lse-mission-changed")); // смуга кроків ховає «Тривалість» для безпілотної місії
+  };
+
+  // «Авто» — перемикач, а не заблокована кнопка: натиснута, коли значення рахує система, і клікабельна, коли воно задане вручну
+  function setAuto(button, isAuto) {
+    button.disabled = false;
+    button.setAttribute("aria-pressed", String(isAuto));
+    button.classList.toggle("is-auto", isAuto);
+    button.title = isAuto ? t("Значення підібране автоматично: змініть повзунок, щоб задати своє") : t("Повернути автоматичний підбір");
+  }
 
   function renderForm() {
     $("m-crewed").value = form.crewed ? "1" : "0";
@@ -425,7 +458,6 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
       $(`m-row-${key}`).classList.toggle("disabled", !form.crewed);
     }
     $("m-size-note").hidden = form.crewed;
-    if (document.activeElement !== $("m-night")) $("m-night").value = form.nightH ?? "";
     $("m-trajectory").value = form.trajectory;
     $("m-system").value = form.systemId;
     $("m-site").value = form.siteId;
@@ -435,12 +467,12 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
     $("m-bio-fields").hidden = !(form.crewed && form.useBio);
     $("m-supply-days").value = form.supplyDays ?? "";
     $("m-reserve").value = form.reservePct;
-    for (const key of Object.keys(form.supplyKg)) $(`m-kg-${key}-auto`).disabled = form.supplyKg[key] === null;
+    for (const key of Object.keys(form.supplyKg)) setAuto($(`m-kg-${key}-auto`), form.supplyKg[key] === null);
     for (const key of Object.keys(form.categoryKg)) {
       const input = $(`m-catkg-${key}`);
       if (document.activeElement !== input) input.value = form.categoryKg[key] ?? "";
       input.disabled = key !== "equipment" && !form.crewed;
-      $(`m-catkg-${key}-auto`).disabled = form.categoryKg[key] === null;
+      setAuto($(`m-catkg-${key}-auto`), form.categoryKg[key] === null);
     }
     renderMembers();
   }
@@ -564,7 +596,7 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
       $(`m-kg-${key}-mark`).replaceChildren(Object.assign(document.createElement("option"), { value: Math.min(s.rec, s.max) }));
       $(`m-kg-${key}-out`).textContent = s.text;
       $(`m-kg-${key}-out`).dataset.status = s.status;
-      $(`m-kg-${key}-auto`).disabled = s.auto;
+      setAuto($(`m-kg-${key}-auto`), s.auto);
     }
     const warn = warningTexts(cs);
     $("m-supply-warn").hidden = warn.length === 0;
@@ -618,6 +650,32 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
     $("m-limits").replaceChildren(...limits.map((l) => Object.assign(document.createElement("li"), { textContent: limitText(l) })));
   }
 
+  // Найдовша ніч у точці: рахуємо самі, щоб планувальник не вводив її вручну
+  let nightSeq = 0;
+  async function refreshNight() {
+    const seq = ++nightSeq;
+    const url = nightQuery(getState(), form);
+    if (!url) {
+      const changed = form.nightH !== null;
+      form.nightH = null;
+      $("m-night-note").textContent = t("Найдовша ніч порахується сама, коли ви оберете точку й дату посадки.");
+      if (changed) schedule();
+      return;
+    }
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      if (seq !== nightSeq) return;
+      if (!res.ok) throw new Error(data.detail || res.statusText);
+      const night = Math.round(data.summary.longest_night_h * 10) / 10;
+      $("m-night-note").textContent = t("Найдовша ніч у вибраній точці за час перебування: {h} год. Акумулятори розраховано під неї автоматично.", { h: NUM1.format(night) });
+      if (form.nightH !== night) { form.nightH = night; schedule(); }
+    } catch (err) {
+      if (seq !== nightSeq) return;
+      $("m-night-note").textContent = t("Найдовшу ніч порахувати не вдалося: {why}. Акумулятори розраховано без неї.", { why: err.message });
+    }
+  }
+
   async function calculate() {
     abort?.abort();
     abort = new AbortController();
@@ -641,8 +699,16 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
   onLangChange(() => { if (catalog) renderCatalog(); if (lastResponse) renderResult(lastResponse); });
   const schedule = () => { save(); clearTimeout(timer); timer = setTimeout(calculate, DEBOUNCE_MS); };
 
-  $("m-crewed").addEventListener("input", (e) => { form.crewed = e.target.value === "1"; if (!form.crewed) form.crew = null; renderForm(); schedule(); });
-  $("m-crew").addEventListener("input", (e) => { form.crew = e.target.value === "" ? null : clamp(Math.round(num(e.target.value, 1)), 1, 6); $("m-crew-mark").hidden = true; schedule(); });
+  $("m-crewed").addEventListener("input", (e) => { form.crewed = e.target.value === "1"; if (!form.crewed) form.crew = null; renderForm(); schedule(); refreshNight(); });
+  $("m-crew").addEventListener("input", (e) => {
+    form.crew = e.target.value === "" ? null : clamp(Math.round(num(e.target.value, 1)), 1, MAX_CREW);
+    $("m-crew-mark").hidden = true;
+    if (form.useBio && form.crew !== null) { // з біометрією людей задають рядки: число в полі додає чи прибирає людей
+      form.members = resizeCrew(form.members, form.crew);
+      renderMembers();
+    }
+    schedule();
+  });
   $("m-goal-add").addEventListener("click", () => {
     for (const it of recommendedItems(loadPlan().goal, catalog)) if (!(form.equipmentItems[it.id] > 0)) form.equipmentItems[it.id] = 1;
     renderCatalog(); schedule();
@@ -650,8 +716,8 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
   // мету змінюють у смузі майстра на будь-якій сторінці: оновлюємо підказку й позначки
   document.addEventListener("change", (e) => { if (e.target.matches?.(".mp-goal-select") && catalog) setTimeout(renderCatalog, 0); });
   window.addEventListener("storage", () => { if (catalog) renderCatalog(); });
-  $("m-night").addEventListener("input", (e) => { form.nightH = e.target.value === "" ? null : clamp(num(e.target.value, 0), 0, 8760); schedule(); });
-  $("m-days").addEventListener("input", (e) => { form.days = clamp(Math.round(num(e.target.value, 0)), 0, 365); schedule(); });
+  $("m-days").addEventListener("input", (e) => { form.days = clamp(Math.round(num(e.target.value, 0)), 0, 365); schedule(); refreshNight(); });
+  subscribe(refreshNight); // змінили точку чи дату посадки на іншій вкладці або в календарі — перераховуємо ніч
   for (const key of Object.keys(form.sizes)) {
     $(`m-size-${key}`).addEventListener("input", (e) => { form.sizes[key] = Number(e.target.value); renderForm(); schedule(); });
   }
@@ -673,7 +739,7 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
   for (const key of Object.keys(form.categoryKg)) { // П-14: своя маса категорії, кг; «Авто» — за рівнем повзунка
     $(`m-catkg-${key}`).addEventListener("input", (e) => {
       form.categoryKg[key] = e.target.value === "" ? null : clamp(num(e.target.value, 0), 0, 100000);
-      $(`m-catkg-${key}-auto`).disabled = form.categoryKg[key] === null; schedule();
+      setAuto($(`m-catkg-${key}-auto`), form.categoryKg[key] === null); schedule();
     });
     $(`m-catkg-${key}-auto`).addEventListener("click", () => { form.categoryKg[key] = null; $(`m-catkg-${key}`).value = ""; renderForm(); schedule(); });
   }
@@ -685,8 +751,8 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
   }).catch(() => { /* без каталогу працюють повзунки й своя маса */ });
   $("m-reserve").addEventListener("input", (e) => { form.reservePct = clamp(num(e.target.value, 15), 0, 200); schedule(); });
   for (const key of Object.keys(form.supplyKg)) { // П-14: довільні обсяги запасів, кг; «Авто» повертає розрахунок за добами
-    $(`m-kg-${key}`).addEventListener("input", (e) => { form.supplyKg[key] = clamp(num(e.target.value, 0), 0, 100000); $(`m-kg-${key}-auto`).disabled = false; schedule(); });
-    $(`m-kg-${key}-auto`).addEventListener("click", () => { form.supplyKg[key] = null; $(`m-kg-${key}-auto`).disabled = true; schedule(); });
+    $(`m-kg-${key}`).addEventListener("input", (e) => { form.supplyKg[key] = clamp(num(e.target.value, 0), 0, 100000); setAuto($(`m-kg-${key}-auto`), false); schedule(); });
+    $(`m-kg-${key}-auto`).addEventListener("click", () => { form.supplyKg[key] = null; setAuto($(`m-kg-${key}-auto`), true); schedule(); });
   }
   // F20: траєкторія, ракета й майданчик — спільний вибір польоту для «Місії», «Плану», «Системи» і «Вікна запуску»
   $("m-trajectory").addEventListener("change", (e) => { form.trajectory = e.target.value; saveLaunch({ trajectory: form.trajectory }); schedule(); });
@@ -709,6 +775,7 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
     if (!shared.site && form.siteId) saveLaunch({ site: form.siteId });
     if (shared.vehicle === "any" && form.systemId) saveLaunch({ vehicle: form.systemId });
     renderForm();
+    refreshNight();
     calculate();
   })();
 }

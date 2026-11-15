@@ -30,7 +30,7 @@
         <label for="m-size-equipment">Обладнання</label>
         <input type="range" id="m-size-equipment" min="0" max="3" step="1" value="1">
         <output id="m-num-equipment" class="size-numbers"></output>
-        <button type="button" id="m-catkg-equipment-auto" disabled>Авто</button>
+        <button type="button" id="m-catkg-equipment-auto">Авто</button>
         <output id="m-size-equipment-out" hidden>Базовий</output>
       </div>
       <div class="size-custom">
@@ -62,7 +62,7 @@
         <label for="m-size-life_support">Життєзабезпечення</label>
         <input type="range" id="m-size-life_support" min="0" max="3" step="1" value="1">
         <output id="m-num-life_support" class="size-numbers"></output>
-        <button type="button" id="m-catkg-life_support-auto" disabled>Авто</button>
+        <button type="button" id="m-catkg-life_support-auto">Авто</button>
         <output id="m-size-life_support-out" hidden>Базовий</output>
       </div>
       <div class="size-custom">
@@ -88,7 +88,7 @@
         <label for="m-size-comfort">Умови й зручності</label>
         <input type="range" id="m-size-comfort" min="0" max="3" step="1" value="1">
         <output id="m-num-comfort" class="size-numbers"></output>
-        <button type="button" id="m-catkg-comfort-auto" disabled>Авто</button>
+        <button type="button" id="m-catkg-comfort-auto">Авто</button>
         <output id="m-size-comfort-out" hidden>Базовий</output>
       </div>
       <div class="size-custom">
@@ -109,9 +109,7 @@
         </div>
       </details>
       <p class="muted small">Повзунок задає рівень (Мінімум → Максимум), під ним — маса, вартість діапазоном і потужність; «Своя маса» замінює рівень довільним числом.</p>
-      <label class="night-field">Найдовша ніч, год <small class="muted">(на неї розраховують акумулятори)</small>
-        <input type="number" id="m-night" min="0" max="8760" step="1" inputmode="decimal" placeholder="не враховано">
-      </label>
+      <p class="muted small" id="m-night-note"></p>
       <p class="globe-warn" id="m-payload-warn" hidden></p>
       <p class="muted small" id="m-size-note">Для безпілотної місії життєзабезпечення й зручності не потрібні.</p>
     </fieldset>
@@ -128,9 +126,9 @@
         <div class="supply-kg" id="m-supply-kg">
           <h3>Запаси, кг</h3>
           <p class="muted small">Рухайте повзунок, щоб задати свій обсяг; позначка на шкалі — рекомендований. «Авто» — за запасом у добах.</p>
-          <div class="supply-kg-row"><label for="m-kg-oxygen">Кисень</label><input type="range" id="m-kg-oxygen" min="0" max="100" step="1" value="0" list="m-kg-oxygen-mark"><datalist id="m-kg-oxygen-mark"></datalist><output id="m-kg-oxygen-out"></output><button type="button" id="m-kg-oxygen-auto" disabled>Авто</button></div>
-          <div class="supply-kg-row"><label for="m-kg-water">Вода</label><input type="range" id="m-kg-water" min="0" max="100" step="1" value="0" list="m-kg-water-mark"><datalist id="m-kg-water-mark"></datalist><output id="m-kg-water-out"></output><button type="button" id="m-kg-water-auto" disabled>Авто</button></div>
-          <div class="supply-kg-row"><label for="m-kg-food">Їжа (з упаковкою)</label><input type="range" id="m-kg-food" min="0" max="100" step="1" value="0" list="m-kg-food-mark"><datalist id="m-kg-food-mark"></datalist><output id="m-kg-food-out"></output><button type="button" id="m-kg-food-auto" disabled>Авто</button></div>
+          <div class="supply-kg-row"><label for="m-kg-oxygen">Кисень</label><input type="range" id="m-kg-oxygen" min="0" max="100" step="1" value="0" list="m-kg-oxygen-mark"><datalist id="m-kg-oxygen-mark"></datalist><output id="m-kg-oxygen-out"></output><button type="button" id="m-kg-oxygen-auto">Авто</button></div>
+          <div class="supply-kg-row"><label for="m-kg-water">Вода</label><input type="range" id="m-kg-water" min="0" max="100" step="1" value="0" list="m-kg-water-mark"><datalist id="m-kg-water-mark"></datalist><output id="m-kg-water-out"></output><button type="button" id="m-kg-water-auto">Авто</button></div>
+          <div class="supply-kg-row"><label for="m-kg-food">Їжа (з упаковкою)</label><input type="range" id="m-kg-food" min="0" max="100" step="1" value="0" list="m-kg-food-mark"><datalist id="m-kg-food-mark"></datalist><output id="m-kg-food-out"></output><button type="button" id="m-kg-food-auto">Авто</button></div>
         </div>
         <p class="muted small">Потреби рахуються за рівняннями енергії NASA (стать, вік, маса, зріст, активність); кисень, вода й їжа — пропорційно до енергії. Резерв 15 % і еталонні значення — тимчасові.</p>
       </div>
@@ -153,24 +151,26 @@
     </fieldset>
   </div>
 
-  <div class="mission-result side-panel workspace-results" aria-live="polite">
+  <div class="mission-result side-panel workspace-results" aria-live="polite" data-step="6 7">
     <header class="results-heading"><h2>Результат</h2></header>
-    <p class="globe-warn" id="m-provisional" hidden></p>
+    <p class="globe-warn" id="m-provisional" data-step="7" hidden></p>
     <p class="globe-warn" id="m-status" hidden></p>
+    {# Ракету ще не обрано (крок 8): тут лише маса, яку треба доставити; вартість, ризик, час і заповненість — у кроці «Носій і політ» #}
     <dl class="mission-dl" id="m-result" hidden>
-      <dt>Маса на Місяці</dt><dd id="m-mass-moon">—</dd>
-      <dt>Маса на низькій орбіті</dt><dd id="m-mass-leo">—</dd>
-      <dt>Вартість польоту</dt><dd id="m-cost">—</dd>
-      <dt>Ризик невдачі</dt><dd id="m-risk">—</dd>
-      <dt id="m-crew-risk-label" hidden>Ризик втрати екіпажу</dt><dd id="m-crew-risk" hidden>—</dd>
-      <dt>Час польоту</dt><dd id="m-flight">—</dd>
-      <dt>Заповненість ракети</dt>
-      <dd>
+      <dt data-step="7">Маса на Місяці</dt><dd id="m-mass-moon" data-step="7">—</dd>
+      <dt data-step="7">Маса на низькій орбіті</dt><dd id="m-mass-leo" data-step="7">—</dd>
+      <dt data-step="8">Вартість польоту</dt><dd id="m-cost" data-step="8">—</dd>
+      <dt data-step="8">Ризик невдачі</dt><dd id="m-risk" data-step="8">—</dd>
+      <dt id="m-crew-risk-label" data-step="8" hidden>Ризик втрати екіпажу</dt><dd id="m-crew-risk" data-step="8" hidden>—</dd>
+      <dt data-step="8">Час польоту</dt><dd id="m-flight" data-step="8">—</dd>
+      <dt data-step="8">Заповненість ракети</dt>
+      <dd data-step="8">
         <div class="fill-bar" role="img" aria-label="Заповненість ракети"><span id="m-fill-bar"></span></div>
         <span id="m-fill">—</span>
       </dd>
     </dl>
-    <section id="m-supplies" class="mission-supplies" hidden>
+    <p class="muted small" data-step="7">Ракету ви оберете на кроці «Носій і політ»: система сама покаже, які носії вміщують цю масу, а вартість і ризик залежать від неї.</p>
+    <section id="m-supplies" class="mission-supplies" data-step="6" hidden>
       <h3>Запаси екіпажу</h3>
       <ul class="supply-summary" id="m-supply-summary"></ul>
       <p class="globe-warn" id="m-supply-warn" hidden></p>
@@ -190,11 +190,11 @@
         </table>
       </div>
     </section>
-    <details id="m-limits-box" class="mission-limits" hidden>
+    <details id="m-limits-box" class="mission-limits" data-step="8" hidden>
       <summary>Пороги профілю пілотованої місії (з джерел NASA)</summary>
       <ul id="m-limits"></ul>
     </details>
-    <details class="mission-parts">
+    <details class="mission-parts" data-step="7">
       <summary>З чого складається маса</summary>
       <ul id="m-parts"></ul>
     </details>

@@ -223,7 +223,7 @@ def analyze(body: Mapping) -> tuple[dict, dict]:
     suggested: dict = {}
     if launch is None:
         conflicts.append(
-            _conflict("window-missing", "warning", 3, "Не задано дату запуску: освітлення й зв'язок не перевірено.")
+            _conflict("window-missing", "warning", 5, "Не задано дату запуску: освітлення й зв'язок не перевірено.")
         )
         skipped.append({"id": "light", "reason": "немає дати запуску"})
     elif site is None:

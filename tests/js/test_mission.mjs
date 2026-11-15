@@ -139,3 +139,63 @@ test("місткість на TLI, переведена на НОО, назва�
   assert.match(notes[0], /траєкторію до Місяця/);
   assert.equal(m.provisionalNotes({ provisional: false, launch_system: { provisional_fields: [], rocket: { capacity_basis: "leo" }, fit: {} } }).length, 0);
 });
+
+// ---------- F19: числа категорій, екіпаж, запаси, журнал ----------
+const cs = {
+  per_day: { oxygen_kg: 1.8, water_kg: 6.1, food_kg: 4.7 }, loaded_kg: { oxygen: 41.4, water: 140.3, food: 108.1 },
+  required_kg: { oxygen: 36, water: 122, food: 94 }, recommended_supply_days: 23, supply_days: 23,
+  reserve_fraction_recommended: 0.15, reserve_fraction_planned: 0.15,
+  warnings: [{ kind: "low_reserve", message: "мало" }],
+  log: [0, 1, 2].map((d) => ({ day: d, remaining_pct: { oxygen: 100 - d * 40, water: 100 - d * 40, food: 100 - d * 40 },
+    status: { oxygen: d === 2 ? "shortage" : "ok", water: "ok", food: "reserve" }, worst: d === 2 ? "shortage" : "ok" })),
+};
+
+test("повзунок має числа: рівень, маса, вартість, потужність", () => {
+  const text = m.categoryNumbers({ mass_kg: 765.4, usd: [76e6, 306e6], power_w: 420 }, "Базовий");
+  assert.match(text, /^Базовий: 765 кг · \$76–306 млн · 420 Вт$/);
+  assert.equal(m.categoryNumbers(null, "x"), "");
+  assert.doesNotMatch(m.categoryNumbers({ mass_kg: 5, usd: [1e5, 2e5], power_w: 0 }, "Мін"), /Вт/);
+});
+
+test("запит із біометрією: crew_members замість crew, запаси й резерв лише коли змінені", () => {
+  const member = m.defaultMember("female");
+  const body = m.buildMissionRequest(form({ crewed: true, crew: 2, days: 10, useBio: true, members: [m.defaultMember("male"), member],
+                                            supplyDays: 12, reservePct: 20 }));
+  assert.equal(body.crew_members.length, 2);
+  assert.ok(!("crew" in body));
+  assert.equal(body.supply_days, 12);
+  assert.equal(body.reserve_fraction, 0.2);
+  const plain = m.buildMissionRequest(form({ crewed: true, crew: 2, useBio: true, members: [m.defaultMember("male")] }));
+  assert.ok(!("supply_days" in plain) && !("reserve_fraction" in plain));
+  assert.ok(!("crew_members" in m.buildMissionRequest(form({ crewed: false, useBio: true, members: [member] }))));
+  assert.ok(!("crew_members" in m.buildMissionRequest(form({ crewed: true, useBio: false, members: [member] }))));
+});
+
+test("нормалізація члена екіпажу: еталон статі, межі, не більше шести", () => {
+  assert.deepEqual(m.normalizeMember({ sex: "female" }), { sex: "female", activity: "active", age: 35, mass_kg: 62, height_m: 1.65 });
+  const n = m.normalizeMember({ sex: "male", mass_kg: 5, height_m: 9, age: "x", activity: "?" });
+  assert.equal(n.mass_kg, 35); assert.equal(n.height_m, 2.15); assert.equal(n.age, 35); assert.equal(n.activity, "active");
+  const f = m.normalizeForm({ crewed: true, useBio: true, members: Array(9).fill({ sex: "male" }), supplyDays: "12", reservePct: 999 });
+  assert.equal(f.members.length, 6); assert.equal(f.supplyDays, 12); assert.equal(f.reservePct, 200);
+});
+
+test("запаси й журнал: рядки без undefined, відсотки й стани, попередження", () => {
+  const rows = m.suppliesRows(cs);
+  assert.equal(rows.length, 3);
+  for (const r of rows) for (const c of r) assert.ok(!/undefined|NaN/.test(c), c);
+  assert.match(m.reserveText(cs), /Рекомендовано 23 діб \(резерв 15 %\), заплановано 23 діб \(резерв 15 %\)/);
+  const log = m.logRows(cs);
+  assert.equal(log.length, 3);
+  assert.deepEqual(log[2].cells, ["2", "20 %", "20 %", "20 %"]);
+  assert.equal(log[2].worst, "shortage");
+  assert.deepEqual(log[2].status, ["shortage", "ok", "reserve"]);
+  assert.deepEqual(m.warningTexts(cs), ["мало"]);
+  assert.deepEqual(m.warningTexts(null), []);
+});
+
+test("журнал довгої місії проріджується, але перший і останній рядки лишаються", () => {
+  const long = { log: Array.from({ length: 366 }, (_, d) => ({ day: d, remaining_pct: { oxygen: 1, water: 1, food: 1 },
+                                                              status: { oxygen: "ok", water: "ok", food: "ok" }, worst: "ok" })) };
+  const rows = m.logRows(long, 40);
+  assert.ok(rows.length <= 41 && rows[0].cells[0] === "0" && rows.at(-1).cells[0] === "365");
+});

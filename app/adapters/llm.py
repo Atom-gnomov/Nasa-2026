@@ -26,6 +26,9 @@ class LlmConfig:
     model: str
     api_key: str | None = None
     timeout_s: float = 30.0
+    # reasoning_effort для моделей-«мислителів»: "none" вимикає міркування (TokenHarbor, /docs/api/models).
+    # Без цього DeepSeek V4.1 Flash витрачає ліміт токенів на приховані міркування й обрізає відповідь.
+    reasoning_effort: str | None = None
 
     @property
     def endpoint(self) -> str:
@@ -38,7 +41,8 @@ def config_from(app_config) -> LlmConfig | None:
     base_url, model = app_config.get("LLM_BASE_URL"), app_config.get("LLM_MODEL")
     if not base_url or not model:
         return None
-    return LlmConfig(base_url, model, app_config.get("LLM_API_KEY"), float(app_config.get("LLM_TIMEOUT_S") or 30))
+    return LlmConfig(base_url, model, app_config.get("LLM_API_KEY"), float(app_config.get("LLM_TIMEOUT_S") or 30),
+                     app_config.get("LLM_REASONING_EFFORT") or None)
 
 
 def _check_url(url: str) -> None:
@@ -49,7 +53,7 @@ def _check_url(url: str) -> None:
     raise LlmError("LSE_LLM_BASE_URL має починатися з https:// (http дозволено лише для localhost)")
 
 
-def chat(cfg: LlmConfig, system: str, user: str, max_tokens: int = 900) -> tuple[str, str]:
+def chat(cfg: LlmConfig, system: str, user: str, max_tokens: int = 2000) -> tuple[str, str]:
     """Один запит чату. Повертає (текст відповіді, назва моделі зі відповіді сервісу)."""
     _check_url(cfg.endpoint)
     payload = {
@@ -58,6 +62,8 @@ def chat(cfg: LlmConfig, system: str, user: str, max_tokens: int = 900) -> tuple
         "temperature": 0.2,
         "max_tokens": max_tokens,
     }
+    if cfg.reasoning_effort:
+        payload["reasoning_effort"] = cfg.reasoning_effort
     headers = {"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "lunar-site-explorer"}
     if cfg.api_key:
         headers["Authorization"] = f"Bearer {cfg.api_key}"
@@ -66,6 +72,10 @@ def chat(cfg: LlmConfig, system: str, user: str, max_tokens: int = 900) -> tuple
         with urllib.request.urlopen(req, timeout=cfg.timeout_s) as resp:  # noqa: S310 — адреса перевірена _check_url
             raw = resp.read(MAX_RESPONSE_BYTES + 1)
     except urllib.error.HTTPError as exc:
+        if exc.code == 429:
+            wait = (exc.headers.get("Retry-After") or "").strip() if exc.headers else ""
+            hint = f" Спробуйте через {wait} с." if wait.isdigit() else " Спробуйте пізніше."
+            raise LlmError("Вичерпано ліміт запитів до сервісу ШІ." + hint) from None
         raise LlmError(f"Сервіс ШІ відповів помилкою {exc.code}") from None
     except (urllib.error.URLError, TimeoutError, OSError):
         raise LlmError("Сервіс ШІ недоступний або не відповів вчасно") from None
@@ -73,9 +83,13 @@ def chat(cfg: LlmConfig, system: str, user: str, max_tokens: int = 900) -> tuple
         raise LlmError("Сервіс ШІ повернув надто велику відповідь")
     try:
         data = json.loads(raw)
-        text = data["choices"][0]["message"]["content"]
+        choice = data["choices"][0]
+        text = choice["message"]["content"]
     except (ValueError, KeyError, IndexError, TypeError):
         raise LlmError("Сервіс ШІ повернув відповідь у неочікуваному форматі") from None
+    if choice.get("finish_reason") == "length":
+        # обрізаний JSON не показуємо як пораду: краще чесна помилка, ніж уривок
+        raise LlmError("Відповідь ШІ обрізано лімітом токенів: спробуйте ще раз або скоротіть запит")
     if not isinstance(text, str) or not text.strip():
         raise LlmError("Сервіс ШІ повернув порожню відповідь")
     return text, str(data.get("model") or cfg.model)

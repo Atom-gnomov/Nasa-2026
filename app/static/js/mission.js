@@ -3,6 +3,7 @@
 // про це завжди сказано у виводі. Чисті функції (запит, формати, підписи) — без DOM, тестуються в Node.
 
 import { onLangChange, t } from "./i18n.js";
+import { burnFromMission, saveBurn } from "./selection.js";
 
 const STORAGE_KEY = "lse-mission";
 const DEBOUNCE_MS = 250;
@@ -22,7 +23,34 @@ export const DEFAULT_FORM = {
   trajectory: "direct",
   systemId: "",
   siteId: "",
+  useBio: false, // M24: задати біометрію кожної людини
+  members: [], // [{sex, age, mass_kg, height_m, activity}]
+  supplyDays: null, // на скільки діб везуть запаси; null — рекомендовано
+  reservePct: 15, // рекомендований запас, % ⚠️ тимчасово
 };
+
+export const SEX_LABELS = { male: "чоловік", female: "жінка" };
+export const ACTIVITY_LABELS = { sedentary: "малорухомий", low: "помірний", active: "активний", very_active: "дуже активний" };
+// Еталонні значення — як на бекенді (app/core/crew.py, ⚠️ не нормативні)
+const REFERENCE = { male: { age: 35, mass_kg: 82, height_m: 1.78 }, female: { age: 35, mass_kg: 62, height_m: 1.65 } };
+const MEMBER_LIMITS = { age: [19, 80], mass_kg: [35, 160], height_m: [1.4, 2.15] };
+export const MAX_CREW = 6;
+
+export function defaultMember(sex = "male") {
+  return { sex, ...REFERENCE[sex], activity: "active" };
+}
+
+// Нормалізує члена екіпажу: некоректне → еталон статі, числа в межах бекенда.
+export function normalizeMember(raw) {
+  const sex = raw?.sex === "female" ? "female" : "male";
+  const out = { sex, activity: Object.hasOwn(ACTIVITY_LABELS, raw?.activity) ? raw.activity : "active" };
+  for (const key of Object.keys(MEMBER_LIMITS)) {
+    const [lo, hi] = MEMBER_LIMITS[key];
+    const v = Number(raw?.[key]);
+    out[key] = Number.isFinite(v) && raw?.[key] !== "" && raw?.[key] !== null ? Math.min(hi, Math.max(lo, v)) : REFERENCE[sex][key];
+  }
+  return out;
+}
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const num = (v, fallback) => (Number.isFinite(Number(v)) && v !== "" && v !== null ? Number(v) : fallback);
@@ -38,6 +66,10 @@ export function normalizeForm(raw) {
   f.trajectory = raw.trajectory === "low_energy" ? "low_energy" : "direct";
   f.systemId = typeof raw.systemId === "string" ? raw.systemId : "";
   f.siteId = typeof raw.siteId === "string" ? raw.siteId : "";
+  f.useBio = Boolean(raw.useBio);
+  f.members = Array.isArray(raw.members) ? raw.members.slice(0, MAX_CREW).map(normalizeMember) : [];
+  f.supplyDays = raw.supplyDays == null || raw.supplyDays === "" ? null : clamp(num(raw.supplyDays, 0), 0, 365);
+  f.reservePct = clamp(num(raw.reservePct, 15), 0, 200);
   return f;
 }
 
@@ -50,6 +82,12 @@ export function buildMissionRequest(form) {
     trajectory: form.trajectory,
   };
   if (form.crewed && form.crew !== null) body.crew = form.crew; // явне значення переважає профіль
+  if (form.crewed && form.useBio && form.members.length) { // M24: біометрія задає людей і запаси
+    body.crew_members = form.members.map(normalizeMember);
+    delete body.crew;
+    if (form.supplyDays !== null) body.supply_days = form.supplyDays;
+    if (form.reservePct !== 15) body.reserve_fraction = form.reservePct / 100;
+  }
   if (form.systemId) body.launch_system_id = form.systemId;
   if (form.siteId) body.launch_site_id = form.siteId;
   return body;
@@ -175,6 +213,52 @@ export function profileNote(response) {
   return t("Профіль «{profile}» задав: {what}. Ваші значення переважають.", { profile, what: set.join(", ") });
 }
 
+// ---------- Числа категорій, запаси й журнал (F19) ----------
+const NUM1 = new Intl.NumberFormat("uk-UA", { maximumFractionDigits: 1 });
+const SUPPLY_LABELS = { oxygen: "Кисень", water: "Вода", food: "Їжа (з упаковкою)" };
+export const supplyLabel = (k) => t(SUPPLY_LABELS[k] ?? k);
+
+// Рядок під повзунком: рівень, маса, вартість, потужність — «що означає ця позначка» у числах.
+export function categoryNumbers(cat, levelLabel) {
+  if (!cat) return "";
+  const power = cat.power_w > 0 ? ` · ${NUM1.format(cat.power_w)} ${t("Вт")}` : "";
+  return `${levelLabel}: ${fmtKg(cat.mass_kg)} · ${fmtUsdRange(cat.usd)}${power}`;
+}
+
+// Таблиця запасів: що, на добу (кг), завезено (кг), потрібно на місію (кг).
+export function suppliesRows(cs) {
+  if (!cs) return [];
+  return Object.keys(SUPPLY_LABELS).map((k) => [
+    supplyLabel(k),
+    `${NUM1.format(cs.per_day[{ oxygen: "oxygen_kg", water: "water_kg", food: "food_kg" }[k]])} ${t("кг")}`,
+    fmtKg(cs.loaded_kg[k]),
+    fmtKg(cs.required_kg[k]),
+  ]);
+}
+
+// Підсумок запасу: «рекомендовано 23 доби, заплановано 23 доби (резерв 15 %)».
+export function reserveText(cs) {
+  if (!cs) return "";
+  const planned = cs.reserve_fraction_planned == null ? "—" : `${Math.round(cs.reserve_fraction_planned * 100)} %`;
+  return t("Рекомендовано {rec} діб (резерв {rp} %), заплановано {plan} діб (резерв {pp}).", {
+    rec: NUM1.format(cs.recommended_supply_days), rp: Math.round(cs.reserve_fraction_recommended * 100),
+    plan: NUM1.format(cs.supply_days), pp: planned,
+  });
+}
+
+// Журнал розходу: рядок на добу (або рідше для довгих місій); кожна клітинка — відсоток і стан.
+export function logRows(cs, maxRows = 40) {
+  const log = cs?.log ?? [];
+  const stride = Math.max(1, Math.ceil(log.length / maxRows));
+  return log.filter((e, i) => i % stride === 0 || i === log.length - 1).map((e) => ({
+    worst: e.worst,
+    cells: [NUM1.format(e.day), ...Object.keys(SUPPLY_LABELS).map((k) => `${NUM1.format(e.remaining_pct[k])} %`)],
+    status: Object.keys(SUPPLY_LABELS).map((k) => e.status[k]),
+  }));
+}
+
+export const warningTexts = (cs) => (cs?.warnings ?? []).map((w) => w.message);
+
 // ---------- DOM ----------
 if (typeof document !== "undefined" && document.getElementById("m-result")) {
   const $ = (id) => document.getElementById(id);
@@ -204,10 +288,79 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
     $("m-trajectory").value = form.trajectory;
     $("m-system").value = form.systemId;
     $("m-site").value = form.siteId;
+    // M24: редактор екіпажу
+    $("m-bio-box").hidden = !form.crewed;
+    $("m-bio").checked = form.useBio;
+    $("m-bio-fields").hidden = !(form.crewed && form.useBio);
+    $("m-supply-days").value = form.supplyDays ?? "";
+    $("m-reserve").value = form.reservePct;
+    renderMembers();
+  }
+
+  function renderMembers() {
+    const box = $("m-members");
+    box.replaceChildren(...form.members.map((m, i) => {
+      const row = document.createElement("div");
+      row.className = "member-row";
+      const field = (key, label, attrs) => {
+        const lab = document.createElement("label");
+        lab.append(t(label), " ");
+        const input = Object.assign(document.createElement("input"), { type: "number", value: m[key], ...attrs });
+        input.addEventListener("change", () => { form.members[i] = normalizeMember({ ...form.members[i], [key]: input.value }); renderMembers(); schedule(); });
+        lab.append(input);
+        return lab;
+      };
+      const selectOf = (key, label, labels) => {
+        const lab = document.createElement("label");
+        lab.append(t(label), " ");
+        const sel = document.createElement("select");
+        for (const [v, text] of Object.entries(labels)) sel.append(new Option(t(text), v, false, m[key] === v));
+        sel.addEventListener("change", () => {
+          form.members[i] = key === "sex" ? { ...defaultMember(sel.value), activity: m.activity } : { ...m, [key]: sel.value };
+          renderMembers(); schedule();
+        });
+        lab.append(sel);
+        return lab;
+      };
+      const remove = Object.assign(document.createElement("button"), { type: "button", textContent: "×", title: t("Прибрати людину") });
+      remove.addEventListener("click", () => { form.members.splice(i, 1); form.crew = form.members.length || null; renderForm(); schedule(); });
+      row.append(selectOf("sex", "Стать", SEX_LABELS), field("age", "Вік", { min: 19, max: 80, step: 1 }),
+        field("mass_kg", "Маса, кг", { min: 35, max: 160, step: 1 }), field("height_m", "Зріст, м", { min: 1.4, max: 2.15, step: 0.01 }),
+        selectOf("activity", "Активність", ACTIVITY_LABELS), remove);
+      return row;
+    }));
+    $("m-add-member").disabled = form.members.length >= MAX_CREW;
+  }
+
+  function renderSupplies(r) {
+    const cs = r.crew_supplies;
+    $("m-supplies").hidden = !cs;
+    for (const key of Object.keys(form.sizes)) {
+      $(`m-num-${key}`).textContent = categoryNumbers(r.categories?.[key], LEVELS[form.sizes[key]].label);
+    }
+    if (!cs) return;
+    const warn = warningTexts(cs);
+    $("m-supply-warn").hidden = warn.length === 0;
+    $("m-supply-warn").textContent = warn.join(" ");
+    $("m-supply-reserve").textContent = reserveText(cs);
+    const cell = (text, cls) => Object.assign(document.createElement("td"), { textContent: text, className: cls ?? "" });
+    $("m-supply-table").tBodies[0].replaceChildren(...suppliesRows(cs).map((row) => {
+      const tr = document.createElement("tr");
+      tr.append(...row.map((c) => cell(c)));
+      return tr;
+    }));
+    const STATUS = { ok: "", reserve: "supply-reserve", shortage: "supply-shortage" };
+    $("m-log").tBodies[0].replaceChildren(...logRows(cs).map((row) => {
+      const tr = document.createElement("tr");
+      tr.className = STATUS[row.worst];
+      tr.append(cell(row.cells[0]), ...row.cells.slice(1).map((c, i) => cell(c, STATUS[row.status[i]])));
+      return tr;
+    }));
   }
 
   function renderResult(r) {
     $("m-status").hidden = true;
+    saveBurn(burnFromMission(r)); // «Система» анімує розгін за масою цієї місії (G16)
     const notes = provisionalNotes(r);
     $("m-provisional").hidden = notes.length === 0;
     $("m-provisional").textContent = notes.join(" ");
@@ -233,6 +386,7 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
     $("m-profile-note").textContent = profileNote(r);
     const limits = r.profile ? Object.values(r.profile.limits) : [];
     $("m-limits-box").hidden = limits.length === 0;
+    renderSupplies(r);
     $("m-limits").replaceChildren(...limits.map((l) => Object.assign(document.createElement("li"), { textContent: limitText(l) })));
   }
 
@@ -265,6 +419,22 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
   for (const key of Object.keys(form.sizes)) {
     $(`m-size-${key}`).addEventListener("input", (e) => { form.sizes[key] = Number(e.target.value); renderForm(); schedule(); });
   }
+  $("m-bio").addEventListener("change", (e) => {
+    form.useBio = e.target.checked;
+    if (form.useBio && !form.members.length) { // перший раз — стільки людей, скільки в профілі (інакше 2)
+      const n = clamp(form.crew ?? 2, 1, MAX_CREW);
+      form.members = Array.from({ length: n }, (_, i) => defaultMember(i % 2 ? "female" : "male"));
+    }
+    if (form.useBio) form.crew = form.members.length;
+    renderForm(); schedule();
+  });
+  $("m-add-member").addEventListener("click", () => {
+    if (form.members.length >= MAX_CREW) return;
+    form.members.push(defaultMember(form.members.length % 2 ? "female" : "male"));
+    form.crew = form.members.length; renderForm(); schedule();
+  });
+  $("m-supply-days").addEventListener("input", (e) => { form.supplyDays = e.target.value === "" ? null : clamp(num(e.target.value, 0), 0, 365); schedule(); });
+  $("m-reserve").addEventListener("input", (e) => { form.reservePct = clamp(num(e.target.value, 15), 0, 200); schedule(); });
   $("m-trajectory").addEventListener("change", (e) => { form.trajectory = e.target.value; schedule(); });
   $("m-system").addEventListener("change", (e) => { form.systemId = e.target.value; schedule(); });
   $("m-site").addEventListener("change", (e) => { form.siteId = e.target.value; schedule(); });

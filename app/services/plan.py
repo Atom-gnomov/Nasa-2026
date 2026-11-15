@@ -21,7 +21,7 @@ SEARCH_KEYS = {"region", "include_catalog", "grid_step_deg", "max_candidates", "
                "min_sun_fraction", "mission_profile", "crew", "earth_target"}
 PLAN_KEYS = {"start", "end", "departure", "days", "sizes", "vehicle", "trajectories", "launch_priorities",
              "launch_mode", "include_design_targets", "allow_multiple_launches", "landing_candidates", "limit",
-             "departure_days", "surface_after_arrival"}
+             "departure_days", "surface_after_arrival", "crew_members", "supply_days", "reserve_fraction"}
 ALLOWED = SEARCH_KEYS | PLAN_KEYS
 MAX_LANDING_CANDIDATES = 10
 SEARCH_LIMIT = 100  # скільки місць повертає /search; з них вибираємо найкращі за вимогами
@@ -86,7 +86,10 @@ def _assumed_flight_days(body: Mapping) -> float:
 
 
 def _mission_body(body: Mapping, night_h: float | None) -> dict:
-    out = {k: body[k] for k in ("crew", "days", "sizes", "mission_profile") if body.get(k) is not None}
+    keys = ("crew", "days", "sizes", "mission_profile", "crew_members", "supply_days", "reserve_fraction")
+    out = {k: body[k] for k in keys if body.get(k) is not None}
+    if "crew_members" in out:  # M24: кількість людей задають самі члени екіпажу
+        out.pop("crew", None)
     if night_h:
         out["longest_night_h"] = night_h
     return out
@@ -138,6 +141,14 @@ def compute(body: Mapping, start: datetime, end: datetime) -> dict:
     unknown = set(body) - ALLOWED
     if unknown:
         raise PlanError(f"Невідомі поля: {', '.join(sorted(unknown))}")
+    crewed = body.get("mission_profile") == "crewed" or bool(body.get("crew_members")) or (body.get("crew") or 0) > 0
+    restricted = False
+    if crewed:  # пілотована місія: лише пряма траєкторія (3–5 діб); найекономніша — місяці в дорозі
+        asked = body.get("trajectories")
+        if asked is not None and (not isinstance(asked, list) or any(t != "direct" for t in asked)):
+            raise PlanError("Для пілотованої місії дозволена лише пряма траєкторія (trajectories: [\"direct\"])")
+        body = {**body, "trajectories": ["direct"]}
+        restricted = True
     n_landing = _int(body, "landing_candidates", 3, 1, MAX_LANDING_CANDIDATES)
     limit = _int(body, "limit", 5, 1, 20)
     departure_days = _int(body, "departure_days", 1, 1, launch_window.MAX_DAYS)
@@ -202,6 +213,8 @@ def compute(body: Mapping, start: datetime, end: datetime) -> dict:
         p["rank"] = i
 
     notes = []
+    if restricted:
+        notes.append("Для пілотованої місії розглянуто лише пряму траєкторію (3–5 діб).")
     if after_arrival:
         for p in plans:
             if p["route"]:

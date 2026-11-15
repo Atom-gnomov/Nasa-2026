@@ -22,6 +22,11 @@ export function planFieldsFromMission(raw) {
   const days = Number(raw.days);
   if (raw.crewed && Number.isFinite(days) && days >= 0 && days <= 365) out.days = days;
   if (TRAJECTORIES.includes(raw.trajectory)) out.trajectory = raw.trajectory;
+  if (raw.crewed && raw.useBio && Array.isArray(raw.members) && raw.members.length) { // M24: екіпаж із біометрією
+    out.members = raw.members.slice(0, 6);
+    if (raw.supplyDays != null) out.supplyDays = Number(raw.supplyDays);
+    if (Number.isFinite(Number(raw.reservePct))) out.reservePct = Number(raw.reservePct);
+  }
   return out;
 }
 
@@ -44,6 +49,12 @@ export function launchChoice(lead, missionRaw) {
   const source = lead?.siteId ? "plan" : siteId ? "mission" : null;
   return { siteId, trajectory, source };
 }
+
+export const BURN_KEY = "lse-burn";
+// Розгін TLI з відповіді /api/mission (flight_phases.tli) — для анімації польоту у вкладці «Система» (G16).
+export const burnFromMission = (response) => response?.flight_phases?.tli ?? null;
+export const saveBurn = (burn) => write(BURN_KEY, burn);
+export const loadBurn = () => read(BURN_KEY);
 
 export const loadMissionForm = () => read(MISSION_KEY);
 export const loadLead = () => read(PLAN_LEAD_KEY);

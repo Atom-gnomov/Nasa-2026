@@ -116,3 +116,29 @@ def test_plan_launch_options_are_passed_through(client):
     data = plan(client, include_design_targets=False, allow_multiple_launches=True).get_json()
     lead = data["plans"][0]["launch"]
     assert lead["vehicle"]["status"] != "design_target"
+
+
+def test_plan_passes_crew_biometrics_and_reports_supply_shortage(client):
+    members = [{"sex": "male", "mass_kg": 90, "height_m": 1.85}, {"sex": "female"}]
+    data = plan(client, mission_profile="crewed", days=20, crew_members=members, supply_days=15).get_json()
+    assert data["plans"][0]["mission"] is not None or data["notes"]
+    lead = data["plans"][0]["mission"]
+    if lead:
+        assert lead["payload"]["crew"] == 2
+        assert [w["kind"] for w in lead["crew_supplies"]["warnings"]] == ["shortage"]
+
+
+def test_crewed_plan_considers_only_the_direct_trajectory(client):
+    data = plan(client, mission_profile="crewed", days=10, departure_days=1).get_json()
+    assert any("лише пряму траєкторію" in n for n in data["notes"])
+    for p in data["plans"]:
+        if p["launch"]:
+            assert p["launch"]["trajectory"] == "direct"
+    assert data["surface_period"]["assumed_flight_days"] == 4.0
+
+
+def test_crewed_plan_rejects_the_low_energy_trajectory(client):
+    assert plan(client, mission_profile="crewed", days=10, trajectories=["low_energy"]).status_code == 400
+    assert plan(client, mission_profile="crewed", days=10, trajectories=["direct"]).status_code == 200
+    assert plan(client, crew_members=[{"sex": "male"}], mission_profile="crewed", days=5,
+                trajectories=["direct", "low_energy"]).status_code == 400

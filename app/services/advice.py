@@ -102,6 +102,8 @@ def _parse_model_output(text: str) -> tuple[str, list[dict], list[str]]:
     except ValueError:
         data = None
     if not isinstance(data, dict) or not isinstance(data.get("summary"), str):
+        if cleaned.startswith("{"):  # схоже на зіпсований JSON — сирий уривок користувачу не показуємо
+            raise AdviceUnavailable("Сервіс ШІ повернув зіпсований JSON: спробуйте ще раз")
         return text.strip()[:2000], [], []
     tips = []
     for tip in data.get("tips") or []:

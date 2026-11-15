@@ -592,3 +592,9 @@ html.boot-loading #boot-loader {
 
 /* ---------- Місяць-тло на сторінках кроків планування: над зоряним небом, під інтерфейсом ---------- */
 #moon-backdrop { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: -1; pointer-events: none; display: block; }
+
+/* ---------- План: групи без вкладеної рамки (заголовок не лягає на лінію), прапорці — в одному рядку з текстом ---------- */
+#plan-form fieldset { border: 0 !important; background: none !important; padding: 0 !important; margin: 0; display: grid; gap: var(--gap-s); min-width: 0; }
+#plan-form fieldset > legend { float: none !important; width: auto; padding: 0 !important; margin: 0 0 var(--gap-s) !important; font-weight: 600; color: var(--cg-ink); }
+#plan-form label:has(> input[type="checkbox"]) { display: flex; align-items: flex-start; gap: 8px; }
+#plan-form input[type="checkbox"] { width: auto !important; flex: none; margin: 2px 0 0; }

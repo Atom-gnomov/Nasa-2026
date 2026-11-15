@@ -82,6 +82,29 @@ cp .env.example .env
 flask --app app run --debug
 ```
 
+Приклад прямого виклику сервісу (для ручної перевірки ключа; застосунок викликає його сам через `app/adapters/llm.py`).
+Ключ — лише зі змінної середовища, у код і репозиторій його не вписуємо:
+
+```python
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ["TOKENHARBOR_API_KEY"],
+    base_url="https://tokenharbor.ai/v1",
+)
+
+res = client.chat.completions.create(
+    model="deepseek-v4.1-flash:free",
+    messages=[{"role": "user", "content": "Why is the sky blue?"}],
+)
+
+print(res.choices[0].message.content)
+```
+
+Перевірку роботи порад на справжньому сервісі виконують агенти локально, кожен зі своїм ключем у `.env` (задача V1);
+у хмарному середовищі й у CI вона не запускається.
+
 Той самий вміст можна передати змінними середовища (`LSE_LLM_BASE_URL`, `LSE_LLM_MODEL`, `LSE_LLM_API_KEY`).
 Без цих змінних блок порад просто не показується. ШІ лише пояснює готові результати й нічого не рахує;
 числа в його відповіді перевіряються за даними пошуку.

@@ -112,6 +112,30 @@ export function stepFromLocation(pathname, search = "", hash = "") {
   return { "/search": 5, "/mission": 2, "/plan": 8, "/system": 8, "/launch-window": 3, "/consistency": 9, "/report": 10 }[pathname] ?? null;
 }
 
+// ---- Мета місії → типові вибори наступних кроків (F22; дані — GET /api/mission-goals, M25) ------------------------------
+const FACTOR_NAMES = { energy: "Енергія", comms: "Зв'язок", radiation: "Радіація", temperature: "Температура" };
+const SEARCH_ORDER = ["energy", "comms", "radiation", "temperature"];
+
+// Що мета підставляє: «Місія» (тип, тривалість перебування) і «Підбір» (порядок пріоритетів). Повертає нові значення сховищ і
+// перелік змін для користувача. Ручні вибори не зберігаються лише для цих полів — це явна дія зміни мети.
+export function applyGoalDefaults(goal, mission, search) {
+  if (!goal?.defaults) return { mission, search, changes: [] };
+  const d = goal.defaults;
+  const crewed = d.mission_profile === "crewed";
+  const nextMission = { ...(mission ?? {}), crewed, days: d.stay_days };
+  if (!crewed) { nextMission.crew = null; nextMission.useBio = false; }
+  const known = (search?.priorities ?? SEARCH_ORDER.map((id) => ({ id, on: false }))).map((p) => p.id);
+  const rest = SEARCH_ORDER.filter((id) => !d.priorities.includes(id) && known.includes(id) || (!known.length && !d.priorities.includes(id)));
+  const priorities = [...d.priorities.map((id) => ({ id, on: true })), ...rest.map((id) => ({ id, on: false }))];
+  const nextSearch = { ...(search ?? {}), priorities };
+  const changes = [
+    `${t("Тип місії")}: ${t(crewed ? "пілотована" : "безпілотна")}`,
+    `${t("Тривалість перебування")}: ${d.stay_days} ${t("діб")}`,
+    `${t("Пріоритети «Підбору»")}: ${d.priorities.map((id) => t(FACTOR_NAMES[id] ?? id)).join(" › ")}`,
+  ];
+  return { mission: nextMission, search: nextSearch, changes };
+}
+
 // Чи належить елемент із атрибутом data-step (напр. "2 4 6") кроку n.
 export const stepMatches = (attr, n) => String(attr ?? "").split(/\s+/).includes(String(n));
 
@@ -235,7 +259,49 @@ function init() {
   nameInput.value = plan.name;
   goalSel.value = plan.goal;
   nameInput.addEventListener("input", () => { plan = { ...plan, name: nameInput.value }; savePlan(plan); render(); });
-  goalSel.addEventListener("change", () => { plan = { ...plan, goal: goalSel.value }; savePlan(plan); render(); });
+  const goalInfo = pop.querySelector(".mp-goal-info");
+  let goalCatalog = null;
+  const loadGoals = async () => {
+    if (goalCatalog) return goalCatalog;
+    try { goalCatalog = (await (await fetch("/api/mission-goals")).json()).goals ?? []; } catch { goalCatalog = []; }
+    return goalCatalog;
+  };
+  const showGoal = async (applied) => {
+    const goal = (await loadGoals()).find((g) => g.id === plan.goal);
+    goalInfo.replaceChildren();
+    document.querySelectorAll(".mp-goal-site-notes").forEach((el) => { el.hidden = !goal; el.replaceChildren(); });
+    if (!goal) return;
+    const lang = document.documentElement.lang;
+    goalInfo.append(Object.assign(document.createElement("p"), { className: "muted small", textContent: lang === "en" ? goal.name_en : goal.summary }));
+    if (applied?.length) {
+      goalInfo.append(Object.assign(document.createElement("p"), { className: "small", textContent: `${t("Підставлено метою")}: ${applied.join("; ")}.` }));
+    }
+    for (const el of document.querySelectorAll(".mp-goal-site-notes")) { // крок 5: критерії до місця за метою
+      el.append(Object.assign(document.createElement("strong"), { textContent: `${t("Критерії до місця")}: ${lang === "en" ? goal.name_en : goal.name}` }));
+      const ul = document.createElement("ul");
+      for (const note of goal.site_notes) ul.append(Object.assign(document.createElement("li"), { textContent: note }));
+      el.append(ul);
+    }
+  };
+  goalSel.addEventListener("change", async () => {
+    plan = { ...plan, goal: goalSel.value };
+    savePlan(plan);
+    const goal = (await loadGoals()).find((g) => g.id === plan.goal);
+    let applied = [];
+    if (goal) { // мета підставляє тип, тривалість і пріоритети «Підбору»
+      const out = applyGoalDefaults(goal, loadMissionForm(), loadSearchForm());
+      try {
+        localStorage.setItem("lse-mission", JSON.stringify(out.mission));
+        localStorage.setItem("lse-search", JSON.stringify(out.search));
+      } catch { /* сховище недоступне */ }
+      applied = out.changes;
+    }
+    await showGoal(applied);
+    render();
+    // сторінки, що тримають форму в пам'яті, перечитують підставлене
+    if (applied.length && (location.pathname === "/mission" || location.pathname === "/search" || location.hash === "#search")) location.reload();
+  });
+  showGoal();
   pop.querySelector(".mp-goal-close").addEventListener("click", () => { pop.hidden = true; });
   if (current() === 1) pop.hidden = false;
 

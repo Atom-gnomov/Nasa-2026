@@ -114,3 +114,38 @@ test("фокус на кроці: елемент ховається, якщо в
   assert.equal(m.hiddenInFocus("2 4 6", true, 7), false);   // контейнер із потрібним вкладеним елементом лишається
   assert.equal(m.hiddenInFocus("2", false, 6), true);
 });
+
+// ---------- F22: мета → типові вибори наступних кроків ----------
+const goalIce = { id: "ice", defaults: { mission_profile: "uncrewed", stay_days: 100, priorities: ["comms", "energy"] } };
+const goalSamples = { id: "samples", defaults: { mission_profile: "crewed", stay_days: 7, priorities: ["energy", "comms", "radiation"] } };
+
+test("мета «лід» → безпілотна, 100 діб, пріоритети зв'язок › енергія; решта факторів вимкнено, порядок збережено", () => {
+  const out = m.applyGoalDefaults(goalIce, { crewed: true, crew: 3, days: 14, useBio: true, members: [{}] },
+    { days: 20, regionKey: "pole", priorities: [{ id: "energy", on: true }, { id: "comms", on: true }, { id: "radiation", on: true }, { id: "temperature", on: false }] });
+  assert.equal(out.mission.crewed, false);
+  assert.equal(out.mission.days, 100);
+  assert.equal(out.mission.crew, null);
+  assert.equal(out.mission.useBio, false);
+  assert.deepEqual(out.search.priorities.map((p) => `${p.id}:${p.on}`), ["comms:true", "energy:true", "radiation:false", "temperature:false"]);
+  assert.equal(out.search.days, 20);            // решту полів «Підбору» не чіпаємо
+  assert.equal(out.search.regionKey, "pole");
+  assert.equal(out.changes.length, 3);
+  assert.match(out.changes[1], /100/);
+});
+
+test("мета «зразки» → пілотована, 7 діб; без збережених форм — створює мінімальні й повні пріоритети", () => {
+  const out = m.applyGoalDefaults(goalSamples, null, null);
+  assert.equal(out.mission.crewed, true);
+  assert.equal(out.mission.days, 7);
+  assert.deepEqual(out.search.priorities.map((p) => p.id), ["energy", "comms", "radiation", "temperature"]);
+  assert.deepEqual(out.search.priorities.map((p) => p.on), [true, true, true, false]);
+  assert.match(out.changes[0], /пілотована/);
+});
+
+test("без мети (порожній вибір) нічого не змінюється", () => {
+  const mission = { crewed: true, days: 14 }, search = { days: 30 };
+  const out = m.applyGoalDefaults(null, mission, search);
+  assert.equal(out.mission, mission);
+  assert.equal(out.search, search);
+  assert.deepEqual(out.changes, []);
+});

@@ -17,7 +17,7 @@ from app.services import catalogs
 from app.services import mission as mission_service
 
 ALLOWED = {"lat", "lon", "datetime", "mass_moon_kg", "crew", "days", "sizes", "vehicle", "trajectories", "priorities",
-           "mode", "include_design_targets", "allow_multiple_launches", "limit"}
+           "mode", "include_design_targets", "allow_multiple_launches", "limit", "site_id"}
 FACTOR_LABELS = {"fuel": "паливо (маса на НОО)", "speed": "швидкість перельоту", "windows": "вікна запуску на добу",
                  "cost": "вартість запуску", "risk": "ризик"}
 MAX_LIMIT = 200
@@ -172,9 +172,15 @@ def compute(body: Mapping) -> dict:
         if not rockets and not systems:
             raise VehicleNotFound(f"Ракету чи систему запуску {vehicle} не знайдено")
 
+    sites = catalogs.load_launch_sites()
+    site_id = body.get("site_id")
+    if site_id is not None:  # F20: старт лише з вибраного майданчика (єдиний вибір для вкладок)
+        if not isinstance(site_id, str) or not any(x["id"] == site_id for x in sites):
+            raise LaunchRankingError(f"site_id: майданчик {site_id} не знайдено в /launch-sites")
+        sites = [x for x in sites if x["id"] == site_id]
     transfers = transfer.transfer_options(get_ephemeris(), departure)
     result = launch_rank.rank_launches(
-        catalogs.load_launch_sites(), transfers, mass, rockets=rockets, launch_systems=systems,
+        sites, transfers, mass, rockets=rockets, launch_systems=systems,
         trajectories=trajectories, priorities=priorities, mode=mode, include_design_targets=include_design,
         allow_multiple_launches=multi,
     )

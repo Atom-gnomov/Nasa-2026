@@ -12,7 +12,8 @@ import { anisotropy, createScene, hasWebGL, NO_WEBGL_MESSAGE } from "./three/sce
 import { bindSky } from "./starfield.js";
 import { mountQualitySelect, qualitySettings } from "./three/quality.js";
 import { getState, setState, subscribe } from "./state.js";
-import { loadBurn } from "./selection.js";
+import { loadBurn, loadLead } from "./selection.js";
+import { effectiveSite, loadLaunch, saveLaunch } from "./pipeline.js";
 import {
   AUTO_OPTIONS, DESCENT_REAL_S, choiceFact, descentRows, descentState, flightFact, flightUrl, interpSystem, needsReload,
   BURN_REAL_S, burnRows, burnSummaryRows, remapNearMoon, sampleTimes, splitExtras, stateAt, telemetryRows, validBurn,
@@ -400,6 +401,12 @@ async function main() {
     group.label = "Космодром";
     group.append(...list.map((s) => new Option(`${s.name.split(" (")[0]} (${s.lat.toFixed(1)}°)`, s.id)));
     flightSelect?.append(group);
+    // F20: політ — спільний вибір: те, що вибрано в «Місії», «Плані місії» чи «Вікні запуску», показуємо одразу
+    const chosen = effectiveSite(loadLaunch(), loadLead());
+    if (flightSelect && chosen && [...flightSelect.options].some((o) => o.value === chosen)) {
+      flightSelect.value = chosen;
+      loadFlight(simMs, true);
+    }
   }).catch(() => {});
 
   async function loadFlight(ms, force = false) {
@@ -416,7 +423,7 @@ async function main() {
       if (!res.ok) $("system-note").textContent = `Політ: ${body.detail ?? res.status}`;
     } catch { flight = null; } finally { flightLoading = false; }
   }
-  flightSelect?.addEventListener("change", () => loadFlight(simMs, true));
+  flightSelect?.addEventListener("change", () => { saveLaunch({ site: flightSelect.value }); loadFlight(simMs, true); });
 
   const simButton = $("system-sim");
   const telemetry = $("flight-telemetry");

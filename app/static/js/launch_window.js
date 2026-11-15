@@ -2,7 +2,8 @@
 // Точка посадки й початок періоду — зі спільного стану (вибір на вкладці «Місяць», календар); клік по даті
 // переносить її в календар. Чисті функції експортуються для тестів у Node (tests/js/test_launch_window.mjs).
 import { getState, setState, subscribe } from "./state.js";
-import { launchChoice, loadLead, loadMissionForm } from "./selection.js";
+import { loadLead } from "./selection.js";
+import { effectiveSite, effectiveTrajectory, loadLaunch, plainSite, saveLaunch } from "./pipeline.js";
 
 export const FACTORS = ["light", "fuel", "comms", "windows"];
 export const FACTOR_LABELS = {
@@ -197,6 +198,8 @@ function init() {
     }
   };
 
+  siteSel.addEventListener("change", () => saveLaunch({ site: siteSel.value }));
+  $("lw-trajectory").addEventListener("change", (e) => saveLaunch({ trajectory: e.target.value }));
   form.addEventListener("submit", (e) => { e.preventDefault(); run(); });
   renderPriorities();
   renderPoint(getState());
@@ -204,10 +207,11 @@ function init() {
   fetch("/api/launch-sites").then((r) => r.json()).then((list) => {
     sites = list;
     siteSel.replaceChildren(...list.map((s) => new Option(`${s.name} (${s.lat.toFixed(1)}°)`, s.id)));
-    // F18: майданчик і траєкторія — з лідера «Плану місії» або з вкладки «Місія»
-    const pick = launchChoice(loadLead(), loadMissionForm());
-    if (pick.siteId && list.some((s) => s.id === pick.siteId)) siteSel.value = pick.siteId;
-    if (pick.trajectory) $("lw-trajectory").value = pick.trajectory;
+    // F20: майданчик і траєкторія — спільний вибір польоту (з «Системи», «Плану», «Місії»), інакше лідер плану
+    const launch = loadLaunch(), lead = loadLead();
+    const site = plainSite(effectiveSite(launch, lead));
+    if (site && list.some((s) => s.id === site)) siteSel.value = site;
+    $("lw-trajectory").value = effectiveTrajectory(launch, lead);
   }).catch(() => { status.textContent = "Не вдалося завантажити каталог майданчиків."; });
 }
 

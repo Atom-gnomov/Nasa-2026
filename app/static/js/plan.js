@@ -3,11 +3,13 @@
 import { getState, setState } from "./state.js";
 import { onLangChange, t } from "./i18n.js";
 import { burnFromMission, leadFromPlan, loadMissionForm, planFieldsFromMission, saveBurn, saveLead } from "./selection.js";
+import { DEFAULT_FORM as SEARCH_DEFAULTS } from "./search.js";
+import { loadLaunch, loadSearchForm, plainSite, planRequirements, requirementsSummary, saveLaunch } from "./pipeline.js";
 
 export const DEFAULT_FORM = {
   profile: "uncrewed", crew: null, days: 5,
-  regionLatMin: -90, regionLatMax: -80, gridStep: 2, periodDays: 10,
-  minSunHours: null, minCommHours: null, maxSlope: null, minEarth: null, minSun: null,
+  // Вимоги до місця посадки (область, сітка, період, пороги, пріоритети) тут не вводяться: беруться з «Підбору» (F20)
+  launchSite: "", // майданчик старту: "" — підібрати автоматично; id — лише з нього (спільний вибір для вкладок)
   vehicle: "any", trajectory: "any", plans: 5, departureDays: 7,
   includeDesign: true, multiLaunch: false,
   members: null, supplyDays: null, reservePct: 15, // екіпаж із біометрією (F18/F19: з вкладки «Місія»)
@@ -25,25 +27,20 @@ export const requirementLabel = (key) => t(REQUIREMENT_LABELS[key] ?? key);
 const num = (v) => (v === null || v === undefined || v === "" || !Number.isFinite(Number(v)) ? null : Number(v));
 const iso = (ms) => new Date(ms).toISOString().replace(/\.\d+Z$/, "Z");
 
-// Форма й спільний стан (дата календаря) → тіло POST /api/plan (контракт PlanRequest).
-export function buildPlanRequest(form, state) {
+// Вимоги з «Підбору» (searchForm), склад місії й ракета з форми, дата з календаря → тіло POST /api/plan (PlanRequest).
+export function buildPlanRequest(form, state, searchForm = null) {
   const startMs = Date.parse(state.datetime);
   if (!Number.isFinite(startMs)) throw new Error("bad datetime");
-  const days = Math.min(Math.max(Math.round(num(form.periodDays) ?? 10), 1), 60);
+  const base = planRequirements({ ...structuredClone(SEARCH_DEFAULTS), ...(searchForm ?? {}) }, state.datetime);
   const body = {
-    start: iso(startMs),
-    end: iso(startMs + days * 86400000),
-    region: { lat_min: num(form.regionLatMin) ?? -90, lat_max: num(form.regionLatMax) ?? -80, lon_min: -180, lon_max: 180 },
-    grid_step_deg: num(form.gridStep) ?? 2,
+    ...base,
     mission_profile: form.profile,
     days: form.profile === "crewed" ? num(form.days) ?? 0 : 0,
     limit: num(form.plans) ?? 5,
     departure_days: Math.min(Math.max(Math.round(num(form.departureDays) ?? 1), 1), 60),
   };
   if (form.profile === "crewed" && num(form.crew) !== null) body.crew = Number(form.crew);
-  const reqs = { min_sun_hours: form.minSunHours, min_comm_hours: form.minCommHours, max_slope_deg: form.maxSlope,
-                 min_earth_fraction: form.minEarth, min_sun_fraction: form.minSun };
-  for (const [key, value] of Object.entries(reqs)) if (num(value) !== null) body[key] = Number(value);
+  if (plainSite(form.launchSite)) body.launch_site_id = form.launchSite;
   if (form.vehicle && form.vehicle !== "any") body.vehicle = form.vehicle;
   if (form.profile === "crewed") body.trajectories = ["direct"];
   else if (form.trajectory && form.trajectory !== "any") body.trajectories = [form.trajectory];
@@ -116,10 +113,7 @@ function init() {
 
   const read = () => ({
     profile: $("plan-profile").value, crew: $("plan-crew").value, days: $("plan-days").value,
-    regionLatMin: $("plan-lat-min").value, regionLatMax: $("plan-lat-max").value, gridStep: $("plan-grid").value,
-    periodDays: $("plan-period").value, minSunHours: $("plan-min-sun-hours").value,
-    minCommHours: $("plan-min-comm-hours").value, maxSlope: $("plan-max-slope").value,
-    minEarth: $("plan-min-earth").value, minSun: $("plan-min-sun").value,
+    launchSite: $("plan-site").value,
     vehicle: $("plan-vehicle").value, trajectory: $("plan-trajectory").value, plans: 5,
     departureDays: $("plan-departure-days").value,
     includeDesign: $("plan-design").checked, multiLaunch: $("plan-multi").checked,
@@ -136,12 +130,12 @@ function init() {
 
   const render = (response) => {
     last = response;
-    const lead = leadFromPlan(response);
-    if (lead) {
-      saveLead(lead); // «Вікно запуску» підхопить майданчик і траєкторію
+    const leader = leadFromPlan(response);
+    if (leader) {
+      saveLead(leader); // «Система» й «Вікно запуску» покажуть цей майданчик і траєкторію, якщо вибір не зроблено вручну
       const mission = response.plans.find((p) => p.rank === response.auto_selected)?.mission ?? response.plans[0]?.mission;
       if (mission) saveBurn(burnFromMission(mission)); // «Система» анімує розгін за масою лідера
-      setState({ site: lead.moon.site, lat: lead.moon.lat, lon: lead.moon.lon }); // точка на «Місяці» — лідер плану
+      setState({ site: leader.moon.site, lat: leader.moon.lat, lon: leader.moon.lon }); // точка на «Місяці» — лідер плану
     }
     const sp = response.surface_period;
     const period = sp ? ` ${t("Місце оцінено за період")} ${sp.start.slice(0, 10)} – ${sp.end.slice(0, 10)}${sp.after_arrival ? ` (${t("після прибуття")})` : ""}.` : "";
@@ -175,7 +169,7 @@ function init() {
 
   const run = async () => {
     let body;
-    try { body = buildPlanRequest(read(), getState()); } catch { status.textContent = t("Вкажіть дату в календарі."); return; }
+    try { body = buildPlanRequest(read(), getState(), loadSearchForm()); } catch { status.textContent = t("Вкажіть дату в календарі."); return; }
     controller?.abort();
     controller = new AbortController();
     status.textContent = t("Рахую план місії… це може тривати до пів хвилини.");
@@ -194,15 +188,33 @@ function init() {
     }
   };
 
-  // F18: профіль, екіпаж, ракета й траєкторію беремо з вкладки «Місія», якщо там щось вибрано
+  // F18: профіль, екіпаж беремо з вкладки «Місія»; F20: майданчик, траєкторія й ракета — спільний вибір польоту
   const prefill = planFieldsFromMission(loadMissionForm());
   if (prefill) {
     $("plan-profile").value = prefill.profile;
     if (prefill.crew) $("plan-crew").value = prefill.crew;
     if (prefill.days != null) $("plan-days").value = prefill.days;
-    if (prefill.trajectory) $("plan-trajectory").value = prefill.trajectory;
     $("plan-prefill").hidden = false;
   }
+  const launch = loadLaunch();
+  if (launch.trajectory !== "any") $("plan-trajectory").value = launch.trajectory;
+  $("plan-trajectory").addEventListener("change", (e) => { if (!e.target.disabled) saveLaunch({ trajectory: e.target.value }); });
+  $("plan-vehicle").addEventListener("change", (e) => saveLaunch({ vehicle: e.target.value }));
+  $("plan-site").addEventListener("change", (e) => saveLaunch({ site: e.target.value }));
+
+  // Вимоги до місця посадки — з «Підбору» (читаємо щоразу, коли повертаємось на вкладку)
+  const renderRequirements = () => {
+    const rows = requirementsSummary(loadSearchForm() ?? SEARCH_DEFAULTS);
+    $("plan-req").replaceChildren(...rows.flatMap(([name, value]) => {
+      const dt = Object.assign(document.createElement("dt"), { textContent: t(name) });
+      const dd = Object.assign(document.createElement("dd"), { textContent: value });
+      return [dt, dd];
+    }));
+  };
+  renderRequirements();
+  window.addEventListener("pageshow", renderRequirements);
+  window.addEventListener("storage", renderRequirements);
+
   $("plan-flight").addEventListener("click", () => { window.location.href = `/system${window.location.search}`; });
   $("plan-profile").addEventListener("change", syncProfile);
   form.addEventListener("submit", (e) => { e.preventDefault(); run(); });
@@ -210,7 +222,13 @@ function init() {
   fetch("/api/launch-systems").then((r) => r.json()).then((list) => {
     const sel = $("plan-vehicle");
     for (const v of list.filter((x) => x.capacity_basis)) sel.append(new Option(v.name, v.id));
-    if (prefill && prefill.vehicle !== "any" && [...sel.options].some((o) => o.value === prefill.vehicle)) sel.value = prefill.vehicle;
+    if (launch.vehicle !== "any" && [...sel.options].some((o) => o.value === launch.vehicle)) sel.value = launch.vehicle;
+  }).catch(() => {});
+  fetch("/api/launch-sites").then((r) => r.json()).then((list) => {
+    const sel = $("plan-site");
+    for (const x of list) sel.append(Object.assign(new Option(x.name.split(" (")[0], x.id), {}));
+    const chosen = plainSite(launch.site);
+    if (chosen && [...sel.options].some((o) => o.value === chosen)) sel.value = chosen;
   }).catch(() => {});
   onLangChange(() => { if (last) render(last); });
 }

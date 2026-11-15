@@ -21,7 +21,8 @@ SEARCH_KEYS = {"region", "include_catalog", "grid_step_deg", "max_candidates", "
                "min_sun_fraction", "mission_profile", "crew", "earth_target"}
 PLAN_KEYS = {"start", "end", "departure", "days", "sizes", "vehicle", "trajectories", "launch_priorities",
              "launch_mode", "include_design_targets", "allow_multiple_launches", "landing_candidates", "limit",
-             "departure_days", "surface_after_arrival", "crew_members", "supply_days", "reserve_fraction"}
+             "departure_days", "surface_after_arrival", "launch_site_id", "crew_members", "supply_days",
+             "reserve_fraction"}
 ALLOWED = SEARCH_KEYS | PLAN_KEYS
 MAX_LANDING_CANDIDATES = 10
 SEARCH_LIMIT = 100  # скільки місць повертає /search; з них вибираємо найкращі за вимогами
@@ -59,7 +60,7 @@ def _launch_body(chain: dict, departure: datetime, mass_kg: float, body: Mapping
            "limit": 1}
     for src, dst in (("vehicle", "vehicle"), ("trajectories", "trajectories"), ("launch_priorities", "priorities"),
                      ("launch_mode", "mode"), ("include_design_targets", "include_design_targets"),
-                     ("allow_multiple_launches", "allow_multiple_launches")):
+                     ("allow_multiple_launches", "allow_multiple_launches"), ("launch_site_id", "site_id")):
         if src in body:
             out[dst] = body[src]
     return out

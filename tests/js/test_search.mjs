@@ -173,3 +173,12 @@ test("поради ШІ: блок видно завжди; без джерела
   assert.equal(adviceState(undefined).enabled, false);
   assert.equal(adviceState({}).enabled, false);
 });
+
+test("запит підбору: нахил і м'які частки Землі й Сонця — лише коли задані (F20)", () => {
+  const base = buildSearchRequest(form(), "2027-03-01T00:00Z");
+  assert.ok(!("max_slope_deg" in base) && !("min_earth_fraction" in base) && !("min_sun_fraction" in base));
+  const body = buildSearchRequest(form({ maxSlopeDeg: 10, minEarthPct: 25, minSunPct: 5 }), "2027-03-01T00:00Z");
+  assert.equal(body.max_slope_deg, 10);
+  assert.equal(body.min_earth_fraction, 0.25);
+  assert.equal(body.min_sun_fraction, 0.05);
+});

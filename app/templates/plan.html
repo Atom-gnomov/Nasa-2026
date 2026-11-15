@@ -4,17 +4,11 @@
 <section class="lw-layout">
   <form id="plan-form" class="lw-controls" autocomplete="off">
     <h2>План місії</h2>
-    <fieldset class="lw-priorities">
+    <fieldset class="lw-priorities" id="plan-req-box">
       <legend>Місце посадки: вимоги</legend>
-      <label>Широта від, ° <input type="number" id="plan-lat-min" value="-90" min="-90" max="90" step="1"></label>
-      <label>Широта до, ° <input type="number" id="plan-lat-max" value="-80" min="-90" max="90" step="1"></label>
-      <label>Крок сітки, ° <input type="number" id="plan-grid" value="2" min="0.25" max="30" step="0.25"></label>
-      <label>Період, діб <input type="number" id="plan-period" value="10" min="1" max="60" step="1"></label>
-      <label>Макс. нахил, ° <input type="number" id="plan-max-slope" min="0" max="90" step="1" placeholder="не обмежувати"></label>
-      <label>Мін. годин Сонця <input type="number" id="plan-min-sun-hours" min="0" step="1" placeholder="не обмежувати"></label>
-      <label>Мін. годин зв'язку <input type="number" id="plan-min-comm-hours" min="0" step="1" placeholder="не обмежувати"></label>
-      <label>Мін. частка Землі (0–1, м'яка) <input type="number" id="plan-min-earth" min="0" max="1" step="0.05" placeholder="за профілем"></label>
-      <label>Мін. частка Сонця (0–1, м'яка) <input type="number" id="plan-min-sun" min="0" max="1" step="0.05" placeholder="за профілем"></label>
+      <p class="muted lw-note">Вимоги беруться з «Підбору» — вводити їх удруге не треба.</p>
+      <dl id="plan-req" class="plan-req"></dl>
+      <a class="button-link" href="/moon#search">Змінити вимоги в «Підборі»</a>
     </fieldset>
     <fieldset class="lw-priorities">
       <legend>Місія й ракета</legend>
@@ -27,6 +21,9 @@
       </label>
       <label class="plan-crewed" hidden>Екіпаж, осіб <input type="number" id="plan-crew" min="1" max="6" step="1" placeholder="за профілем"></label>
       <label class="plan-crewed" hidden>Тривалість на Місяці, діб <input type="number" id="plan-days" value="5" min="0" max="365" step="1"></label>
+      <label>Майданчик старту
+        <select id="plan-site"><option value="">підібрати автоматично</option></select>
+      </label>
       <label>Дат старту перебрати <input type="number" id="plan-departure-days" value="7" min="1" max="60" step="1"></label>
       <label>Ракета
         <select id="plan-vehicle"><option value="any" selected>підібрати автоматично</option></select>

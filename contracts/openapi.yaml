@@ -346,6 +346,7 @@ paths:
         - {name: launch_site, in: query, description: "id з /launch-sites або auto (оптимальна точка старту): додає в extras ракету, траєкторію й модуль; для auto — також трасу площини відльоту й зведення вибору", schema: {type: string}}
         - {name: criterion, in: query, description: "Для launch_site=auto: fuel — економія пального (чекати вікна з найменшим нахилом), speed — швидкість (старт одразу, переліт 3 доби)", schema: {type: string, enum: [fuel, speed], default: fuel}}
         - {name: trajectory, in: query, description: "Маршрут перельоту для польоту: direct — прямий (3–5 діб), low_energy — найекономніший (схема ≈ 105 діб: довга траса через апогей; G17)", schema: {type: string, enum: [direct, low_energy], default: direct}}
+        - {name: anchor, in: query, description: "Що означає `datetime` для польоту: departure — момент старту (за замовчуванням); arrival — дата посадки: старт обчислюється назад від неї (прямий: час перельоту з найменшим Δv, що прибуває в цю дату; економний ≈ 105 діб)", schema: {type: string, enum: [departure, arrival], default: departure}}
         - {name: launch_scope, in: query, description: "Для launch_site=auto: spaceports — космодроми каталогу, any — довільна точка Землі", schema: {type: string, enum: [spaceports, any], default: spaceports}}
       responses:
         "200":
@@ -2444,8 +2445,17 @@ components:
         launch_mode: {type: string, enum: [weighted, maximin]}
         include_design_targets: {type: boolean, default: true}
         allow_multiple_launches: {type: boolean, default: false}
-        surface_after_arrival: {type: boolean, default: true, description: "true — місце оцінюється за період після прибуття (`departure` + типовий переліт обраної траєкторії); false — за період від `start`, як у /search (B20b)"}
-        departure_days: {type: integer, minimum: 1, maximum: 60, default: 1, description: "Скільки діб від `departure` перебирати для найкращої дати старту (B20, на основі /launch-window); 1 — лише `departure`"}
+        anchor:
+          type: string
+          enum: [landing, departure]
+          default: landing
+          description: |
+            Що означає `start` (календар). `landing` (за замовчуванням) — дата посадки: умови Місяця головні, місце
+            оцінюється від неї без зсуву, а дата старту обчислюється назад (прямий: час перельоту з найменшим Δv, що
+            прибуває в день посадки; економний ≈ 105 діб) або береться з `departure` («Вікно запуску»). `departure` — режим
+            сумісності: `start` — старт, місце оцінюється після прибуття (див. `surface_after_arrival`).
+        surface_after_arrival: {type: boolean, default: true, description: "Лише для anchor=departure — true: місце оцінюється за період після прибуття (`departure` + типовий переліт); false: від `start`, як у /search (B20b)"}
+        departure_days: {type: integer, minimum: 1, maximum: 60, default: 1, description: "Скільки діб від `departure` перебирати для найкращої дати старту (B20, на основі /launch-window); 1 — лише `departure`. Для `anchor=landing` ігнорується: старт підлаштовується під дату посадки"}
         launch_site_id: {type: string, description: "Лише цей майданчик старту (id з /launch-sites); без нього — підбір серед усіх (F20)"}
         landing_candidates: {type: integer, minimum: 1, maximum: 10, default: 3, description: Скільки найкращих місць комбінувати із запусками}
         limit: {type: integer, minimum: 1, maximum: 20, default: 5, description: Скільки планів повернути}
@@ -2466,6 +2476,7 @@ components:
             end: {type: string, format: date-time}
             assumed_flight_days: {type: number}
             after_arrival: {type: boolean}
+            anchor: {type: string, enum: [landing, departure]}
         departure_utc: {type: string, format: date-time}
         grid: {type: object}
         landing_evaluated: {type: integer, minimum: 0}

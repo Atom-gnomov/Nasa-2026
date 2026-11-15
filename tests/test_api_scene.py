@@ -163,3 +163,16 @@ def test_scene_route_choice_changes_the_flight(client):
     end = s["points_km"][-1]
     assert sum((a - b) ** 2 for a, b in zip(end, s["moon_at_arrival_km"], strict=True)) ** 0.5 < 10.0
     assert client.get(base + "&trajectory=teleport").status_code == 400
+
+
+def test_scene_anchored_to_the_landing_date_departs_earlier_and_arrives_on_the_calendar_date(client):
+    from datetime import datetime, timedelta
+    base = "/api/scene?datetime=2027-07-10T00:00Z&launch_site=kourou&markers=0&anchor=arrival"
+    fast = next(e for e in client.get(base).get_json()["extras"] if e["kind"] == "trajectory")
+    slow_scene = client.get(base + "&trajectory=low_energy").get_json()
+    slow = next(e for e in slow_scene["extras"] if e["kind"] == "trajectory")
+    land = datetime(2027, 7, 10)
+    parse = lambda t: datetime.fromisoformat(t["arrival_utc"].replace("Z", "+00:00")).replace(tzinfo=None)  # noqa: E731
+    assert abs(parse(fast) - land) <= timedelta(hours=1) and fast["departure_utc"] < "2027-07-10"
+    assert abs((parse(slow) - land).total_seconds()) <= 3600 and slow["tof_days"] > 90
+    assert client.get(base.replace("anchor=arrival", "anchor=nope")).status_code == 400

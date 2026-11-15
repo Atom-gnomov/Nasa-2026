@@ -10,7 +10,7 @@ export const DEFAULT_FORM = {
   profile: "uncrewed", crew: null, days: 5,
   // Вимоги до місця посадки (область, сітка, період, пороги, пріоритети) тут не вводяться: беруться з «Підбору» (F20)
   launchSite: "", // майданчик старту: "" — підібрати автоматично; id — лише з нього (спільний вибір для вкладок)
-  vehicle: "any", trajectory: "any", plans: 5, departureDays: 7,
+  vehicle: "any", trajectory: "any", plans: 5,
   includeDesign: true, multiLaunch: false,
   members: null, supplyDays: null, reservePct: 15, // екіпаж із біометрією (F18/F19: з вкладки «Місія»)
 };
@@ -37,7 +37,7 @@ export function buildPlanRequest(form, state, searchForm = null) {
     mission_profile: form.profile,
     days: form.profile === "crewed" ? num(form.days) ?? 0 : 0,
     limit: num(form.plans) ?? 5,
-    departure_days: Math.min(Math.max(Math.round(num(form.departureDays) ?? 1), 1), 60),
+    departure_days: 1, // старт підлаштовується під дату посадки (календар): перебору інших дат немає
   };
   if (form.profile === "crewed" && num(form.crew) !== null) body.crew = Number(form.crew);
   if (plainSite(form.launchSite)) body.launch_site_id = form.launchSite;
@@ -46,8 +46,8 @@ export function buildPlanRequest(form, state, searchForm = null) {
     body.departure_days = 1;
   }
   if (form.vehicle && form.vehicle !== "any") body.vehicle = form.vehicle;
-  if (form.profile === "crewed") body.trajectories = ["direct"];
-  else if (form.trajectory && form.trajectory !== "any") body.trajectories = [form.trajectory];
+  // Календар — дата посадки, старт підлаштовується: маршрут завжди явний (швидкий — прямий, економний — ≈ 105 діб до посадки)
+  body.trajectories = [form.profile === "crewed" || form.trajectory !== "low_energy" ? "direct" : "low_energy"];
   if (form.profile === "crewed" && Array.isArray(form.members) && form.members.length) {
     body.crew_members = form.members;
     delete body.crew;
@@ -119,7 +119,6 @@ function init() {
     profile: $("plan-profile").value, crew: $("plan-crew").value, days: $("plan-days").value,
     launchSite: $("plan-site").value, departure: loadLaunch().departure,
     vehicle: $("plan-vehicle").value, trajectory: $("plan-trajectory").value, plans: 5,
-    departureDays: $("plan-departure-days").value,
     includeDesign: $("plan-design").checked, multiLaunch: $("plan-multi").checked,
     members: prefill?.members ?? null, supplyDays: prefill?.supplyDays ?? null, reservePct: prefill?.reservePct ?? 15,
   });
@@ -201,7 +200,7 @@ function init() {
     $("plan-prefill").hidden = false;
   }
   const launch = loadLaunch();
-  if (launch.trajectory !== "any") $("plan-trajectory").value = launch.trajectory;
+  $("plan-trajectory").value = launch.trajectory === "low_energy" ? "low_energy" : "direct";
   $("plan-trajectory").addEventListener("change", (e) => { if (!e.target.disabled) saveLaunch({ trajectory: e.target.value }); });
   $("plan-vehicle").addEventListener("change", (e) => saveLaunch({ vehicle: e.target.value }));
   $("plan-site").addEventListener("change", (e) => saveLaunch({ site: e.target.value }));

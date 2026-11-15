@@ -32,6 +32,7 @@ export function flightUrl(value, ms, lat = null, lon = null, route = "direct") {
     params.set("lat", String(lat));
     params.set("lon", String(lon));
   }
+  params.set("anchor", "arrival"); // календар — дата посадки: старт обчислюється назад від неї
   if (route === "low_energy") params.set("trajectory", "low_energy"); // G17: економний маршрут — інша траса й тривалість
   return `/api/scene?${params}`;
 }

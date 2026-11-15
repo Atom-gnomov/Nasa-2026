@@ -17,9 +17,10 @@ test("запит: вимоги беруться з «Підбору» (регі�
   assert.equal(body.min_sun_hours, 48);
   assert.equal(body.max_slope_deg, 10);
   assert.equal(body.min_earth_fraction, 0.25);
-  assert.ok(!("min_comm_hours" in body) && !("vehicle" in body) && !("trajectories" in body) && !("launch_site_id" in body));
+  assert.ok(!("min_comm_hours" in body) && !("vehicle" in body) && !("launch_site_id" in body));
+  assert.deepEqual(body.trajectories, ["direct"]); // календар — дата посадки: маршрут завжди явний, типово швидкий
   assert.equal(body.mission_profile, "uncrewed");
-  assert.equal(body.departure_days, 7);
+  assert.equal(body.departure_days, 1); // старт підлаштовується під дату посадки
   assert.equal(body.days, 0);
 });
 
@@ -104,6 +105,7 @@ test("запит: пілотована — завжди пряма траєкт�
   assert.deepEqual(body.trajectories, ["direct"]);
   const robot = plan.buildPlanRequest({ ...plan.DEFAULT_FORM, trajectory: "low_energy" }, state);
   assert.deepEqual(robot.trajectories, ["low_energy"]);
+  assert.deepEqual(plan.buildPlanRequest({ ...plan.DEFAULT_FORM, trajectory: "any" }, state).trajectories, ["direct"]);
 });
 
 test("запит: дата старту з «Вікна запуску» — одна дата, без перебору; без неї перебір лишається", () => {
@@ -112,5 +114,5 @@ test("запит: дата старту з «Вікна запуску» — о�
   assert.equal(withDate.departure_days, 1);
   const without = plan.buildPlanRequest({ ...plan.DEFAULT_FORM, departure: "" }, state);
   assert.ok(!("departure" in without));
-  assert.equal(without.departure_days, 7);
+  assert.equal(without.departure_days, 1); // старт підлаштовується під дату посадки — перебору дат немає
 });

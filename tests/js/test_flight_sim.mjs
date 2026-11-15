@@ -154,3 +154,8 @@ test("відліки польоту: прямий — щогодини, екон
   assert.equal(times.at(-1), 105 * 86400 * 1000);
   assert.equal(f.sampleStepMs(0), 3600000);
 });
+
+test("запит сцени: календар — дата посадки (anchor=arrival)", () => {
+  const q = new URLSearchParams(f.flightUrl("kourou", Date.UTC(2027, 6, 10), -89, 0).split("?")[1]);
+  assert.equal(q.get("anchor"), "arrival");
+});

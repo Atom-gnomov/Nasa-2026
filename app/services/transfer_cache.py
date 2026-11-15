@@ -8,7 +8,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 
 from app.core import transfer
@@ -48,3 +48,10 @@ def transfer_options(departure: datetime) -> dict:
 
 def cache_info() -> dict:
     return {"curve": _curve.cache_info()._asdict(), "options": _options.cache_info()._asdict()}
+
+
+def best_arrival_anchored(arrival: datetime, tof_grid) -> "transfer.TransferPoint":
+    """Найекономніший прямий перехід, що **прибуває рівно в `arrival`** (календар = дата посадки): для кожного часу
+    перельоту старт — за tof діб до посадки; береться мінімум Δv. Кожна дата старту рахується один раз."""
+    points = [dv_curve(arrival - timedelta(days=float(t)), [float(t)])[0] for t in tof_grid]
+    return min(points, key=lambda p: p.dv_total_m_s)

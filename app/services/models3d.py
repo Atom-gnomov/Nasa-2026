@@ -20,7 +20,7 @@ from app.core import frames, launch, transfer
 from app.core import launch_optimum as launch_optimum_core
 from app.core.constants import R_EARTH_KM, R_MOON_KM, R_SUN_KM
 from app.core.ephemeris import get_ephemeris
-from app.services import catalogs, dsn, launch_optimum, sites, system
+from app.services import catalogs, dsn, launch_optimum, sites, system, transfer_cache
 
 NASA_MEDIA = "NASA-матеріали: вільне використання з посиланням на джерело (NASA Media Usage Guidelines)"
 # Земля — WGS84 (стиснення 1/298,257223563); Сонце й Місяць — кулі
@@ -168,7 +168,7 @@ def _flight_extras(when: datetime, launch_site_id: str, lat: float | None, lon: 
         site = next((s for s in catalogs.load_launch_sites() if s["id"] == launch_site_id), None)
         if site is None:
             raise LaunchSiteNotFound(f"Місце старту {launch_site_id} не знайдено")
-        best = min(transfer.dv_curve(eph, when_utc, FLIGHT_TOF_DAYS), key=lambda p: p.dv_total_m_s)
+        best = min(transfer_cache.dv_curve(when_utc, FLIGHT_TOF_DAYS), key=lambda p: p.dv_total_m_s)
         inclination = launch.best_inclination_deg(site["lat"], best.min_parking_inclination_deg)
     r_m, v_m = transfer.moon_state_icrf(eph, best.arrival_utc)
     _, points, times_s, speeds = transfer.transfer_arc_timed(r_m, v_m, best.tof_days, n=96)

@@ -21,7 +21,7 @@ import numpy as np
 from app.core import scoring, transfer
 from app.core.ephemeris import get_ephemeris
 from app.core.launch import TRAJECTORIES, best_inclination_deg, site_departure
-from app.services import catalogs, horizon, visibility
+from app.services import catalogs, horizon, transfer_cache, visibility
 
 FACTORS = ("light", "fuel", "comms", "windows")
 MAX_DAYS = 60
@@ -77,7 +77,7 @@ def day_metrics(eph, mask, site_lat: float, lat: float, lon: float, day: date, t
                 landed_days: float = LANDED_DAYS) -> dict:
     """Показники однієї дати старту (без оцінок)."""
     departure = datetime(day.year, day.month, day.day, tzinfo=timezone.utc)
-    curve = transfer.dv_curve(eph, departure, DIRECT_TOF_DAYS)
+    curve = transfer_cache.dv_curve(departure, DIRECT_TOF_DAYS)
     best = min(curve, key=lambda p: p.dv_total_m_s)
     dep = site_departure(site_lat, best_inclination_deg(site_lat, best.min_parking_inclination_deg))
     if trajectory == "direct":

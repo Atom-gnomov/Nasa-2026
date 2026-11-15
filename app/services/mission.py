@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from functools import lru_cache
 
 from app.core import burns, cost, crew as crew_model, launch_system, mission_profile, payload, risk
 from app.core.launch import TRAJECTORIES
@@ -60,6 +61,24 @@ def _latitude(body: Mapping, system: launch_system.LaunchSystem | None = None) -
             raise LaunchSiteNotFound(f"Місце старту {site_id} не знайдено")
         return float(site["lat"]), site_id
     return _number(body, "launch_lat", 0.0, -90.0, 90.0), None
+
+
+@lru_cache(maxsize=2048)
+def _budget_cached(sizes_key, crew, days, night, params, consumables) -> payload.PayloadBudget:
+    return payload.payload_budget(dict(sizes_key) if sizes_key is not None else None, crew=crew, days=days,
+                                  longest_night_h=night, params=params, consumables_kg=consumables)
+
+
+def _budget(sizes, crew, days, night, params, consumables) -> payload.PayloadBudget:
+    """Маса навантаження: однакові входи (склад, екіпаж, доби, ніч) рахуються один раз — планувальник питає масу для
+    кожного кандидата, а потім ще раз для лідера (брати з раннього розрахунку). Результат лише для читання."""
+    try:
+        key = None if sizes is None else tuple(sorted(sizes.items()))
+        hash(key)
+    except TypeError:  # нехешовані значення — рахуємо напряму, помилку покаже сам розрахунок
+        return payload.payload_budget(sizes, crew=crew, days=days, longest_night_h=night, params=params,
+                                      consumables_kg=consumables)
+    return _budget_cached(key, crew, days, night, params, consumables)
 
 
 def _crew_members(body: Mapping) -> list | None:
@@ -147,8 +166,7 @@ def compute(body: Mapping) -> dict:
         except ValueError as exc:
             raise MissionError(str(exc)) from exc
         consumables = supplies["loaded_total_kg"]
-    budget = payload.payload_budget(sizes, crew=crew, days=days, longest_night_h=night, params=params,
-                                    consumables_kg=consumables)
+    budget = _budget(sizes, crew, days, night, params, consumables)
     choice = launch_system.to_rocket(system, trajectory=trajectory) if system else None
     rocket_kwargs = {"rocket": choice.rocket} if choice else {}
     transfer_params = cost.DEFAULT_TRANSFER

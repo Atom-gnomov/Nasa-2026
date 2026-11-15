@@ -11,9 +11,8 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 
 from app.core import launch_rank, risk, transfer
-from app.core.ephemeris import get_ephemeris
 from app.core.launch import TRAJECTORIES
-from app.services import catalogs
+from app.services import catalogs, transfer_cache
 from app.services import mission as mission_service
 
 ALLOWED = {"lat", "lon", "datetime", "mass_moon_kg", "crew", "days", "sizes", "vehicle", "trajectories", "priorities",
@@ -178,7 +177,7 @@ def compute(body: Mapping) -> dict:
         if not isinstance(site_id, str) or not any(x["id"] == site_id for x in sites):
             raise LaunchRankingError(f"site_id: майданчик {site_id} не знайдено в /launch-sites")
         sites = [x for x in sites if x["id"] == site_id]
-    transfers = transfer.transfer_options(get_ephemeris(), departure)
+    transfers = transfer_cache.transfer_options(departure)
     result = launch_rank.rank_launches(
         sites, transfers, mass, rockets=rockets, launch_systems=systems,
         trajectories=trajectories, priorities=priorities, mode=mode, include_design_targets=include_design,

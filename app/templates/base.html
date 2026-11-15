@@ -74,6 +74,14 @@
     // Небо починає вантажитись одразу, до розбору модулів: starfield.js бере його вже з кешу.
     (function () { try { new Image().src = "/assets/starmap/pano.jpg"; fetch("/assets/starmap/pano.json"); } catch (e) {} })();
   </script>
+  {# Екран завантаження: клас ставиться до першого кадру; знімає static/js/boot_loader.js, а без нього — запасний таймер #}
+  <script>
+    (function () {
+      var d = document.documentElement;
+      d.classList.add("boot-loading");
+      setTimeout(function () { d.classList.remove("boot-loading"); }, 90000);
+    })();
+  </script>
   {# Вступна заставка: раз за сесію (або ?intro=1); клас ставиться до першого кадру, щоб інтерфейс не мигнув. #}
   <script>
     (function () {
@@ -88,6 +96,9 @@
   </script>
 </head>
 <body class="page-{{ active_tab }}">
+  <div id="boot-loader" role="status" aria-label="Завантаження…">
+    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="" width="96" height="96">
+  </div>
   <div id="intro" aria-hidden="true">
     <div class="intro-flash"></div>
     <div class="intro-title">Lunar Mission Builder</div>
@@ -258,6 +269,7 @@
   {# Переклад — одразу після розкладки панелей, до важких модулів сцен: інакше він чекає на їхнє завантаження і текст блимає UA → EN. #}
   <script type="module" src="{{ url_for('static', filename='js/i18n.js') }}"></script>
   <script type="module" src="{{ url_for('static', filename='js/select_ui.js') }}"></script>
+  <script type="module" src="{{ url_for('static', filename='js/boot_loader.js') }}"></script>
   <script type="module" src="{{ url_for('static', filename='js/intro.js') }}"></script>
   <script type="module" src="{{ url_for('static', filename='js/starfield.js') }}"></script>
   {% block scripts %}{% endblock %}

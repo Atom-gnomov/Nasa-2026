@@ -28,6 +28,11 @@ test("лідер плану — за auto_selected, а не за порядко�
   const noLaunch = sel.leadFromPlan({ auto_selected: 1, plans: [response.plans[0]] });
   assert.equal(noLaunch.siteId, null);
   assert.equal(sel.leadFromPlan({ plans: [] }), null);
+  const slow = { ...response.plans[1], rank: 3, launch: { ...response.plans[1].launch, trajectory: "low_energy" } };
+  const two = { auto_selected: 2, plans: [response.plans[0], response.plans[1], slow] };
+  assert.equal(sel.leadFromPlan(two).trajectory, "direct"); // автовибір
+  assert.equal(sel.leadFromPlan(two, 3).trajectory, "low_energy"); // вибір користувача
+  assert.equal(sel.leadFromPlan(two, 9).trajectory, "direct"); // немає такого — автовибір
 });
 
 test("вибір для «Вікна запуску»: план переважає «Місію»; без обох — нічого", () => {

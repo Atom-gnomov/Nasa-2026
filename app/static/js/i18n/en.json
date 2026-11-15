@@ -712,7 +712,12 @@
     "Повернутися до кроку {n}": "Back to step {n}",
     "Послідовність рішень": "Sequence of decisions",
     "Скопійовано.": "Copied.",
-    "Не вдалося скопіювати: скористайтеся «Завантажити Markdown».": "Could not copy: use “Download Markdown”."
+    "Не вдалося скопіювати: скористайтеся «Завантажити Markdown».": "Could not copy: use “Download Markdown”.",
+    "Таблиця — порівняння носіїв для вашого навантаження: ракета, майданчик, траєкторія, заповненість, термін, вартість і ризик. «Обрати» передає варіант далі — у «Систему», перевірку узгодженості й звіт.": "The table compares launch vehicles for your payload: rocket, launch site, trajectory, fill, duration, cost and risk. “Choose” passes the option on — to the System view, the consistency check and the report.",
+    "Обрати": "Choose",
+    "Обрано": "Chosen",
+    "пуски": "launches",
+    "Цей варіант піде далі: у «Систему», перевірку й звіт": "This option goes on: to the System view, the check and the report"
   },
   "phrases": {
   "Рекомендовано {rec} діб (резерв {rp} %), заплановано {plan} діб (резерв {pp}).": "Recommended {rec} days (reserve {rp} %), planned {plan} days (reserve {pp}).",

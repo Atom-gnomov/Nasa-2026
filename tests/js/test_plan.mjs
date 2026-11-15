@@ -74,6 +74,17 @@ test("рядки: лідер виділений, координати без н�
   for (const row of rows) for (const c of row.cells) assert.ok(typeof c === "string" && !/undefined|NaN/.test(c), c);
 });
 
+test("порівняння носіїв: заповненість у таблиці й вибір варіанта для спільного вибору польоту", () => {
+  assert.equal(plan.fillText(null), "—");
+  assert.equal(plan.fillText({ utilization: 0.823, launches: 1 }), "82 %");
+  assert.match(plan.fillText({ utilization: 1.29, launches: 2 }), /129 % · 2 пуски/);
+  const rows = plan.planRows({ ...response, plans: [{ ...response.plans[0], launch: { ...response.plans[0].launch, utilization: 0.5, launches: 1 } }] });
+  assert.equal(rows[0].cells[7], "50 %");
+  const choice = plan.launchChoiceFromPlan({ ...response.plans[0], launch: { ...response.plans[0].launch, site: { id: "kourou", name: "Kourou" }, vehicle: { id: "fh", name: "FH" } } });
+  assert.deepEqual(choice, { site: "kourou", vehicle: "fh", trajectory: "direct", departure: "2027-03-02" });
+  assert.equal(plan.launchChoiceFromPlan(response.plans[1]), null);
+});
+
 test("статус вимог: виконано / порушено / м'які / не перевірено", () => {
   assert.match(plan.requirementsText(response.plans[0].requirements), /^виконано · м'які: Земля видна · не перевірено: Нахил/);
   assert.match(plan.requirementsText(response.plans[1].requirements), /порушено: Нахил, ° 12 замість 10/);

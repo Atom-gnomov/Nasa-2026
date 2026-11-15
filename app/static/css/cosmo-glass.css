@@ -522,3 +522,7 @@ html, body, button, input, select, textarea, optgroup, option, summary, label, t
   .check-summary, .report-body h3, .report-body h4 { color: #000 !important; }
   .report-body a { color: #000 !important; }
 }
+
+/* Таблиця порівняння носіїв (F27): обраний варіант */
+#view .results-table tr.chosen td { box-shadow: inset 0 -1px 0 var(--cg-line); background: var(--cg-fill-faint); }
+#view .results-table tr.chosen td:first-child { box-shadow: inset 2px 0 0 #fff, inset 0 -1px 0 var(--cg-line); }

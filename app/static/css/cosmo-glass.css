@@ -498,6 +498,7 @@ html, body, button, input, select, textarea, optgroup, option, summary, label, t
 .check-list li { display: grid; grid-template-columns: 20px 1fr auto; gap: var(--gap-s); align-items: start; padding: 6px var(--gap-s);
   border: 1px solid var(--cg-line-soft); background: var(--cg-fill-faint); font-size: var(--fs-s); }
 .check-list .check-mark { font-weight: 700; text-align: center; }
+#c-night { max-width: 100%; box-sizing: border-box; white-space: normal; text-align: left; }
 .check-list .check-error { border-color: #ff8a80; }
 .check-list .check-error .check-mark { color: #ff8a80; }
 .check-list .check-warning .check-mark { color: #ffd180; }

@@ -153,7 +153,7 @@ git commit -am "BOARD: Велес бере B3" && git push origin coordination
 
 ### Сварог
 
-- —
+- V1 — поради ШІ на справжньому TokenHarbor: вимкнено міркування моделі (`reasoning_effort: none`), обрізані відповіді більше не показуються як порада; дати з «Z» на Python 3.10 — PR #95
 
 ### Стрибог
 

@@ -8,6 +8,8 @@
   "containers": [
     {
       "class_name": "LunarMissionBuilder",
+      // Нове ім'я контейнерного застосунку: старе в акаунті прив'язане до іншого Durable Object namespace
+      "name": "lmb-app",
       "image": "../Dockerfile",
       "image_build_context": "..",
       // standard-1: 1/2 vCPU, 4 ГіБ ОЗП, 8 ГБ диска (диск тимчасовий!). basic (1 ГіБ ОЗП, 4 ГБ диска) — лише для демо без даних NASA.

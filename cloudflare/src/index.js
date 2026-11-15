@@ -6,14 +6,14 @@ export class LunarMissionBuilder extends Container {
   defaultPort = 8000;
   sleepAfter = "30m";
   // Диск контейнера тимчасовий: дані NASA готуються після кожного холодного старту (LSE_AUTO_PREPARE_MODE=pack — швидко,
-  // якщо опубліковано пакет даних, I10). Без даних сайт працює на гладкій сфері.
+  // якщо опубліковано пакет даних, I10). Без пакета globe глобус лишається гладкою сферою.
   envVars = {
     PORT: "8000",
     WEB_CONCURRENCY: "2",
     LSE_CACHE_DIR: "/data",
     LSE_AUTO_PREPARE: "1",
     LSE_AUTO_PREPARE_MODE: "pack",
-    LSE_AUTO_PREPARE_DATASETS: "temperature,system",
+    LSE_AUTO_PREPARE_DATASETS: "temperature,system,globe",
     // SECRET_KEY задайте секретом: npx wrangler secret put SECRET_KEY (у коді його немає)
   };
 }

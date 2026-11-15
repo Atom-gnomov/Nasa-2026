@@ -20,7 +20,6 @@ test("запит: вимоги беруться з «Підбору» (регі�
   assert.ok(!("min_comm_hours" in body) && !("vehicle" in body) && !("launch_site_id" in body));
   assert.deepEqual(body.trajectories, ["direct"]); // календар — дата посадки: маршрут завжди явний, типово швидкий
   assert.equal(body.mission_profile, "uncrewed");
-  assert.equal(body.departure_days, 1); // старт підлаштовується під дату посадки
   assert.equal(body.days, 0);
 });
 
@@ -125,7 +124,6 @@ test("запит: вибрана на кроці 5 точка посадки п�
   const research = plan.buildPlanRequest({ ...plan.DEFAULT_FORM, useChosenPoint: false }, { datetime: "2027-03-01T06:00Z", lat: -82, lon: 28.8 });
   assert.ok(!("landing_point" in research));
   assert.ok(!("landing_point" in plan.buildPlanRequest({ ...plan.DEFAULT_FORM }, state)));
-  assert.equal(withPoint.departure_days, 1);
   assert.ok(!("departure" in withPoint)); // дата старту завжди обчислюється від дати посадки
 });
 

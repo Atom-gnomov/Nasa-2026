@@ -37,7 +37,6 @@ export function buildPlanRequest(form, state, searchForm = null) {
     mission_profile: form.profile,
     days: form.profile === "crewed" ? num(form.days) ?? 0 : 0,
     limit: num(form.plans) ?? 5,
-    departure_days: 1, // старт підлаштовується під дату посадки (календар): перебору інших дат немає
   };
   if (form.profile === "crewed" && num(form.crew) !== null) body.crew = Number(form.crew);
   if (plainSite(form.launchSite)) body.launch_site_id = form.launchSite;

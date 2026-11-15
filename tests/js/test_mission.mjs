@@ -248,3 +248,24 @@ test("своя маса категорії й позиції каталогу: �
   assert.match(m.equipmentSummary({ mass_range_kg: [6950, 6950], delivery_usd: [6.95e9, 8.34e9] }), /6\s950 кг.*\$7,0–8,3 млрд/);
   assert.equal(m.equipmentSummary(null), "");
 });
+
+test("крок 7: підсумок позицій із потужністю, рекомендації за метою, попередження", () => {
+  const eq = { mass_range_kg: [475, 475], delivery_usd: [4.75e8, 5.7e8], power_w: 0, supply_power_w: 0 };
+  assert.doesNotMatch(m.equipmentSummary(eq), /Споживання|Дають/);
+  const withPower = m.equipmentSummary({ ...eq, power_w: 195, supply_power_w: 40000 });
+  assert.match(withPower, /Споживання до 195 Вт/);
+  assert.match(withPower, /Дають 40 кВт/);
+  const catalog = { items: [{ id: "viper_rover", stage: "mobility" }, { id: "trident_drill", stage: "isru" }, { id: "fsp_reactor", stage: "power" }, { id: "clps_instrument", stage: "science" }] };
+  assert.deepEqual(m.recommendedItems("ice", catalog).map((x) => x.id), ["viper_rover", "trident_drill", "clps_instrument"]);
+  assert.deepEqual(m.recommendedItems("base", catalog).map((x) => x.id), ["viper_rover", "trident_drill", "fsp_reactor"]);
+  assert.deepEqual(m.recommendedItems("", catalog), []);
+  assert.deepEqual(m.recommendedItems("ice", null), []);
+  const r = { cost: { launches: 1, utilization: 0.5 }, equipment: { power_w: 100, supply_power_w: 0 } };
+  assert.deepEqual(m.payloadWarnings(r), []);
+  assert.deepEqual(m.payloadWarnings(null), []);
+  const multi = m.payloadWarnings({ ...r, cost: { launches: 2, utilization: 1.3 } });
+  assert.equal(multi.length, 1);
+  assert.match(multi[0], /не вміщується в одну ракету/);
+  const over = m.payloadWarnings({ ...r, equipment: { power_w: 50000, supply_power_w: 40000 } });
+  assert.match(over[0], /перевищує потужність реактора/);
+});

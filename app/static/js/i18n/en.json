@@ -717,7 +717,14 @@
     "Обрати": "Choose",
     "Обрано": "Chosen",
     "пуски": "launches",
-    "Цей варіант піде далі: у «Систему», перевірку й звіт": "This option goes on: to the System view, the check and the report"
+    "Цей варіант піде далі: у «Систему», перевірку й звіт": "This option goes on: to the System view, the check and the report",
+    "Споживання до {w} Вт.": "Consumption up to {w} W.",
+    "Дають {kw} кВт.": "Provide {kw} kW.",
+    "Навантаження не вміщується в одну ракету: {text}. Зменште масу або оберіть важчу ракету (крок 8).": "The payload does not fit one rocket: {text}. Reduce the mass or choose a heavier rocket (step 8).",
+    "Споживання обладнання ({w} Вт) перевищує потужність реактора ({kw} кВт).": "Equipment consumption ({w} W) exceeds the reactor power ({kw} kW).",
+    "Рекомендовано для мети місії": "Recommended for the mission goal",
+    "Для мети «{goal}» зазвичай потрібні: {items}. Це підказка, не вимога.": "For the goal “{goal}” these are usually needed: {items}. A hint, not a requirement.",
+    "Додати рекомендовані позиції": "Add recommended items"
   },
   "phrases": {
   "Рекомендовано {rec} діб (резерв {rp} %), заплановано {plan} діб (резерв {pp}).": "Recommended {rec} days (reserve {rp} %), planned {plan} days (reserve {pp}).",

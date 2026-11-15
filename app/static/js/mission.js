@@ -4,6 +4,7 @@
 
 import { getLang, onLangChange, t } from "./i18n.js";
 import { burnFromMission, saveBurn } from "./selection.js";
+import { GOALS as PLAN_GOALS, loadPlan } from "./mission_plan.js";
 import { loadLaunch, plainSite, saveLaunch } from "./pipeline.js";
 
 const STORAGE_KEY = "lse-mission";
@@ -366,7 +367,34 @@ export function equipmentSummary(eq) {
   if (!eq) return "";
   const [lo, hi] = eq.mass_range_kg;
   const mass = lo === hi ? fmtKg(lo) : `${NF.format(Math.round(lo))}–${NF.format(Math.round(hi))} ${t("кг")}`;
-  return t("Разом за позиціями: {mass}, доставка на Місяць ≈ {usd}.", { mass, usd: fmtUsdAny(eq.delivery_usd) });
+  const parts = [t("Разом за позиціями: {mass}, доставка на Місяць ≈ {usd}.", { mass, usd: fmtUsdAny(eq.delivery_usd) })];
+  if (eq.power_w > 0) parts.push(t("Споживання до {w} Вт.", { w: NF.format(Math.round(eq.power_w)) }));
+  if (eq.supply_power_w > 0) parts.push(t("Дають {kw} кВт.", { kw: NF.format(eq.supply_power_w / 1000) }));
+  return parts.join(" ");
+}
+
+// Крок 7: які етапи спорядження зазвичай потрібні для мети (за етапами каталогу; підказка, не вимога).
+export const GOAL_STAGES = {
+  samples: ["isru", "science"], ice: ["isru", "mobility", "science"], technology: ["science", "power"],
+  science: ["science", "mobility"], base: ["power", "isru", "mobility"],
+};
+
+// Позиції каталогу, рекомендовані для мети (за етапом позиції).
+export function recommendedItems(goal, catalog) {
+  const stages = GOAL_STAGES[goal] ?? [];
+  return (catalog?.items ?? []).filter((it) => stages.includes(it.stage));
+}
+
+// Попередження до кроку 7: маса проти місткості ракети й споживання проти потужності, яку дають позиції.
+export function payloadWarnings(r) {
+  const out = [];
+  if (!r) return out;
+  if (r.cost.launches > 1) out.push(t("Навантаження не вміщується в одну ракету: {text}. Зменште масу або оберіть важчу ракету (крок 8).", { text: fillInfo(r.cost).text }));
+  const eq = r.equipment;
+  if (eq?.supply_power_w > 0 && eq.power_w > eq.supply_power_w) {
+    out.push(t("Споживання обладнання ({w} Вт) перевищує потужність реактора ({kw} кВт).", { w: NF.format(Math.round(eq.power_w)), kw: NF.format(eq.supply_power_w / 1000) }));
+  }
+  return out;
 }
 
 export const warningTexts = (cs) => (cs?.warnings ?? []).map((w) => w.message);
@@ -465,6 +493,9 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
       parts.replaceChildren(...breakdownRows(r.payload.breakdown, key).map(([name, kg]) => li(`${name}: ${kg}`)));
     }
     $("m-eq-total").textContent = equipmentSummary(r.equipment);
+    const warn = payloadWarnings(r);
+    $("m-payload-warn").hidden = warn.length === 0;
+    $("m-payload-warn").textContent = warn.join(" ");
   }
 
   const lang = (uk, en) => (getLang() === "en" ? en ?? uk : uk);
@@ -478,7 +509,11 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
       for (const item of catalog.items.filter((x) => x.stage === stage.id)) {
         const row = document.createElement("div");
         row.className = "eq-row";
-        const name = Object.assign(document.createElement("strong"), { textContent: lang(item.name, item.name_en) });
+        const goalId = loadPlan().goal;
+        const rec = recommendedItems(goalId, catalog).some((x) => x.id === item.id);
+        if (rec) row.classList.add("recommended");
+        const name = Object.assign(document.createElement("strong"), { textContent: `${rec ? "★ " : ""}${lang(item.name, item.name_en)}` });
+        if (rec) name.title = t("Рекомендовано для мети місії");
         const count = Object.assign(document.createElement("input"), { type: "number", min: 0, max: 50, step: 1, inputMode: "numeric",
           value: form.equipmentItems[item.id] ?? 0, id: `m-eq-${item.id}` });
         count.setAttribute("aria-label", t("Кількість"));
@@ -493,6 +528,19 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
       }
     }
     $("m-eq-list").replaceChildren(...nodes);
+    renderGoalHint();
+  }
+
+  // Підказка за метою зі спільного плану (крок 1): які позиції каталогу рекомендовані й кнопка «Додати»
+  function renderGoalHint() {
+    const goalId = loadPlan().goal;
+    const items = catalog ? recommendedItems(goalId, catalog) : [];
+    const hint = $("m-goal-hint"), add = $("m-goal-add");
+    hint.hidden = add.hidden = items.length === 0;
+    if (!items.length) return;
+    const goal = t(PLAN_GOALS.find((g) => g.id === goalId)?.label ?? goalId);
+    hint.textContent = t("Для мети «{goal}» зазвичай потрібні: {items}. Це підказка, не вимога.", { goal, items: items.map((it) => lang(it.name, it.name_en)).join(", ") });
+    add.disabled = items.every((it) => form.equipmentItems[it.id] > 0);
   }
 
   function renderSupplies(r) {
@@ -595,6 +643,13 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
 
   $("m-crewed").addEventListener("input", (e) => { form.crewed = e.target.value === "1"; if (!form.crewed) form.crew = null; renderForm(); schedule(); });
   $("m-crew").addEventListener("input", (e) => { form.crew = e.target.value === "" ? null : clamp(Math.round(num(e.target.value, 1)), 1, 6); $("m-crew-mark").hidden = true; schedule(); });
+  $("m-goal-add").addEventListener("click", () => {
+    for (const it of recommendedItems(loadPlan().goal, catalog)) if (!(form.equipmentItems[it.id] > 0)) form.equipmentItems[it.id] = 1;
+    renderCatalog(); schedule();
+  });
+  // мету змінюють у смузі майстра на будь-якій сторінці: оновлюємо підказку й позначки
+  document.addEventListener("change", (e) => { if (e.target.matches?.(".mp-goal-select") && catalog) setTimeout(renderCatalog, 0); });
+  window.addEventListener("storage", () => { if (catalog) renderCatalog(); });
   $("m-night").addEventListener("input", (e) => { form.nightH = e.target.value === "" ? null : clamp(num(e.target.value, 0), 0, 8760); schedule(); });
   $("m-days").addEventListener("input", (e) => { form.days = clamp(Math.round(num(e.target.value, 0)), 0, 365); schedule(); });
   for (const key of Object.keys(form.sizes)) {

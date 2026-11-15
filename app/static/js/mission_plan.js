@@ -61,7 +61,7 @@ export function stepData(n, ctx) {
                        minSunPct: search.minSunPct, priorities: (search.priorities ?? []).filter((p) => p.on).map((p) => p.id) } : null };
     case 6: return { crewed: Boolean(mission?.crewed), crew: mission?.crew ?? null, bio: Boolean(mission?.useBio),
                      members: mission?.useBio ? mission.members : null };
-    case 7: return { sizes: mission?.sizes ?? null };
+    case 7: return { sizes: mission?.sizes ?? null, items: mission?.equipmentItems ?? null, categoryKg: mission?.categoryKg ?? null };
     case 8: return { site: launch.site || lead?.siteId || "", vehicle: launch.vehicle ?? "any", trajectory: launch.trajectory ?? "any" };
     // перевірка й звіт залежать від усіх виборів: змінились після підтвердження — потребують перегляду
     case 9: return [1, 2, 3, 4, 5, 6, 7, 8].map((k) => stepData(k, ctx));

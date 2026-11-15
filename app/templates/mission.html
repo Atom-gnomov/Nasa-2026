@@ -52,6 +52,8 @@
           <ul class="callout-parts"></ul>
           <h4>Спорядження за етапами планування</h4>
           <p class="muted small">Оберіть, скільки штук кожної позиції взяти: маса категорії стане сумою за позиціями замість оцінки за рівнем.</p>
+          <p class="muted small" id="m-goal-hint" hidden></p>
+          <button type="button" id="m-goal-add" hidden>Додати рекомендовані позиції</button>
           <div id="m-eq-list" class="eq-list"></div>
           <p class="small" id="m-eq-total"></p>
         </div>
@@ -110,6 +112,7 @@
       <label class="night-field">Найдовша ніч, год <small class="muted">(на неї розраховують акумулятори)</small>
         <input type="number" id="m-night" min="0" max="8760" step="1" inputmode="decimal" placeholder="не враховано">
       </label>
+      <p class="globe-warn" id="m-payload-warn" hidden></p>
       <p class="muted small" id="m-size-note">Для безпілотної місії життєзабезпечення й зручності не потрібні.</p>
     </fieldset>
 

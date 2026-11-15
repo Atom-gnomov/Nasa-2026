@@ -7,9 +7,11 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import replace
 from functools import lru_cache
 
 from app.core import burns, cost, crew as crew_model, launch_system, mission_profile, payload, risk
+from app.core import crew_roles
 from app.core import equipment as equipment_model
 from app.core.launch import TRAJECTORIES
 from app.services import catalogs
@@ -92,10 +94,31 @@ def _crew_members(body: Mapping) -> list | None:
         return None
     if not isinstance(raw, list) or not 1 <= len(raw) <= payload.MAX_CREW:
         raise MissionError(f"crew_members має бути списком від 1 до {payload.MAX_CREW} людей")
+    data = catalogs.load_crew_roles()
     try:
-        return [crew_model.parse_member(m) for m in raw]
+        members = [crew_model.parse_member(m) for m in raw]
+        out = []
+        for raw_member, m in zip(raw, members, strict=True):
+            if m.role is not None:
+                spec = crew_roles.role(data, m.role)
+                if "activity" not in raw_member:  # роль задає типову активність, якщо її не вказано
+                    m = replace(m, activity=spec["default_activity"])
+            out.append(m)
+        return out
     except ValueError as exc:
         raise MissionError(str(exc)) from exc
+
+
+def _crew_plan(members: list | None) -> dict | None:
+    """M27: склад за ролями й план підготовки; без жодної ролі — None."""
+    if not members or not any(m.role for m in members):
+        return None
+    data = catalogs.load_crew_roles()
+    roles = [m.role for m in members if m.role]
+    plan = crew_roles.composition(roles, data)
+    plan["unassigned"] = sum(1 for m in members if not m.role)
+    plan["training"] = crew_roles.training_plan(roles, data)
+    return plan
 
 
 def _categories(budget: payload.PayloadBudget, estimate: cost.CostEstimate) -> dict:
@@ -204,6 +227,7 @@ def compute(body: Mapping) -> dict:
                            "fit": launch_system.fit(estimate.mass_leo_kg, system, choice.rocket.capacity_leo_kg)}
                           if choice else None),
         "crew_supplies": supplies,
+        "crew_plan": _crew_plan(members),
         "equipment": eq,
         "mission_feasible": None if supplies is None else supplies["summary"]["mission_ok"],
         "flight_phases": {"tli": burns.tli_burn(estimate.mass_leo_kg, capacity_leo, transfer_params.dv_tli_m_s,

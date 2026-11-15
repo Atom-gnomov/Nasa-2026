@@ -49,6 +49,7 @@ class CrewMember:
     height_m: float
     age: float = 35.0
     activity: str = "active"
+    role: str | None = None  # M27: роль в екіпажі (id з crew_roles.json); перевіряє службовий шар
 
 
 # Еталонні профілі для підстановки за замовчуванням ⚠️ (не нормативні)
@@ -62,7 +63,7 @@ def parse_member(raw: Mapping) -> CrewMember:
     """Член екіпажу з тіла запиту; відсутні поля беруться з еталонного профілю статі. ValueError — помилка даних."""
     if not isinstance(raw, Mapping):
         raise ValueError("Кожен член екіпажу має бути об'єктом")
-    unknown = set(raw) - {"sex", "age", "mass_kg", "height_m", "activity"}
+    unknown = set(raw) - {"sex", "age", "mass_kg", "height_m", "activity", "role"}
     if unknown:
         raise ValueError(f"Невідомі поля члена екіпажу: {', '.join(sorted(unknown))}")
     sex = raw.get("sex")
@@ -79,7 +80,10 @@ def parse_member(raw: Mapping) -> CrewMember:
         if isinstance(value, bool) or not isinstance(value, (int, float)) or not lo <= value <= hi:
             raise ValueError(f"{key} має бути числом у межах {lo:g}…{hi:g}")
         values[key] = float(value)
-    return CrewMember(sex=sex, activity=activity, **values)
+    member_role = raw.get("role")
+    if member_role is not None and not isinstance(member_role, str):
+        raise ValueError("role має бути рядком")
+    return CrewMember(sex=sex, activity=activity, role=member_role, **values)
 
 
 def energy_kcal(member: CrewMember) -> float:

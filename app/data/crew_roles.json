@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "description": "Ролі екіпажу, модулі підготовки (human-rating) і типові склади техніки для безпілотної місії (M27). ⚠️ Години підготовки й правила складу — тимчасові оцінки, не нормативні; джерельні значення має звірити D-задача.",
+  "provisional": true,
+  "roles": [
+    {"id": "commander", "name": "Командир", "duties": "Відповідальність за місію, посадка й зліт, рішення в позаштатних ситуаціях", "default_activity": "active", "eva_share": 0.5,
+     "training": ["basics", "flight", "lander_ops", "eva", "emergency"]},
+    {"id": "pilot", "name": "Пілот", "duties": "Керування посадковим апаратом, навігація, стикування", "default_activity": "active", "eva_share": 0.3,
+     "training": ["basics", "flight", "lander_ops", "emergency"]},
+    {"id": "scientist", "name": "Науковець", "duties": "Польова геологія, відбір зразків, наукові прилади", "default_activity": "very_active", "eva_share": 1.0,
+     "training": ["basics", "eva", "field_geology", "emergency"]},
+    {"id": "engineer", "name": "Інженер", "duties": "Системи життєзабезпечення, живлення, ремонт, робота з технікою", "default_activity": "active", "eva_share": 0.7,
+     "training": ["basics", "lander_ops", "eva", "systems", "emergency"]},
+    {"id": "physician", "name": "Лікар", "duties": "Здоров'я екіпажу, медична допомога, дослідження фізіології", "default_activity": "low", "eva_share": 0.2,
+     "training": ["basics", "medical", "eva", "emergency"]}
+  ],
+  "training_modules": [
+    {"id": "basics", "name": "Загальнокосмічна підготовка", "hours": 1200, "note": "системи, фізіологія, виживання, мова, робота в команді"},
+    {"id": "flight", "name": "Пілотування й навігація", "hours": 400, "note": "тренажери польоту й посадки"},
+    {"id": "lander_ops", "name": "Експлуатація посадкового апарата", "hours": 300, "note": "системи апарата, нештатні режими"},
+    {"id": "eva", "name": "Позакорабельна діяльність (EVA)", "hours": 250, "note": "скафандр, гідролабораторія, місячна гравітація"},
+    {"id": "field_geology", "name": "Польова геологія й відбір зразків", "hours": 300, "note": "експедиції на аналоги місячних порід"},
+    {"id": "systems", "name": "Системи життєзабезпечення й ремонт", "hours": 250, "note": "ECLSS, живлення, діагностика"},
+    {"id": "medical", "name": "Медична підготовка", "hours": 350, "note": "невідкладна допомога, хірургія в мікрогравітації"},
+    {"id": "emergency", "name": "Аварійні сценарії", "hours": 150, "note": "розгерметизація, пожежа, евакуація"}
+  ],
+  "composition_rules": [
+    {"min_crew": 1, "require": ["commander"]},
+    {"min_crew": 2, "require": ["commander", "pilot"]},
+    {"min_crew": 3, "require": ["commander", "pilot", "scientist"]},
+    {"min_crew": 4, "require": ["commander", "pilot", "scientist", "engineer"]}
+  ],
+  "recommend": [
+    {"min_crew": 4, "role": "physician", "reason": "від чотирьох людей на довшу місію варто мати лікаря"}
+  ],
+  "robotic_presets": [
+    {"id": "sampler", "name": "Збір зразків", "items": [{"id": "clps_instrument", "count": 1}]},
+    {"id": "ice_prospector", "name": "Пошук льоду", "items": [{"id": "clps_instrument", "count": 1}, {"id": "viper_rover", "count": 1}, {"id": "trident_drill", "count": 1}]},
+    {"id": "outpost_power", "name": "Живлення бази", "items": [{"id": "clps_instrument", "count": 1}, {"id": "fsp_reactor", "count": 1}]}
+  ]
+}

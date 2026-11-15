@@ -877,7 +877,7 @@
     "Сітка": "Grid",
     "висота": "height",
     "Для складу з {n} осіб бракує ролей: {roles}.": "The {n}-person crew lacks roles: {roles}.",
-    "Без ролі: {n} осіб (у підготовку не входять).": "No role: {n} people (not included in training).",
+    "Без ролі: {n} (у підготовку не входять).": "No role: {n} (not included in training).",
     "Підготовка: {h} год на екіпаж (≈ {y} людино-років).": "Training: {h} h for the crew (≈ {y} person-years)."
   }
 }

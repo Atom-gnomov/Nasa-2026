@@ -566,7 +566,7 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
     const lines = [];
     if (plan.missing.length) lines.push(["warn", t("Для складу з {n} осіб бракує ролей: {roles}.", { n: plan.crew, roles: plan.missing.map((x) => t(ROLE_LABELS[x])).join(", ") })]);
     for (const rec of plan.recommended) lines.push(["info", `${t("Радимо додати")}: ${t(ROLE_LABELS[rec.role])} — ${lang(rec.reason, rec.reason_en)}.`]);
-    if (plan.unassigned) lines.push(["info", t("Без ролі: {n} осіб (у підготовку не входять).", { n: plan.unassigned })]);
+    if (plan.unassigned) lines.push(["info", t("Без ролі: {n} (у підготовку не входять).", { n: plan.unassigned })]);
     if (!lines.length) lines.push(["ok", t("Склад за ролями відповідає правилам.")]);
     $("m-crew-plan-notes").replaceChildren(...lines.map(([kind, text]) => Object.assign(document.createElement("li"), { className: `supply-${kind}`, textContent: text })));
     const tr = plan.training;

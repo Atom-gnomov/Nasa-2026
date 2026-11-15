@@ -10,6 +10,8 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/orbital-glass.css') }}">
   {# Cosmos: космічна тема (індиго + ціан, зоряне тло) поверх Orbital Glass. #}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/cosmos.css') }}">
+  {# Cosmo Glass: плоске матове скло без градієнтів (референс COSMO) і зоряне тло — після cosmos.css. #}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/cosmo-glass.css') }}">
   {# М16: Three.js через importmap, версія закріплена #}
   <script type="importmap">
     {
@@ -82,6 +84,7 @@
   <aside id="metrics-overlay" class="overlay">
     <h2>Метрики</h2>
     <p class="overlay-place" data-m="site">—</p>
+    <p class="overlay-sun" id="overlay-sun"></p>
     <p class="overlay-status" id="overlay-status"></p>
     {# Розділи заповнює static/js/overlay.js з кількох ендпоінтів; кожен незалежний #}
     <details open data-section="place"><summary>Місце й рельєф</summary><dl>
@@ -130,14 +133,13 @@
       <dt>Найдовша перерва зв'язку</dt><dd data-m="period_gap">—</dd>
       <dt>Енергія панелі 1 м²</dt><dd data-m="period_energy">—</dd>
     </dl></details>
-    <p class="overlay-note">Спостерігач на поверхні. Горизонт, тіні й зв'язок — з рельєфу LOLA; Сонце, Земля, DSN — DE440;
-      температура — вимірювання Diviner; доза — Chang'e 4 LND × частка відкритого неба.</p>
   </aside>
 
   <script type="module" src="{{ url_for('static', filename='js/calendar.js') }}"></script>
   <script type="module" src="{{ url_for('static', filename='js/overlay.js') }}"></script>
   <script type="module" src="{{ url_for('static', filename='js/data_status.js') }}"></script>
   <script type="module" src="{{ url_for('static', filename='js/workspace_ui.js') }}"></script>
+  <script type="module" src="{{ url_for('static', filename='js/starfield.js') }}"></script>
   {% block scripts %}{% endblock %}
   <script type="module" src="{{ url_for('static', filename='js/i18n.js') }}"></script>
 </body>

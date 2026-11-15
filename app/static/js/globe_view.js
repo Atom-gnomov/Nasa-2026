@@ -6,10 +6,11 @@
 //   • південний полюс: окремі детальні ділянки з LOLA LDEM_80S_80M і LDEM_875S_20M (PDS) у їхній рідній
 //     полярній стереографічній проєкції (dsmap_polar.cat) + маски горизонту для тіней від рельєфу;
 //   • Сонце: підсонячна точка з /api/system (JPL DE440, орієнтація Місяця IAU 2015);
-//   • висота під курсором: /api/elevation (найдетальніший DEM LOLA, білінійно).
+//   • під глобусом — лише координати курсора (висоту дає /api/elevation у «Метриках»).
 // Позиція вершини — зважена сума трьох видів (куля, карта, полюс), тому перемикання — плавна анімація.
 import * as THREE from "three";
 import { anisotropy, createScene, hasWebGL, NO_WEBGL_MESSAGE } from "./three/scene.js";
+import { ME_TO_GLOBE, bindSky, mul3 } from "./starfield.js";
 import { mountFallbackMap } from "./three/fallback2d.js";
 import { mountQualitySelect, qualitySettings } from "./three/quality.js";
 import { subscribeHighlights } from "./highlights.js";
@@ -600,7 +601,7 @@ function tempPanel() {
   return async function updateTempPanel() {
     const { lat, lon, datetime } = getState();
     if (!chart) return;
-    if (lat === null || lon === null) { chartSummary.textContent = "Виберіть місце на Місяці"; return; }
+    if (lat === null || lon === null) { chartSummary.textContent = ""; return; }
     const key = `${lat}|${lon}|${datetime}`;
     if (key === pointKey) return;
     pointKey = key;
@@ -611,7 +612,7 @@ function tempPanel() {
       const t = await res.json();
       if (!res.ok) throw new Error(t.detail);
       drawDiurnalChart(chart, t);
-      chartSummary.textContent = `${describeTemperature(t)}. Комірка Diviner 0,5° × 0,5°, місцевий час кроком 15 хв.`;
+      chartSummary.textContent = ""; // значення — у «Метриках» (Температура), тут лише крива
     } catch (err) {
       if (err.name === "AbortError") return;
       pointKey = null;
@@ -655,6 +656,8 @@ async function main() {
   const ctx = createScene(host, { quality });
   if (!ctx) return;
   const { scene, camera, renderer, controls } = ctx;
+  // справжнє зоряне небо: ICRF → власна система Місяця (/api/system) → осі глобуса; обертається разом з камерою
+  bindSky(camera, host, (orientation) => (orientation ? mul3(ME_TO_GLOBE, orientation) : null), { controls });
   camera.near = 0.00005;
   camera.far = 100;
   camera.updateProjectionMatrix();
@@ -781,7 +784,7 @@ async function main() {
   const relief = $("relief");
   const reliefOut = $("relief-value");
   const lightSel = $("light-mode");
-  const sunInfo = $("globe-sun");
+  const sunInfo = $("overlay-sun"); // «Сонце в зеніті» — у «Метриках» під координатами місця
   const warnEl = $("globe-warn");
 
   function configureControls(v) {
@@ -798,10 +801,11 @@ async function main() {
   }
 
   const globeCameraFor = (lat, lon, dist) => unitUp(lat, lon).multiplyScalar(dist);
+  const GLOBE_DISTANCE = 3.5; // планета цілком у кадрі, зі зірками навколо (як з орбіти)
 
   function setView(next) {
     if (next === view && !anim) return;
-    const camTo = next === "globe" ? globeCameraFor(-40, 0, 3.0) : new THREE.Vector3(...VIEWS[next].camera);
+    const camTo = next === "globe" ? globeCameraFor(-40, 0, GLOBE_DISTANCE) : new THREE.Vector3(...VIEWS[next].camera);
     anim = {
       from: [...w], to: VIEWS[next].w, camFrom: camera.position.clone(), camTo,
       tgtFrom: controls.target.clone(), t0: performance.now(), dur: 1100,
@@ -827,7 +831,7 @@ async function main() {
   });
   lightSel.addEventListener("change", () => { shared.uSunMode.value = lightSel.value === "sun" ? 1 : 0; });
 
-  camera.position.copy(globeCameraFor(-40, 0, 3.0));
+  camera.position.copy(globeCameraFor(-40, 0, GLOBE_DISTANCE));
   configureControls("globe");
 
   // Центрування на вибраній точці: з вкладки «Підбір», зі списку місць, за координатами.
@@ -871,9 +875,9 @@ async function main() {
       if (!res.ok) throw new Error(s.detail);
       const p = s.sub_solar_point;
       shared.uSunDir.value.copy(unitUp(p.lat, p.lon));
-      sunInfo.textContent = `Сонце в зеніті над ${fmtLat(p.lat, 2)}, ${fmtLon(p.lon, 2)} (${s.datetime})`;
+      if (sunInfo) sunInfo.textContent = tr("Сонце в зеніті над {pos}", { pos: `${fmtLat(p.lat, 2)}, ${fmtLon(p.lon, 2)}` });
     } catch (err) {
-      if (err.name !== "AbortError") sunInfo.textContent = "Сонце: немає даних ефемерид";
+      if (err.name !== "AbortError" && sunInfo) sunInfo.textContent = tr("Сонце: немає даних ефемерид");
     }
   }
   subscribe((st) => updateSun(st.datetime));
@@ -907,35 +911,10 @@ async function main() {
   }
 
   const cursorEl = $("globe-cursor");
-  let elevTimer = null;
-  let elevAbort = null;
+  // Під глобусом — лише координати курсора (висота, температура й сітка — у «Метриках» і налаштуваннях)
   renderer.domElement.addEventListener("pointermove", (ev) => {
     const hit = pick(...eventNdc(ev));
-    clearTimeout(elevTimer);
-    if (!hit) { cursorEl.textContent = "Курсор: —"; return; }
-    const where = `${fmtLat(hit.lat, 4)}, ${fmtLon(hit.lon, 4)}`;
-    cursorEl.textContent = `Курсор: ${where} · висота …`;
-    elevTimer = setTimeout(async () => {
-      elevAbort?.abort();
-      elevAbort = new AbortController();
-      try {
-        const q = new URLSearchParams({ lat: hit.lat.toFixed(5), lon: hit.lon.toFixed(5) });
-        const res = await fetch(`/api/elevation?${q}`, { signal: elevAbort.signal });
-        const e = await res.json();
-        let text = res.ok
-          ? `Курсор: ${where} · висота ${e.height_m.toFixed(0)} м (LOLA ${e.source.id.toUpperCase()}, ${fmtDist(e.source.resolution_m)}/пікс.)`
-          : `Курсор: ${where} · висота: ${e.detail}`;
-        if (layer === "temp") {
-          q.set("datetime", getState().datetime);
-          const tr = await fetch(`/api/temperature?${q}`, { signal: elevAbort.signal });
-          const t = await tr.json();
-          text += tr.ok ? ` · ${describeTemperature(t)}` : ` · температура: ${t.detail}`;
-        }
-        cursorEl.textContent = text;
-      } catch (err) {
-        if (err.name !== "AbortError") cursorEl.textContent = `Курсор: ${where}`;
-      }
-    }, 120);
+    cursorEl.textContent = hit ? `Курсор: ${fmtLat(hit.lat, 4)}, ${fmtLon(hit.lon, 4)}` : "Курсор: —";
   });
 
   let downAt = null;
@@ -1236,7 +1215,6 @@ async function main() {
     const center = pick(0, 0);
     const step = gridStepSel.value === "auto" ? autoGridStep() : Number(gridStepSel.value);
     shared.uGridStep.value = step;
-    $("globe-grid-label").textContent = shared.uGridOn.value > 0.5 ? `Сітка: ${step}°` : "";
     shared.uLight.value.copy(lightLocal).applyQuaternion(camera.quaternion);
 
     updateMarkers();

@@ -10,6 +10,8 @@
 // Висота камери (2 м) — лише для вигляду; вертикальне перебільшення рельєфу вмикає користувач і підписане.
 import * as THREE from "three";
 import { createScene, hasWebGL } from "./three/scene.js";
+import { bindSky, meToSurface, mul3, setSkyTime } from "./starfield.js";
+import { GROUND_LAYERS, createGroundMaterial, layerTexture, regolithLayer, sampleMoonTint } from "./regolith.js";
 import { qualitySettings } from "./three/quality.js";
 import { onLangChange, t } from "./i18n.js";
 import { getState, setState, subscribe } from "./state.js";
@@ -103,7 +105,13 @@ function ringMesh(mask, gray) {
 function patchMesh(patch, unit) {
   const { n, s, c, h } = patch;
   const rmax = patch.half * 0.98;
-  const pos = new Float32Array(n * n * 3), col = new Float32Array(n * n * 3), idx = [];
+  const pos = new Float32Array(n * n * 3), col = new Float32Array(n * n * 3), uv = new Float32Array(n * n * 2), idx = [];
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) { // одна плитка текстури = TILE_METERS на ґрунті; сітка поверхні з кроком s (м)
+      uv[(i * n + j) * 2] = j * s; // метри на ґрунті: схід, північ (шейдер ґрунту сам ділить на розмір плитки)
+      uv[(i * n + j) * 2 + 1] = i * s;
+    }
+  }
   const inside = (i, j) => Math.hypot((j - c) * s, (i - c) * s) <= rmax;
   for (let i = 0; i < n - 1; i++) {
     for (let j = 0; j < n - 1; j++) {
@@ -115,9 +123,11 @@ function patchMesh(patch, unit) {
   const geom = new THREE.BufferGeometry();
   const posAttr = new THREE.BufferAttribute(pos, 3), colAttr = new THREE.BufferAttribute(col, 3);
   geom.setAttribute("position", posAttr);
-  geom.setAttribute("color", colAttr);
+  geom.setAttribute("aLight", colAttr);
+  geom.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
   geom.setIndex(new THREE.BufferAttribute(Uint32Array.from(idx), 1));
-  const mesh = new THREE.Mesh(geom, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+  groundTextures ??= GROUND_LAYERS.map((spec) => layerTexture(THREE, regolithLayer(spec)));
+  const mesh = new THREE.Mesh(geom, createGroundMaterial(THREE, { sun: groundSun, tint: groundTint, unit, textures: groundTextures }));
   mesh.frustumCulled = false;
   return {
     mesh,
@@ -159,10 +169,22 @@ function pathLine(az, el, rgb) {
   return new THREE.Line(geom, new THREE.LineBasicMaterial({ color: new THREE.Color(`rgb(${rgb})`), transparent: true, opacity: 0.75 }));
 }
 
+// Точка спостереження для орієнтації зоряного неба (задає load())
+const skySite = { lat: 0, lon: 0 };
+// Ґрунт (regolith.js): відтінок з реальної карти Місяця в точці (задає load()), текстури мікрорельєфу (створюються раз)
+// і напрям на Сонце в осях сцени — спільний для всіх матеріалів ґрунту, оновлюється разом з повзунком часу
+let groundTint = [1, 1, 1];
+let groundTextures = null;
+const groundSun = new THREE.Vector3(0, 1, 0);
+
 function create3D(host, labelsEl) {
   const ctx = createScene(host);
   if (!ctx) return null;
   const { scene, camera, renderer, controls } = ctx;
+  // зорі — з тією ж орієнтацією, що Сонце й Земля: ICRF → власна система Місяця → схід/північ/зеніт точки
+  bindSky(camera, host, (orientation) => (orientation
+    ? mul3(meToSurface(skySite.lat, skySite.lon, skyVector(90, 0), skyVector(0, 0), skyVector(0, 90)), orientation) : null),
+  { parallax: false }); // камера в точці на поверхні: відстані до планети немає
   host.append(labelsEl);
   camera.fov = 70;
   camera.near = 0.0005;
@@ -231,6 +253,7 @@ function create3D(host, labelsEl) {
 
   function setMoment(series, i) {
     sun.position.copy(toVec3(series.sunAz[i], series.sun[i], R_BODY));
+    groundSun.copy(toVec3(series.sunAz[i], series.sun[i], 1)); // мікрорельєф ґрунту освітлюється тим самим Сонцем
     earth.position.copy(toVec3(series.earthAz[i], series.earth[i], R_BODY));
     const g = earthCanvas.getContext("2d");
     g.clearRect(0, 0, 128, 128);
@@ -494,7 +517,8 @@ if (root) {
     if (!mask || !series) return;
     const i = index();
     const hours = Math.round((series.t[i] - series.t[0]) / HOUR_MS);
-    momentEl.textContent = `${fmtMoment(series.t[i])} ${t("(+{n} год від дати календаря)", { n: hours })}`;
+    momentEl.textContent = `${fmtMoment(series.t[i])} ${t("+{n} год", { n: hours })}`;
+    setSkyTime(series.t[i]); // зорі за моментом на повзунку
     const st = series.stations[i];
     const ph = earthPhase(series.sunAz[i], series.sun[i], series.earthAz[i], series.earth[i]);
     eventsEl.textContent = [
@@ -560,20 +584,14 @@ if (root) {
       : a.source === "flat" ? t("поверхня довкола: гладка сфера (немає DEM)")
         : t("поверхня довкола: LOLA {src}, крок {step} м, радіус {r} км (відносно точки {lo}…+{hi} м)",
           { src: a.source.toUpperCase(), step: a.spacing_m.toFixed(0), r: a.radius_km, lo: a.min_height_m.toFixed(0), hi: a.max_height_m.toFixed(0) });
-    const pole = Math.abs(lat) > 89.999 ? ` ${t("(на полюсі — від меридіана 0°)")}` : "";
-    statusEl.textContent = [
-      t("Рельєф: {src}; {pat}.", { src, pat }),
-      t("Далі — силует за маскою до {d} км, найвища точка горизонту {max}°, відкрите небо {sky} %.",
-        { d: m.max_distance_km ?? 200, max: (m.max_elevation_deg ?? Math.max(...m.elevations_deg)).toFixed(1), sky: Math.round(m.sky_view_fraction * 100) }),
-      t("Яскравість умовна, тіні — геометричні, з DEM (за межами ділянки не враховано); камера на висоті {eye} м — лише для вигляду.", { eye: EYE_M }),
-      t("Азимут — від півночі за годинниковою стрілкою{pole}.", { pole }),
-      t("Перетягування — повернути, колесо — масштаб."),
-    ].join(" ");
+    // Джерело рельєфу вже є в «Метриках» (висота, горизонт) — тут лише застереження, коли DEM немає чи він неповний
+    const degraded = m.source === "flat" || !patch || a.source === "flat";
+    statusEl.textContent = degraded ? t("Рельєф: {src}; {pat}.", { src, pat }) : "";
   }
 
   async function load({ lat: la, lon, datetime, height_m: height = 0 }) {
     if (la == null || lon == null) {
-      statusEl.textContent = "Виберіть місце на Місяці — вид з поверхні покаже горизонт і рух Сонця й Землі.";
+      statusEl.textContent = "";
       return;
     }
     const point = { lat: la, lon };
@@ -606,6 +624,8 @@ if (root) {
       ]);
       const newPlace = mKey !== maskKey || pKey !== terrainKey;
       mask = m; series = seriesFrom(t); lat = la; patch = tr;
+      skySite.lat = la; skySite.lon = lon;
+      groundTint = await sampleMoonTint(la, lon); // колір ґрунту з реальної карти в точці
       maskKey = mKey; tlKey = tKey; terrainKey = pKey; lightKey = "";
       slider.max = String(series.t.length - 1);
       slider.value = "0";

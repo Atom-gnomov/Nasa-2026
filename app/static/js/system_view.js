@@ -9,6 +9,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { anisotropy, createScene, hasWebGL, NO_WEBGL_MESSAGE } from "./three/scene.js";
+import { bindSky } from "./starfield.js";
 import { mountQualitySelect, qualitySettings } from "./three/quality.js";
 import { getState, setState, subscribe } from "./state.js";
 import {
@@ -257,6 +258,7 @@ async function main() {
   } catch { /* немає даних — тіла будуть однотонними */ }
 
   const ctx = createScene(host, { logarithmicDepthBuffer: true, quality });
+  if (ctx) bindSky(ctx.camera, host, () => M_ICRF, { controls: ctx.controls }); // зорі обертаються разом із камерою сцени
   if (!ctx) return;
   const { scene, camera, renderer, controls } = ctx;
   camera.near = 0.001;

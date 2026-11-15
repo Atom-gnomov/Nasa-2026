@@ -16,7 +16,7 @@ import { loadBurn, loadLead } from "./selection.js";
 import { effectiveSite, effectiveTrajectory, loadLaunch, saveLaunch } from "./pipeline.js";
 import {
   AUTO_OPTIONS, DESCENT_REAL_S, choiceFact, descentRows, descentState, flightFact, flightUrl, interpSystem, needsReload,
-  BURN_REAL_S, burnRows, defaultSimSpeed, burnSummaryRows, remapNearMoon, sampleStepMs, sampleTimes, splitExtras, stateAt, telemetryRows, validBurn,
+  BURN_REAL_S, burnRows, defaultSimSpeed, fitDistance, burnSummaryRows, remapNearMoon, sampleStepMs, sampleTimes, splitExtras, stateAt, telemetryRows, validBurn,
   timeInitial, timeOnFlightStart, timeOnFlightEnd, timeOnPlayPress,
 } from "./flight.js";
 import { t } from "./i18n.js";
@@ -388,6 +388,7 @@ async function main() {
   const sim = { on: false, elapsed: 0, traj: null, phase: "cruise", burn: 0, desc: 0, u0: null, samples: null, t0: 0, landedT: 0, loading: false };
   const UP = new THREE.Vector3(0, 1, 0);
   let flight = null; // splitExtras(...) останньої відповіді
+  let flightBox = null; // { center, radius } траси (разом із Землею) у сцені — щоб «Огляд» вміщував і довгий економний маршрут
   let flightReq = null; // { siteId, ms, lat, lon } останнього запиту
   let flightLoading = false;
   const flightSelect = $("system-flight");
@@ -426,6 +427,8 @@ async function main() {
       const res = await fetch(flightUrl(next.siteId, ms, lat, lon, next.route));
       const body = await res.json();
       flight = res.ok ? splitExtras(body.extras) : null;
+      if (!flight?.trajectory) flightBox = null;
+      if (focus === "overview") setFocus("overview", true); // новий маршрут — плавно підлаштовуємо кадр
       const tof = flight?.trajectory?.times_s?.at(-1);
       if (tof && $("system-sim-speed")) $("system-sim-speed").value = String(defaultSimSpeed(tof)); // довгий переліт — швидший час
       if (!res.ok) $("system-note").textContent = `Політ: ${body.detail ?? res.status}`;
@@ -627,6 +630,8 @@ async function main() {
         arc.unshift(lay.earth.pos.clone().addScaledVector(up, lay.earth.r + lay.earth.r * 0.3));
       }
       setLine(flightLine, arc, new THREE.Vector3(), 1);
+      const box = new THREE.Box3().setFromPoints([lay.earth.pos, ...arc]);
+      flightBox = { center: box.getCenter(new THREE.Vector3()), radius: box.getSize(new THREE.Vector3()).length() / 2 };
       const arrival = lay.earth.pos.clone().addScaledVector(toScene(t.moon_at_arrival_km), kMoon);
       moonAtArrival.position.copy(arrival);
       moonAtArrival.scale.setScalar(lay.moon.r * 1.02);
@@ -978,7 +983,11 @@ async function main() {
       if (t) return { target: t.pos.clone(), dist: t.h * 4 };
       focus = "overview";
     }
-    if (focus === "overview") return lay.overview;
+    if (focus === "overview") {
+      // Підлаштовуємо камеру під маршрут: економна траса йде далеко за орбіту Місяця (≈ 5 її радіусів)
+      const fit = flight?.trajectory && flightBox ? fitDistance(flightBox.radius) : 0;
+      return fit > lay.overview.dist ? { target: flightBox.center, dist: fit } : lay.overview; // довгий маршрут — по центру траси
+    }
     if (focus === "moonview") {
       // Камера на лінії «Місяць → Земля»: Місяць видно так, як із центру Землі (справжня фаза).
       // Напрямок точний в обох масштабах: схематичний стискає лише довжину вектора Земля–Місяць.

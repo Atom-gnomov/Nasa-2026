@@ -268,6 +268,12 @@ export function burnSummaryRows(burn) {
     ["Заповненість ракети", `${Math.round(burn.utilization * 100)} %${burn.overloaded ? " ⚠" : ""}`]];
 }
 
+// Відстань камери (одиниці сцени), щоб траса радіуса reach вмістилась у видиму смугу між бічними віджетами: із запасом на поле
+// зору й на те, що траса йде в один бік. 0 — траси немає.
+export function fitDistance(reach, factor = 3.4) {
+  return Number.isFinite(reach) && reach > 0 ? reach * factor : 0;
+}
+
 // Швидкість симуляції (с польоту на 1 с реального часу) за тривалістю перельоту: щоб переліт займав ≈ 20 с реальних.
 export const SPEED_CHOICES = [3600, 14400, 43200, 86400, 259200];
 export function defaultSimSpeed(tofS) {

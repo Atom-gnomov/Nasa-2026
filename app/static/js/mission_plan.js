@@ -112,6 +112,12 @@ export function stepFromLocation(pathname, search = "", hash = "") {
   return { "/search": 5, "/mission": 2, "/plan": 8, "/system": 8, "/launch-window": 3, "/consistency": 9, "/report": 10 }[pathname] ?? null;
 }
 
+// Чи належить елемент із атрибутом data-step (напр. "2 4 6") кроку n.
+export const stepMatches = (attr, n) => String(attr ?? "").split(/\s+/).includes(String(n));
+
+// Фокус на кроці: елемент ховаємо, якщо він сам не для цього кроку й у ньому немає вкладених елементів цього кроку.
+export const hiddenInFocus = (ownAttr, hasMatchingDescendant, n) => !stepMatches(ownAttr, n) && !hasMatchingDescendant;
+
 // Адреса кроку зі збереженням решти параметрів (дата, мова…).
 export function stepHref(step, search = "") {
   const params = new URLSearchParams(search);
@@ -186,16 +192,34 @@ function init() {
     highlight(cur);
   }
 
+  // Прохід майстром: на тій самій вкладці для кожного кроку видно лише потрібне налаштування (решту можна показати кнопкою)
+  const explicitStep = () => /[?&]step=\d/.test(location.search);
+  let showAll = false;
   function highlight(cur) {
     for (const el of document.querySelectorAll(".mp-focus")) el.classList.remove("mp-focus");
+    for (const el of document.querySelectorAll(".mp-hidden")) el.classList.remove("mp-hidden");
     if (!cur) return;
-    const targets = [...document.querySelectorAll("[data-step]")].filter((el) => el.dataset.step.split(/\s+/).includes(String(cur)));
+    const all = [...document.querySelectorAll("[data-step]")];
+    const targets = all.filter((el) => stepMatches(el.dataset.step, cur));
     for (const el of targets) el.classList.add("mp-focus");
+    const focusMode = explicitStep() && !showAll && targets.length > 0;
+    if (focusMode) {
+      for (const el of all) {
+        if (hiddenInFocus(el.dataset.step, el.querySelector(stepSelector(cur)) !== null, cur)) el.classList.add("mp-hidden");
+      }
+    }
+    document.body.classList.toggle("mp-focus-mode", focusMode);
+    const toggle = nav.querySelector(".mp-showall");
+    toggle.hidden = !(explicitStep() && targets.length > 0);
+    toggle.setAttribute("aria-pressed", String(showAll));
+    toggle.textContent = showAll ? t("Лише цей крок") : t("Усі налаштування");
     targets[0]?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
   }
+  const stepSelector = (n) => `[data-step~="${n}"]`;
 
   const go = (n) => { const step = STEPS.find((x) => x.n === n); if (step?.ready) location.href = stepHref(step, location.search); };
   nav.querySelector(".mp-prev").addEventListener("click", () => { const cur = current(); if (cur) go(prevStep(cur)); });
+  nav.querySelector(".mp-showall").addEventListener("click", () => { showAll = !showAll; highlight(current()); });
   nav.querySelector(".mp-next").addEventListener("click", () => {
     const cur = current();
     if (!cur) return;

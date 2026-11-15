@@ -36,7 +36,7 @@ html { background: #02030a; }
 body { background: transparent; } /* інакше фон body закриває canvas зоряного неба (z-index: −1) */
 body::before { background: #02030a; }
 body.has-starfield::before, body.has-starfield::after { display: none; }
-#starfield { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: -1; pointer-events: none; display: block; }
+#starfield { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: -2; pointer-events: none; display: block; }
 
 /* ---------- Скляні поверхні ---------- */
 body.page-moon .ui-scene-widget, body.page-system .ui-scene-widget,
@@ -443,8 +443,8 @@ body.page-moon #surface .ui-surface-dock { display: flex; }
 /* ---------- Перехід між сторінками ----------
    До першого кадру інтерфейс прихований (ui-pending): його знімає, коли переклад і розкладка панелей готові; тоді він плавно
    проявляється. Між сторінками — плавне перехрещення (View Transitions), без різкої заміни. */
-html.ui-pending body > *:not(#intro):not(#starfield):not(#boot-loader) { opacity: 0; }
-body > *:not(#intro):not(#starfield):not(#boot-loader) { transition: opacity .25s ease; }
+html.ui-pending body > *:not(#intro):not(#starfield):not(#moon-backdrop):not(#boot-loader) { opacity: 0; }
+body > *:not(#intro):not(#starfield):not(#moon-backdrop):not(#boot-loader) { transition: opacity .25s ease; }
 @view-transition { navigation: auto; }
 ::view-transition-old(root), ::view-transition-new(root) { animation-duration: .25s; }
 
@@ -588,3 +588,6 @@ html.boot-loading #boot-loader {
 #boot-loader img { width: 96px; height: 96px; animation: boot-spin 1.6s linear infinite; }
 @keyframes boot-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { #boot-loader img { animation: none; } }
+
+/* ---------- Місяць-тло на сторінках кроків планування: над зоряним небом, під інтерфейсом ---------- */
+#moon-backdrop { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: -1; pointer-events: none; display: block; }

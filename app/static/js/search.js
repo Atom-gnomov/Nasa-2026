@@ -4,7 +4,8 @@
 // Дата початку береться зі спільного календаря (state.js), кінець = початок + «довжина періоду».
 // Чисті функції (без DOM) експортовано й покрито tests/js/test_search.mjs.
 import { publishHighlights } from "./highlights.js";
-import { getState, setState } from "./state.js";
+import { getState, serializeUrlState, setState, subscribe } from "./state.js";
+import { t } from "./i18n.js";
 
 const DAY_MS = 86_400_000;
 export const STORAGE_KEY = "lse-search";
@@ -203,6 +204,13 @@ export function buildAdviceFacts(response, form, top = 5) {
 export function gridNote(grid) {
   const base = `Оцінено ${grid.evaluated} з ${grid.candidates} кандидатів (крок сітки ${grid.step_deg}°).`;
   return grid.truncated ? `${base} Бюджет часу сервера вичерпано: зменште область, збільште крок сітки або скоротіть період.` : base;
+}
+
+// Підписи «дата посадки» й «поточна точка» для кроку «Район, дата й точка посадки»: це одне рішення.
+export const PICK_KEY = "lse-pick-mode";
+export const landingDateText = (state) => String(state?.datetime ?? "").replace("T", " ").replace("Z", " UTC");
+export function pickedPointText(state) {
+  return Number.isFinite(state?.lat) && Number.isFinite(state?.lon) ? `${state.lat.toFixed(2)}°, ${state.lon.toFixed(2)}°` : "";
 }
 
 // ---------- Інтерфейс (вкладка «Підбір», search.html) ----------
@@ -433,6 +441,28 @@ if (root) {
   el.height.addEventListener("change", () => { form.heightM = clamp(numberOr(el.height, 0), 0, 1000); save(); renderForm(); });
   el.run.addEventListener("click", run);
   el.adviceAsk.addEventListener("click", askAdvice);
+
+  // Автопідбір чи ручний вибір точки; дата посадки — завжди з календаря
+  const pickButtons = root.querySelectorAll("[data-pick]");
+  let pick = "auto";
+  try { pick = localStorage.getItem(PICK_KEY) === "manual" ? "manual" : "auto"; } catch { /* приватний режим */ }
+  function renderPick() {
+    const state = getState();
+    root.querySelector("#s-auto").hidden = pick === "manual";
+    root.querySelector("#s-manual").hidden = pick !== "manual";
+    for (const b of pickButtons) b.setAttribute("aria-pressed", String(b.dataset.pick === pick));
+    root.querySelector("#s-landing-date").textContent = `${t("Дата посадки")}: ${landingDateText(state)} (${t("змінюється в календарі вгорі")})`;
+    const point = pickedPointText(state);
+    root.querySelector("#s-manual-point").textContent = point ? `${t("Обрана точка")}: ${point}` : t("Точку ще не обрано.");
+    root.querySelector("#s-manual-open").href = `/moon?${serializeUrlState(state, "step=5")}`;
+  }
+  for (const b of pickButtons) b.addEventListener("click", () => {
+    pick = b.dataset.pick;
+    try { localStorage.setItem(PICK_KEY, pick); } catch { /* приватний режим */ }
+    renderPick();
+  });
+  subscribe(renderPick);
+  renderPick();
 
   renderForm();
   fetch("/api/meta").then((r) => r.json()).then((meta) => {

@@ -269,3 +269,26 @@ test("крок 7: підсумок позицій із потужністю, р�
   const over = m.payloadWarnings({ ...r, equipment: { power_w: 50000, supply_power_w: 40000 } });
   assert.match(over[0], /перевищує потужність реактора/);
 });
+
+test("resizeCrew: додає людей за чергою «чоловік, жінка» і прибирає зайвих з кінця", () => {
+  const two = m.resizeCrew([], 2);
+  assert.deepEqual(two.map((x) => x.sex), ["male", "female"]);
+  assert.equal(m.resizeCrew(two, 4).length, 4);
+  assert.deepEqual(m.resizeCrew(two, 1), [two[0]]);
+  assert.equal(m.resizeCrew(two, 99).length, m.MAX_CREW);
+  assert.equal(m.resizeCrew(two, 0).length, 1);
+});
+
+test("nightQuery: запит до /api/timeline лише коли є точка; безпілотна — типове перебування", () => {
+  const state = { datetime: "2027-03-01T12:00Z", lat: -89.5, lon: 10 };
+  assert.equal(m.nightQuery({ ...state, lat: null }, form()), null);
+  assert.equal(m.nightQuery({ ...state, datetime: "не дата" }, form()), null);
+  const uncrewed = new URL(m.nightQuery(state, form()), "http://x");
+  assert.equal(uncrewed.pathname, "/api/timeline");
+  assert.equal(uncrewed.searchParams.get("start"), "2027-03-01T12:00Z");
+  assert.equal(uncrewed.searchParams.get("end"), "2027-03-15T12:00Z"); // 14 діб
+  assert.equal(uncrewed.searchParams.get("step_h"), "1");
+  const crewed = new URL(m.nightQuery(state, form({ crewed: true, days: 90 })), "http://x");
+  assert.equal(crewed.searchParams.get("end"), "2027-05-30T12:00Z");
+  assert.equal(crewed.searchParams.get("step_h"), "6"); // довге перебування — грубіший крок
+});

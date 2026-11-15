@@ -12,15 +12,28 @@ const ctx = (patch = {}) => ({
   state: { datetime: "2027-03-01T12:00Z", lat: -89.5, lon: 0, site: null }, ...patch,
 });
 
-test("є 10 кроків у порядку рішень; усі готові", () => {
+test("є 10 кроків; крок 3 злито з кроком 5, «Тривалість» лише для пілотованої місії", () => {
   assert.deepEqual(m.STEPS.map((s) => s.n), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
   assert.deepEqual(m.STEPS.filter((s) => !s.ready).map((s) => s.n), []);
+  const crewed = { crewed: true }, uncrewed = { crewed: false };
+  assert.deepEqual(m.visibleSteps(uncrewed).map((s) => s.n), [1, 2, 5, 6, 7, 8, 9, 10]);
+  assert.deepEqual(m.visibleSteps(crewed).map((s) => s.n), [1, 2, 4, 5, 6, 7, 8, 9, 10]);
+  assert.deepEqual(m.visibleSteps(null).map((s) => s.n), [1, 2, 5, 6, 7, 8, 9, 10]);
+  assert.equal(m.displayNumber(5, uncrewed), 3);
+  assert.equal(m.displayNumber(5, crewed), 4);
+  assert.equal(m.displayNumber(4, uncrewed), 0); // прихований крок номера не має
+  assert.equal(m.nextStep(2, uncrewed), 5);
+  assert.equal(m.nextStep(2, crewed), 4);
+  assert.equal(m.nextStep(4, crewed), 5);
+  assert.equal(m.nextStep(3, uncrewed), 6); // 3 — псевдонім 5
   assert.equal(m.nextStep(8), 9);
   assert.equal(m.nextStep(9), 10);
   assert.equal(m.nextStep(10), null);
-  assert.equal(m.nextStep(3), 4);
   assert.equal(m.prevStep(1), null);
-  assert.equal(m.prevStep(5), 4);
+  assert.equal(m.prevStep(5, uncrewed), 2);
+  assert.equal(m.prevStep(5, crewed), 4);
+  assert.equal(m.canonicalStep(3), 5);
+  assert.equal(m.canonicalStep(7), 7);
 });
 
 test("план: назва обрізається, мета з переліку, підтвердження лише для кроків 1–10", () => {
@@ -67,6 +80,8 @@ test("заповненість: мета, точка на Місяці, майд
   assert.equal(m.stepFilled(1, c), false);
   assert.equal(m.stepFilled(1, ctx({ plan: { ...c.plan, goal: "ice" } })), true);
   assert.equal(m.stepFilled(5, ctx({ state: { datetime: "2027-03-01T12:00Z", lat: null, lon: null } })), false);
+  assert.equal(m.stepFilled(5, ctx({ state: { datetime: "2027-03-01T12:00Z", lat: -89.5, lon: 0 } })), true);
+  assert.equal(m.stepFilled(5, ctx({ state: { datetime: "", lat: -89.5, lon: 0 } })), false); // без дати крок не заповнений
   assert.equal(m.stepFilled(8, ctx({ launch: {}, lead: { siteId: "kourou" } })), true);
   assert.equal(m.stepFilled(8, ctx({ launch: {}, lead: null })), false);
   assert.equal(m.stepFilled(2, ctx({ mission: null })), false);
@@ -79,7 +94,7 @@ test("крок за адресою: явний ?step=, інакше типови
   assert.equal(m.stepFromLocation("/mission", ""), 2);
   assert.equal(m.stepFromLocation("/plan", ""), 8);
   assert.equal(m.stepFromLocation("/system", ""), 8);
-  assert.equal(m.stepFromLocation("/moon", "?step=3"), 3); // «Дата посадки» — календар у шапці
+  assert.equal(m.stepFromLocation("/moon", "?step=3"), 5); // дата посадки злита з районом і точкою
   assert.equal(m.stepFromLocation("/moon", "", "#search"), 5);
   assert.equal(m.stepFromLocation("/moon", "", ""), null);
   assert.equal(m.stepFromLocation("/mission", "?step=99"), 2);

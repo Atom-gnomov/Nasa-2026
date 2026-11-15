@@ -45,11 +45,11 @@ FULL = {
 def test_full_report_has_sections_in_step_order(client, monkeypatch):
     _fake_timeline(monkeypatch)
     data = _post(client, FULL)
-    assert [s["step"] for s in data["sections"]] == [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    assert [s["step"] for s in data["sections"]] == [1, 2, 4, 5, 6, 7, 8, 9]
     assert data["name"] == "Південь-1" and data["goal_label"] == "Пошук води й льоду"
     assert _values(data, 1) == {"Назва": "Південь-1", "Мета": "Пошук води й льоду"}
     assert _values(data, 2)["Тип"] == "пілотована"
-    assert _values(data, 3)["Дата й час запуску"] == "2027-08-24 02:01 UTC"
+    assert _values(data, 5)["Дата посадки"] == "2027-08-24 02:01 UTC"  # дата й місце посадки — один крок
     assert "Шеклтон" in _values(data, 5)["Точка"]
     assert _values(data, 4)["Зліт і повернення"].startswith("не змодельовано")
     assert any("VIPER" in label for label in _values(data, 6))
@@ -62,7 +62,7 @@ def test_markdown_follows_sections_and_lists_sources(client, monkeypatch):
     _fake_timeline(monkeypatch)
     md = _post(client, FULL)["markdown"]
     assert md.startswith("# Місія: Південь-1")
-    positions = [md.index(f"## {n}. ") for n in range(1, 10)]
+    positions = [md.index(f"## {n}. ") for n in range(1, 9)]  # 8 розділів: «Дата посадки» злито з районом і точкою
     assert positions == sorted(positions)
     assert "## Послідовність рішень" in md and "Назва місії → Мета місії" in md
     assert "## Джерела" in md and "https://" in md  # VIPER має джерело NASA
@@ -79,7 +79,7 @@ def test_sources_include_thresholds_used_by_conflicts(client, monkeypatch):
 def test_empty_choices_still_give_a_report(client):
     data = _post(client, {"mission": {"days": 0}})
     assert _values(data, 1) == {"Назва": "не задано", "Мета": "не задано"}
-    assert _values(data, 3)["Дата й час запуску"] == "не задано"
+    assert _values(data, 5)["Дата посадки"] == "не задано"
     assert _values(data, 5)["Точка"] == "не вибрано"
     assert data["markdown"].startswith("# Місія: без назви")
     assert data["ok"] is True

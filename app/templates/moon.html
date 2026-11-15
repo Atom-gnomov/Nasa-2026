@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Місяць — Lunar Mission Builder{% endblock %}
 {% block content %}
+{# Підказка кроку «Район, дата й точка посадки»: видно лише в майстрі (смуга кроків ставить body[data-mp-step]) #}
+<p class="mp-step-hint" data-hint-step="5">Клацніть по глобусу, щоб обрати точку посадки; дату змінюйте в календарі вгорі. Потім натисніть «Підтвердити й далі».</p>
 <section class="moon-layout">
   <div class="globe-wrap">
     {# Глобус: модуль static/js/globe_view.js; текстури — tools/build_globe_textures.py #}

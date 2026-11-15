@@ -12,9 +12,10 @@ export const PLAN_KEY = "lse-mission-plan";
 export const STEPS = [
   { n: 1, title: "Назва й мета", path: "/moon", ready: true },
   { n: 2, title: "Тип місії", path: "/mission", ready: true },
-  { n: 3, title: "Дата посадки", path: "/moon", ready: true }, // календар у шапці; старт підлаштовується під неї
-  { n: 4, title: "Тривалість", path: "/mission", ready: true },
-  { n: 5, title: "Район і точка посадки", path: "/search", ready: true },
+  // Дата й місце посадки — одне ціле: крок 3 лишається лише як псевдонім кроку 5 (календар і точка — на одному екрані)
+  { n: 3, title: "Дата посадки", path: "/moon", ready: true, mergedInto: 5 },
+  { n: 4, title: "Тривалість", path: "/mission", ready: true, onlyCrewed: true }, // без людей тривалість не потрібна
+  { n: 5, title: "Район, дата й точка посадки", path: "/search", ready: true },
   { n: 6, title: "Екіпаж або техніка", path: "/mission", ready: true },
   { n: 7, title: "Корисне навантаження", path: "/mission", ready: true },
   { n: 8, title: "Носій і політ", path: "/plan", ready: true },
@@ -55,7 +56,7 @@ export function stepData(n, ctx) {
     case 2: return { crewed: Boolean(mission?.crewed) };
     case 3: return { date: String(state.datetime ?? "").slice(0, 10) };
     case 4: return { crewed: Boolean(mission?.crewed), days: mission?.days ?? null };
-    case 5: return { lat: state.lat ?? null, lon: state.lon ?? null, site: state.site ?? null,
+    case 5: return { date: String(state.datetime ?? "").slice(0, 10), lat: state.lat ?? null, lon: state.lon ?? null, site: state.site ?? null,
                      requirements: search ? { days: search.days, regionKey: search.regionKey, minSunHours: search.minSunHours,
                        minCommHours: search.minCommHours, maxSlopeDeg: search.maxSlopeDeg, minEarthPct: search.minEarthPct,
                        minSunPct: search.minSunPct, priorities: (search.priorities ?? []).filter((p) => p.on).map((p) => p.id) } : null };
@@ -79,7 +80,7 @@ export function stepFilled(n, ctx) {
     case 2: return ctx.mission != null;
     case 3: return Boolean(d.date);
     case 4: return d.days != null;
-    case 5: return d.lat != null && d.lon != null;
+    case 5: return d.lat != null && d.lon != null && Boolean(d.date);
     case 6: return ctx.mission != null;
     case 7: return d.sizes != null;
     case 8: return Boolean(d.site);
@@ -101,13 +102,27 @@ export function confirmStep(n, ctx) {
   return plan;
 }
 
-export const nextStep = (n) => (STEPS.find((s) => s.n === n + 1 && s.ready) ? n + 1 : null);
-export const prevStep = (n) => (n > 1 ? n - 1 : null);
+// Кроки, видимі у смузі: без злитих і без «Тривалості» для безпілотної місії. Номер на кнопці — місце в цьому списку.
+export const stepVisible = (step, mission) => step.ready && !step.mergedInto && !(step.onlyCrewed && !mission?.crewed);
+export const visibleSteps = (mission) => STEPS.filter((s) => stepVisible(s, mission));
+export const displayNumber = (n, mission) => visibleSteps(mission).findIndex((s) => s.n === n) + 1;
+export const canonicalStep = (n) => STEPS.find((s) => s.n === n)?.mergedInto ?? n;
 
-// Крок за адресою: явний ?step=n, інакше типовий для сторінки (Підбір — 5, Місія — 2, План і «Система» — 8, Вікно запуску — 3).
+export function nextStep(n, mission = null) {
+  const list = visibleSteps(mission);
+  const i = list.findIndex((s) => s.n === canonicalStep(n));
+  return i >= 0 && i + 1 < list.length ? list[i + 1].n : null;
+}
+export function prevStep(n, mission = null) {
+  const list = visibleSteps(mission);
+  const i = list.findIndex((s) => s.n === canonicalStep(n));
+  return i > 0 ? list[i - 1].n : null;
+}
+
+// Крок за адресою: явний ?step=n, інакше типовий для сторінки (Підбір — 5, Місія — 2, План і «Система» — 8).
 export function stepFromLocation(pathname, search = "", hash = "") {
   const m = /[?&]step=(\d{1,2})\b/.exec(search);
-  if (m && Number(m[1]) >= 1 && Number(m[1]) <= STEPS.length) return Number(m[1]);
+  if (m && Number(m[1]) >= 1 && Number(m[1]) <= STEPS.length) return canonicalStep(Number(m[1]));
   if (pathname === "/moon") return hash === "#search" ? 5 : null;
   return { "/search": 5, "/mission": 2, "/plan": 8, "/system": 8, "/consistency": 9, "/report": 10 }[pathname] ?? null;
 }
@@ -190,19 +205,19 @@ function init() {
   function render() {
     const ctx = buildContext(plan);
     const cur = current();
-    chips.replaceChildren(...STEPS.map((step) => {
+    chips.replaceChildren(...visibleSteps(ctx.mission).map((step) => {
       const status = stepStatus(step.n, ctx);
       const a = document.createElement(step.ready ? "a" : "span");
       a.className = `mp-chip ${status}${cur === step.n ? " current" : ""}${step.ready ? "" : " soon"}`;
       if (step.ready) a.href = stepHref(step, location.search); else a.title = t("Скоро: цей крок ще розробляється");
       if (cur === step.n) a.setAttribute("aria-current", "step");
-      const num = Object.assign(document.createElement("b"), { textContent: ICON[status] || String(step.n) });
+      const num = Object.assign(document.createElement("b"), { textContent: ICON[status] || String(displayNumber(step.n, ctx.mission)) });
       a.append(num, " ", Object.assign(document.createElement("span"), { textContent: t(step.title) }));
       if (status === "review") a.title = t("Дані змінились після підтвердження — перегляньте крок");
       if (step.n === 1) a.addEventListener("click", (ev) => { if (cur === 1 || !pop.hidden) { ev.preventDefault(); pop.hidden = !pop.hidden; } });
       return a;
     }));
-    const prev = cur ? prevStep(cur) : null, next = cur ? nextStep(cur) : null;
+    const prev = cur ? prevStep(cur, ctx.mission) : null, next = cur ? nextStep(cur, ctx.mission) : null;
     nav.hidden = !cur;
     const prevBtn = nav.querySelector(".mp-prev"), nextBtn = nav.querySelector(".mp-next");
     prevBtn.disabled = !prev;
@@ -232,6 +247,7 @@ function init() {
       }
     }
     document.body.classList.toggle("mp-focus-mode", focusMode);
+    if (explicitStep() && cur) document.body.dataset.mpStep = String(cur); else delete document.body.dataset.mpStep;
     const toggle = nav.querySelector(".mp-showall");
     toggle.hidden = !(explicitStep() && targets.length > 0);
     toggle.setAttribute("aria-pressed", String(showAll));
@@ -241,14 +257,14 @@ function init() {
   const stepSelector = (n) => `[data-step~="${n}"]`;
 
   const go = (n) => { const step = STEPS.find((x) => x.n === n); if (step?.ready) location.href = stepHref(step, location.search); };
-  nav.querySelector(".mp-prev").addEventListener("click", () => { const cur = current(); if (cur) go(prevStep(cur)); });
+  nav.querySelector(".mp-prev").addEventListener("click", () => { const cur = current(); if (cur) go(prevStep(cur, loadMissionForm())); });
   nav.querySelector(".mp-showall").addEventListener("click", () => { showAll = !showAll; highlight(current()); });
   nav.querySelector(".mp-next").addEventListener("click", () => {
     const cur = current();
     if (!cur) return;
     plan = confirmStep(cur, buildContext(plan));
     savePlan(plan);
-    const next = nextStep(cur);
+    const next = nextStep(cur, loadMissionForm());
     if (next) go(next); else render();
   });
 
@@ -307,6 +323,7 @@ function init() {
   render();
   subscribe(render);
   window.addEventListener("storage", () => { plan = loadPlan(); render(); });
+  window.addEventListener("lse-mission-changed", render);
   window.addEventListener("pageshow", () => { plan = loadPlan(); render(); });
   onLangChange(() => { goalSel.replaceChildren(...GOALS.map((g) => new Option(t(g.label), g.id))); goalSel.value = plan.goal; render(); });
 }

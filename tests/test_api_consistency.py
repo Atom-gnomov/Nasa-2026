@@ -46,7 +46,7 @@ def test_missing_choices_point_to_their_steps(client):
     data = _post(client, {"mission": CREW})
     steps = {c["id"]: c["step"] for c in data["conflicts"]}
     assert steps["goal-missing"] == 1 and steps["name-missing"] == 1
-    assert steps["window-missing"] == 3
+    assert steps["window-missing"] == 5
     assert data["skipped"][0]["id"] == "light"
     data = _post(client, {"mission": CREW, "datetime": DATE})
     assert {c["id"]: c["step"] for c in data["conflicts"]}["site-missing"] == 5

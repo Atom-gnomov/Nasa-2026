@@ -347,6 +347,20 @@ input[type="range"] { margin: 0 !important; }
 :is(#view, .ui-widget, .ui-dock) fieldset > legend { float: left; width: 100%; box-sizing: border-box; padding: 0 0 var(--gap-s) !important; margin: 0; }
 :is(#view, .ui-widget, .ui-dock) fieldset > legend + * { clear: both; }
 
+/* ---------- Запаси екіпажу: повзунки в кг і підсумок ---------- */
+.supply-kg { display: grid; gap: var(--gap-s); margin-top: var(--gap-s); }
+.supply-kg h3 { margin: 0; }
+.supply-kg-row { display: grid; grid-template-columns: 1fr auto; gap: 4px var(--gap-s); align-items: center; }
+.supply-kg-row label { grid-column: 1 / -1; }
+.supply-kg-row input[type="range"] { grid-column: 1; width: 100%; }
+.supply-kg-row output { grid-column: 1; font-size: var(--fs-s); color: var(--cg-muted); }
+.supply-kg-row button { grid-column: 2; grid-row: 2; }
+.supply-kg-row output[data-status="shortage"], .supply-summary .supply-crit { color: #ff8a80 !important; }
+.supply-kg-row output[data-status="reserve"] { color: #ffd166; }
+.supply-kg-row output[data-status="excess"], .supply-summary .supply-warn { color: #ffd166 !important; }
+.supply-kg-row output[data-status="ok"], .supply-summary .supply-ok { color: #7bed9f !important; }
+.supply-summary { list-style: none; margin: 0 0 var(--gap-s); padding: 0; display: grid; gap: 4px; }
+
 /* ---------- Прямі кути, без світіння ----------
    Ефект скла лишається (прозорий білуватий фон, розмиття, тонка світла рамка); прибрано: заокруглення кутів,
    світіння (тіні, ореоли, тіні тексту), кольорові точки біля заголовків віджетів і блоків результатів. */

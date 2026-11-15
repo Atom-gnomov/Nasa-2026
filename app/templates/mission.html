@@ -54,6 +54,13 @@
         <button type="button" id="m-add-member">Додати людину</button>
         <label>Запаси везти на, діб <input type="number" id="m-supply-days" min="0" max="365" step="1" inputmode="numeric" placeholder="рекомендовано"></label>
         <label>Рекомендований запас, % <input type="number" id="m-reserve" min="0" max="200" step="1" inputmode="numeric" value="15"></label>
+        <div class="supply-kg" id="m-supply-kg">
+          <h3>Запаси, кг</h3>
+          <p class="muted small">Рухайте повзунок, щоб задати свій обсяг; позначка на шкалі — рекомендований. «Авто» — за запасом у добах.</p>
+          <div class="supply-kg-row"><label for="m-kg-oxygen">Кисень</label><input type="range" id="m-kg-oxygen" min="0" max="100" step="1" value="0" list="m-kg-oxygen-mark"><datalist id="m-kg-oxygen-mark"></datalist><output id="m-kg-oxygen-out"></output><button type="button" id="m-kg-oxygen-auto" disabled>Авто</button></div>
+          <div class="supply-kg-row"><label for="m-kg-water">Вода</label><input type="range" id="m-kg-water" min="0" max="100" step="1" value="0" list="m-kg-water-mark"><datalist id="m-kg-water-mark"></datalist><output id="m-kg-water-out"></output><button type="button" id="m-kg-water-auto" disabled>Авто</button></div>
+          <div class="supply-kg-row"><label for="m-kg-food">Їжа (з упаковкою)</label><input type="range" id="m-kg-food" min="0" max="100" step="1" value="0" list="m-kg-food-mark"><datalist id="m-kg-food-mark"></datalist><output id="m-kg-food-out"></output><button type="button" id="m-kg-food-auto" disabled>Авто</button></div>
+        </div>
         <p class="muted small">Потреби рахуються за рівняннями енергії NASA (стать, вік, маса, зріст, активність); кисень, вода й їжа — пропорційно до енергії. Резерв 15 % і еталонні значення — тимчасові.</p>
       </div>
     </fieldset>
@@ -94,11 +101,12 @@
     </dl>
     <section id="m-supplies" class="mission-supplies" hidden>
       <h3>Запаси екіпажу</h3>
+      <ul class="supply-summary" id="m-supply-summary"></ul>
       <p class="globe-warn" id="m-supply-warn" hidden></p>
       <p class="muted small" id="m-supply-reserve"></p>
       <div class="table-scroll">
         <table class="results-table" id="m-supply-table">
-          <thead><tr><th>Запас</th><th>На добу (екіпаж)</th><th>Завезено</th><th>Потрібно на місію</th></tr></thead>
+          <thead><tr><th>Запас</th><th>На добу (екіпаж)</th><th>Завезено</th><th>Потрібно на місію</th><th>Рекомендовано</th><th>Вистачить на, діб</th><th>Баланс</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>

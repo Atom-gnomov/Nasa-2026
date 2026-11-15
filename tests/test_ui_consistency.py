@@ -251,3 +251,12 @@ def test_select_inner_button_has_no_own_frame_or_background():
     assert "box-shadow: none !important" in rule
     for prop in props:
         assert prop in rule, prop
+
+
+def test_supply_sliders_and_summary_are_in_the_mission_panel():
+    """Повзунки запасів у кг, підсумок «надлишок / нестача» і колір станів — на сторінці «Місія» (П-14)."""
+    html = TEMPLATES["mission.html"]
+    for key in ("oxygen", "water", "food"):
+        assert f'id="m-kg-{key}"' in html and f'id="m-kg-{key}-auto"' in html and f'id="m-kg-{key}-mark"' in html
+    assert 'id="m-supply-summary"' in html and "Баланс" in html
+    assert re.search(r"\.supply-summary \.supply-crit \{ color: #[0-9a-f]{6} !important", CSS)

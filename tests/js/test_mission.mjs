@@ -199,3 +199,28 @@ test("журнал довгої місії проріджується, але п
   const rows = m.logRows(long, 40);
   assert.ok(rows.length <= 41 && rows[0].cells[0] === "0" && rows.at(-1).cells[0] === "365");
 });
+
+test("довільні обсяги запасів: запит supply_kg лише для заданих; нормалізація; повзунок і підсумок", () => {
+  const body = m.buildMissionRequest(form({ crewed: true, crew: 1, useBio: true, members: [m.defaultMember("male")],
+                                            supplyKg: { oxygen: 5, water: null, food: 40 } }));
+  assert.deepEqual(body.supply_kg, { oxygen: 5, food: 40 });
+  const none = m.buildMissionRequest(form({ crewed: true, crew: 1, useBio: true, members: [m.defaultMember("male")] }));
+  assert.ok(!("supply_kg" in none));
+  const f = m.normalizeForm({ supplyKg: { oxygen: "7", water: -3, food: 1e9, extra: 1 } });
+  assert.deepEqual(f.supplyKg, { oxygen: 7, water: 0, food: 100000 });
+  const res = { crew_supplies: { days: 10, loaded_total_kg: 100, per_day: {}, loaded_kg: {}, required_kg: {},
+    resources: { oxygen: { loaded_kg: 4, recommended_kg: 10, runs_out_day: 4, excess_kg: 0, covers_days: 4, balance_kg: -6, required_kg: 10 },
+                 water: { loaded_kg: 60, recommended_kg: 20, runs_out_day: null, excess_kg: 40, covers_days: 30, balance_kg: 40, required_kg: 18 } },
+    summary: { mission_ok: false, first_shortage_day: 4, first_shortage_resource: "oxygen", excess_kg: 40, deficit_kg: 6, critical: true },
+    economics: { loaded_usd: [1e5, 3e5], excess_usd: [4e4, 1.2e5], deficit_usd: [6e3, 1.8e4] } } };
+  const lines = m.summaryLines(res);
+  assert.equal(lines[0].kind, "crit");
+  assert.match(lines[0].text, /кисень закінчується на добі 4 з 10/);
+  assert.ok(lines.some((l) => l.kind === "crit" && /Нестача/.test(l.text) && /\$6,0–18 тис\./.test(l.text)));
+  assert.ok(lines.some((l) => l.kind === "warn" && /Надлишок/.test(l.text) && /\$40–120 тис\./.test(l.text)));
+  const s = m.supplySlider(res.crew_supplies, "oxygen", null);
+  assert.equal(s.status, "shortage"); assert.equal(s.auto, true); assert.equal(s.rec, 10); assert.ok(s.max >= 20);
+  assert.equal(m.supplySlider(res.crew_supplies, "water", 60).status, "excess");
+  assert.equal(m.supplySlider(null, "oxygen", null), null);
+  assert.equal(m.fmtUsdAny([500, 900]), "$500–900");
+});

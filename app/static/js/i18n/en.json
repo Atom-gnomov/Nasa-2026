@@ -567,7 +567,18 @@
     "Шкала": "Scale",
     "Джерела": "Sources",
     "Час": "Time",
-    "Дані": "Data"
+    "Дані": "Data",
+    "Запаси, кг": "Supplies, kg",
+    "Рухайте повзунок, щоб задати свій обсяг; позначка на шкалі — рекомендований. «Авто» — за запасом у добах.": "Move the slider to set your own amount; the mark on the scale is the recommended one. “Auto” uses the supply in days.",
+    "Рекомендовано": "Recommended",
+    "Вистачить на, діб": "Lasts, days",
+    "Баланс": "Balance",
+    "Запасів життєзабезпечення вистачає на всю місію.": "Life-support supplies last for the whole mission.",
+    "Усі запаси разом: {kg}, ≈ {usd} (ціни тимчасові).": "All supplies together: {kg}, ≈ {usd} (prices are provisional).",
+    "Місія не виконується: {res} закінчується на добі {day} з {days}.": "Mission not feasible: {res} runs out on day {day} of {days}.",
+    "Нестача: {kg}; щоб закрити, треба ≈ {usd}.": "Shortfall: {kg}; to cover it ≈ {usd} is needed.",
+    "Надлишок понад потребу й резерв: {kg} — зайві гроші ≈ {usd}.": "Excess over need and reserve: {kg} — wasted money ≈ {usd}.",
+    "тис.": "k"
   },
   "phrases": {
   "Рекомендовано {rec} діб (резерв {rp} %), заплановано {plan} діб (резерв {pp}).": "Recommended {rec} days (reserve {rp} %), planned {plan} days (reserve {pp}).",

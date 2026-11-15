@@ -27,6 +27,7 @@ export const DEFAULT_FORM = {
   members: [], // [{sex, age, mass_kg, height_m, activity}]
   supplyDays: null, // на скільки діб везуть запаси; null — рекомендовано
   reservePct: 15, // рекомендований запас, % ⚠️ тимчасово
+  supplyKg: { oxygen: null, water: null, food: null }, // П-14: довільні обсяги запасів, кг; null — «авто» (за запасом у добах)
 };
 
 export const SEX_LABELS = { male: "чоловік", female: "жінка" };
@@ -70,6 +71,10 @@ export function normalizeForm(raw) {
   f.members = Array.isArray(raw.members) ? raw.members.slice(0, MAX_CREW).map(normalizeMember) : [];
   f.supplyDays = raw.supplyDays == null || raw.supplyDays === "" ? null : clamp(num(raw.supplyDays, 0), 0, 365);
   f.reservePct = clamp(num(raw.reservePct, 15), 0, 200);
+  for (const key of Object.keys(f.supplyKg)) {
+    const v = raw.supplyKg?.[key];
+    f.supplyKg[key] = v == null || v === "" ? null : clamp(num(v, 0), 0, 100000);
+  }
   return f;
 }
 
@@ -87,6 +92,8 @@ export function buildMissionRequest(form) {
     delete body.crew;
     if (form.supplyDays !== null) body.supply_days = form.supplyDays;
     if (form.reservePct !== 15) body.reserve_fraction = form.reservePct / 100;
+    const kg = Object.fromEntries(Object.entries(form.supplyKg).filter(([, v]) => v !== null));
+    if (Object.keys(kg).length) body.supply_kg = kg; // П-14: довільні обсяги окремих запасів
   }
   if (form.systemId) body.launch_system_id = form.systemId;
   if (form.siteId) body.launch_site_id = form.siteId;
@@ -225,15 +232,66 @@ export function categoryNumbers(cat, levelLabel) {
   return `${levelLabel}: ${fmtKg(cat.mass_kg)} · ${fmtUsdRange(cat.usd)}${power}`;
 }
 
-// Таблиця запасів: що, на добу (кг), завезено (кг), потрібно на місію (кг).
+// Таблиця запасів: що, на добу (кг), завезено, потрібно на місію, рекомендовано, на скільки діб вистачить, баланс (± кг).
 export function suppliesRows(cs) {
   if (!cs) return [];
-  return Object.keys(SUPPLY_LABELS).map((k) => [
-    supplyLabel(k),
-    `${NUM1.format(cs.per_day[{ oxygen: "oxygen_kg", water: "water_kg", food: "food_kg" }[k]])} ${t("кг")}`,
-    fmtKg(cs.loaded_kg[k]),
-    fmtKg(cs.required_kg[k]),
-  ]);
+  const signed = (kg) => `${kg > 0.5 ? "+" : ""}${NF.format(Math.round(kg))} ${t("кг")}`;
+  return Object.keys(SUPPLY_LABELS).map((k) => {
+    const r = cs.resources?.[k];
+    return [
+      supplyLabel(k),
+      `${NUM1.format(cs.per_day[{ oxygen: "oxygen_kg", water: "water_kg", food: "food_kg" }[k]])} ${t("кг")}`,
+      fmtKg(cs.loaded_kg[k]),
+      fmtKg(cs.required_kg[k]),
+      r ? fmtKg(r.recommended_kg) : "—",
+      r && Number.isFinite(r.covers_days) && r.covers_days < 1e6 ? NUM1.format(r.covers_days) : "—",
+      r ? signed(r.balance_kg) : "—",
+    ];
+  });
+}
+
+// Гроші без «млн»-округлення для малих сум: $12 тис., $1,2 млн.
+export function fmtUsdAny(range) {
+  const [lo, hi] = range;
+  const unit = hi >= 1e9 ? { div: 1e9, name: "млрд" } : hi >= 1e6 ? { div: 1e6, name: "млн" } : hi >= 1e3 ? { div: 1e3, name: "тис." } : { div: 1, name: "" };
+  const f = (v) => { const x = v / unit.div; return x >= 10 ? NF.format(Math.round(x)) : x.toFixed(1).replace(".", ","); };
+  return `$${f(lo)}–${f(hi)}${unit.name ? ` ${t(unit.name)}` : ""}`;
+}
+
+// Підсумок запасів для планувальника: чи вистачає, де закінчиться, скільки зайвого й скільки грошей це коштує.
+export function summaryLines(r) {
+  const cs = r?.crew_supplies;
+  if (!cs?.summary) return [];
+  const s = cs.summary, eco = cs.economics;
+  const out = [];
+  if (s.mission_ok) out.push({ kind: "ok", text: t("Запасів життєзабезпечення вистачає на всю місію.") });
+  else {
+    out.push({ kind: "crit", text: t("Місія не виконується: {res} закінчується на добі {day} з {days}.", {
+      res: supplyLabel(s.first_shortage_resource).toLowerCase(), day: NUM1.format(s.first_shortage_day), days: NUM1.format(cs.days) }) });
+  }
+  if (s.deficit_kg > 0.05) {
+    out.push({ kind: "crit", text: t("Нестача: {kg}; щоб закрити, треба ≈ {usd}.", {
+      kg: fmtKg(s.deficit_kg), usd: eco ? fmtUsdAny(eco.deficit_usd) : "—" }) });
+  }
+  if (s.excess_kg > 0.05) {
+    out.push({ kind: "warn", text: t("Надлишок понад потребу й резерв: {kg} — зайві гроші ≈ {usd}.", {
+      kg: fmtKg(s.excess_kg), usd: eco ? fmtUsdAny(eco.excess_usd) : "—" }) });
+  }
+  if (eco) out.push({ kind: "", text: t("Усі запаси разом: {kg}, ≈ {usd} (ціни тимчасові).", { kg: fmtKg(cs.loaded_total_kg), usd: fmtUsdAny(eco.loaded_usd) }) });
+  return out;
+}
+
+// Повзунок запасу в кг: межі, крок, значення, позначка «рекомендовано» і підпис (авто — значення рахує сервер).
+export function supplySlider(cs, key, userKg) {
+  const r = cs?.resources?.[key];
+  if (!r) return null;
+  const rec = r.recommended_kg;
+  const value = userKg ?? r.loaded_kg;
+  const max = Math.max(1, Math.ceil(Math.max(rec * 2, value * 1.05)));
+  const step = max <= 40 ? 0.1 : max <= 400 ? 1 : 5;
+  const status = r.runs_out_day !== null ? "shortage" : value < rec - 1e-9 ? "reserve" : r.excess_kg > 0.05 ? "excess" : "ok";
+  return { min: 0, max, step, value: Math.round(value * 10) / 10, rec: Math.round(rec * 10) / 10, auto: userKg == null, status,
+           text: `${NUM1.format(value)} ${t("кг")} · ${t("рекомендовано")} ${NUM1.format(rec)} ${t("кг")}` };
 }
 
 // Підсумок запасу: «рекомендовано 23 доби, заплановано 23 доби (резерв 15 %)».
@@ -294,6 +352,7 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
     $("m-bio-fields").hidden = !(form.crewed && form.useBio);
     $("m-supply-days").value = form.supplyDays ?? "";
     $("m-reserve").value = form.reservePct;
+    for (const key of Object.keys(form.supplyKg)) $(`m-kg-${key}-auto`).disabled = form.supplyKg[key] === null;
     renderMembers();
   }
 
@@ -339,6 +398,19 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
       $(`m-num-${key}`).textContent = categoryNumbers(r.categories?.[key], LEVELS[form.sizes[key]].label);
     }
     if (!cs) return;
+    const summary = summaryLines(r);
+    $("m-supply-summary").replaceChildren(...summary.map((l) => Object.assign(document.createElement("li"), { textContent: l.text, className: `supply-${l.kind || "info"}` })));
+    for (const key of Object.keys(form.supplyKg)) {
+      const s = supplySlider(cs, key, form.supplyKg[key]);
+      if (!s) continue;
+      const range = $(`m-kg-${key}`);
+      if (document.activeElement !== range) { range.max = s.max; range.step = s.step; range.value = s.value; }
+      range.dataset.status = s.status;
+      $(`m-kg-${key}-mark`).replaceChildren(Object.assign(document.createElement("option"), { value: Math.min(s.rec, s.max) }));
+      $(`m-kg-${key}-out`).textContent = s.text;
+      $(`m-kg-${key}-out`).dataset.status = s.status;
+      $(`m-kg-${key}-auto`).disabled = s.auto;
+    }
     const warn = warningTexts(cs);
     $("m-supply-warn").hidden = warn.length === 0;
     $("m-supply-warn").textContent = warn.join(" ");
@@ -435,6 +507,10 @@ if (typeof document !== "undefined" && document.getElementById("m-result")) {
   });
   $("m-supply-days").addEventListener("input", (e) => { form.supplyDays = e.target.value === "" ? null : clamp(num(e.target.value, 0), 0, 365); schedule(); });
   $("m-reserve").addEventListener("input", (e) => { form.reservePct = clamp(num(e.target.value, 15), 0, 200); schedule(); });
+  for (const key of Object.keys(form.supplyKg)) { // П-14: довільні обсяги запасів, кг; «Авто» повертає розрахунок за добами
+    $(`m-kg-${key}`).addEventListener("input", (e) => { form.supplyKg[key] = clamp(num(e.target.value, 0), 0, 100000); $(`m-kg-${key}-auto`).disabled = false; schedule(); });
+    $(`m-kg-${key}-auto`).addEventListener("click", () => { form.supplyKg[key] = null; $(`m-kg-${key}-auto`).disabled = true; schedule(); });
+  }
   $("m-trajectory").addEventListener("change", (e) => { form.trajectory = e.target.value; schedule(); });
   $("m-system").addEventListener("change", (e) => { form.systemId = e.target.value; schedule(); });
   $("m-site").addEventListener("change", (e) => { form.siteId = e.target.value; schedule(); });

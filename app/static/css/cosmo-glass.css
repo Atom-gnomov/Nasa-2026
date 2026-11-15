@@ -307,9 +307,9 @@ select option:checked { background-color: #2a3346 !important; }
 }
 :is(#view, .ui-widget, .ui-dock) button:not([class]):not(:disabled):hover { background: var(--cg-fill-strong); color: #fff; }
 
-/* Одне й те саме скло на всіх сторінках: панелі «Підбору» (форма й порада ШІ) мали синій градієнт, розмиття 20 px й іншу рамку —
+/* Одне й те саме скло на всіх сторінках: панелі «Підбору» мали синій градієнт, розмиття 20 px й іншу рамку —
    тепер, як і в решти панелей, прозоре забілення, те саме розмиття й світла рамка */
-#view :is(.ui-widget, .side-panel, .advice, .workspace-results) {
+#view :is(.ui-widget, .side-panel, .workspace-results) {
   background: var(--cg-fill) !important; background-image: none !important;
   border: 1px solid var(--cg-line) !important; box-shadow: none !important;
   backdrop-filter: var(--cg-blur) !important; -webkit-backdrop-filter: var(--cg-blur) !important;

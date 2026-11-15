@@ -272,10 +272,7 @@ function initSystem() {
 function initSearch() {
   const root = document.getElementById("search");
   if (!root) return;
-  const advice = root.querySelector("#s-advice");
-  if (advice) root.append(advice); // третя колонка, окремий віджет ШІ
   prepareWidget(root.querySelector(".search-form"), "left", "Вимоги та пріоритети");
-  prepareWidget(advice, "right", "Поради ШІ");
 }
 
 function initAnalytics() {

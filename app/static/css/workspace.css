@@ -412,7 +412,7 @@ body:not(.page-moon):not(.page-system) #view {
 }
 body.page-search #search.search-layout {
   display: grid;
-  grid-template-columns: minmax(250px, 320px) minmax(0, 1fr) minmax(260px, 320px);
+  grid-template-columns: minmax(250px, 320px) minmax(0, 1fr);
   align-items: start;
   gap: 18px;
   margin: 0;
@@ -424,10 +424,7 @@ body.page-search #search .search-results {
   border: 1px solid var(--glass-stroke);
   border-radius: 14px;
 }
-body.page-search #search > #s-advice { min-width: 0; }
 body.page-search #search .widget-body { display: grid; gap: 10px; }
-body.page-search #search .widget-body .advice-controls { display: grid; }
-body.page-search #search .widget-body .advice-controls input { width: 100%; min-width: 0; }
 body.page-search #search .widget-body h2:first-child, body.page-search #search .widget-body h3:first-child { display: none; }
 body.page-search #search .ui-widget { position: sticky; top: calc(var(--header-h) + 12px); max-height: calc(100dvh - var(--header-h) - 36px); }
 body.page-search #search .search-form .widget-body label { display: grid; gap: 4px; }
@@ -463,11 +460,8 @@ body.page-mission .mission-form .widget-body, body.page-launch .lw-controls .wid
 body.page-mission .mission-form .mission-field { margin: 4px 0; }
 body.page-mission .mission-result h2 { margin-top: 0; }
 body.page-launch .lw-controls label, body.page-plan .lw-controls label { min-width: 0; }
-body.page-search[data-left-state="collapsed"] #search { grid-template-columns: 43px minmax(0,1fr) minmax(260px,320px); }
-body.page-search[data-right-state="collapsed"] #search { grid-template-columns: minmax(250px,320px) minmax(0,1fr) 43px; }
-body.page-search[data-left-state="collapsed"][data-right-state="collapsed"] #search { grid-template-columns: 43px minmax(0,1fr) 43px; }
-body.page-search[data-expanded="left"] #search { grid-template-columns: minmax(0,1fr) minmax(0,1fr) 43px; }
-body.page-search[data-expanded="right"] #search { grid-template-columns: 43px minmax(0,1fr) minmax(0,1fr); }
+body.page-search[data-left-state="collapsed"] #search { grid-template-columns: 43px minmax(0,1fr); }
+body.page-search[data-expanded="left"] #search { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
 body.page-mission[data-left-state="collapsed"] .mission-layout,
 body.page-launch[data-left-state="collapsed"] .lw-layout,
 body.page-plan[data-left-state="collapsed"] .lw-layout { grid-template-columns: 43px minmax(0,1fr); }
@@ -485,13 +479,11 @@ body:not(.page-moon):not(.page-system) .ui-widget.is-collapsed { width: 43px; mi
   .topbar { gap: 6px 10px; }
   .topbar .calendar { order: 3; flex: 1 1 100%; justify-content: center; }
   .header-actions { margin-left: auto; }
-  body.page-search #search.search-layout { grid-template-columns: minmax(240px,290px) minmax(0,1fr) minmax(230px,285px); gap: 12px; }
+  body.page-search #search.search-layout { grid-template-columns: minmax(240px,290px) minmax(0,1fr); gap: 12px; }
 }
 @media (max-width: 1000px) {
   body.page-search #search.search-layout { grid-template-columns: minmax(230px,300px) minmax(0,1fr); }
-  body.page-search #search > #s-advice { grid-column: 1 / -1; position: static; max-height: none; }
   body.page-search[data-expanded="left"] #search, body.page-search[data-expanded="right"] #search { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
-  body.page-search #search > #s-advice.is-collapsed { grid-column: auto; }
 }
 @media (max-width: 760px) {
   .topbar { padding: 8px 10px; }
@@ -549,11 +541,8 @@ body.page-moon #surface .surface-back:hover { background: rgba(43,61,84,.95); }
 /* Висока специфічність макетів не повинна заважати справжньому згортанню. */
 .ui-widget.is-collapsed > .widget-body { display: none !important; }
 @media (min-width: 1001px) {
-  body.page-search[data-left-state="collapsed"] #search.search-layout { grid-template-columns: 43px minmax(0,1fr) minmax(260px,320px); }
-  body.page-search[data-right-state="collapsed"] #search.search-layout { grid-template-columns: minmax(250px,320px) minmax(0,1fr) 43px; }
-  body.page-search[data-left-state="collapsed"][data-right-state="collapsed"] #search.search-layout { grid-template-columns: 43px minmax(0,1fr) 43px; }
-  body.page-search[data-expanded="left"] #search.search-layout { grid-template-columns: minmax(0,1fr) minmax(0,1fr) 43px; }
-  body.page-search[data-expanded="right"] #search.search-layout { grid-template-columns: 43px minmax(0,1fr) minmax(0,1fr); }
+  body.page-search[data-left-state="collapsed"] #search.search-layout { grid-template-columns: 43px minmax(0,1fr); }
+  body.page-search[data-expanded="left"] #search.search-layout { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
 }
 
 /* Сонце / Земля / DSN за місячну добу — графік у лівому віджеті «Системи». */
@@ -758,14 +747,6 @@ body.page-search #search .widget-body .prio {
   border-radius: 9px; padding: 9px;
 }
 body.page-search #search .widget-body .prio:hover { border-color: rgba(245,185,66,.4); }
-body.page-search #search #s-advice { border-color: var(--glass-stroke); }
-body.page-search #search #s-advice .widget-body { display: grid; gap: 13px; align-content: start; }
-body.page-search #search #s-advice .widget-body .advice-controls { display: grid; grid-template-columns: 1fr; gap: 9px; }
-body.page-search #search #s-advice .widget-body #s-advice-question { width: 100%; }
-body.page-search #search #s-advice .widget-body #s-advice-out {
-  padding: 12px; border-radius: 10px; background: rgba(11, 19, 32, .62); border: 1px solid var(--ui-line-soft);
-}
-body.page-search #search #s-advice .widget-body #s-advice-status { margin: 0; }
 body.page-mission #m-result { grid-template-columns: minmax(160px, max-content) minmax(0,1fr); }
 body.page-mission #m-result dd { overflow-wrap: anywhere; font-weight: 600; font-variant-numeric: tabular-nums; }
 body.page-mission .fill-bar { height: 10px; border-radius: 10px; }
@@ -982,7 +963,6 @@ body.page-system .ui-scene-widget.is-expanded {
 body.page-moon #metrics-overlay.ui-scene-widget,
 body.page-system .system-info.ui-scene-widget,
 body.page-search #search .search-form.ui-widget,
-body.page-search #search #s-advice.ui-widget,
 body.page-mission .mission-form.ui-widget,
 body.page-plan .lw-controls.ui-widget,
 body.page-launch .lw-controls.ui-widget,
